@@ -1,0 +1,12 @@
+libsrc/SlipPanel.h
+libsrc/SlipGL.h
+libsrc/SlipPanel.cpp
+libsrc/SlipObject.h
+libsrc/shaders/fImage.h
+libsrc/shaders/vImage.h
+libsrc/shaders/fWipe.h
+libsrc/SlipGL.cpp
+libsrc/SurfaceView.h
+libsrc/SurfaceView.cpp
+libsrc/SlipObject.cpp
+libsrc/main.cpp
