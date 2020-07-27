@@ -19,7 +19,12 @@
 #ifndef __abmap__Bound__
 #define __abmap__Bound__
 
+#include <mutex>
 #include "SlipObjFile.h"
+
+class Structure;
+class SlipGL;
+class RefinementStrategy;
 
 class Bound : public SlipObjFile
 {
@@ -35,8 +40,106 @@ public:
 	{
 		return _fixed;
 	}
+	
+	void setSnapping(bool snapping);
+	virtual void render(SlipGL *gl);
+	
+	static void updateOnRender(bool render)
+	{
+		_updateOnRender = render;
+	}
+	
+	void setStructure(Structure *s)
+	{
+		_structure = s;
+	}
+	
+	static double getRadius()
+	{
+		return _radius;
+	}
+	
+	void addToStrategy(RefinementStrategy *str);
+	
+	static double getPosX(void *object)
+	{
+		if (_updateOnRender)
+		{
+			Bound *b = static_cast<Bound *>(object);
+			std::lock_guard<std::mutex> l(b->_mutex);
+			return static_cast<Bound *>(object)->_realPosition.x;
+		}
+
+		return static_cast<Bound *>(object)->_realPosition.x;
+	}
+	
+	static double getPosY(void *object)
+	{
+		if (_updateOnRender)
+		{
+			Bound *b = static_cast<Bound *>(object);
+			std::lock_guard<std::mutex> l(b->_mutex);
+			return static_cast<Bound *>(object)->_realPosition.y;
+		}
+
+		return static_cast<Bound *>(object)->_realPosition.y;
+	}
+
+	static double getPosZ(void *object)
+	{
+		if (_updateOnRender)
+		{
+			Bound *b = static_cast<Bound *>(object);
+			std::lock_guard<std::mutex> l(b->_mutex);
+			return static_cast<Bound *>(object)->_realPosition.z;
+		}
+		return static_cast<Bound *>(object)->_realPosition.z;
+	}
+
+	static void setPosX(void *object, double x)
+	{
+		if (_updateOnRender)
+		{
+			Bound *b = static_cast<Bound *>(object);
+			std::lock_guard<std::mutex> l(b->_mutex);
+			static_cast<Bound *>(object)->_realPosition.x = x;
+		}
+		static_cast<Bound *>(object)->_realPosition.x = x;
+	}
+
+	static void setPosY(void *object, double y)
+	{
+		if (_updateOnRender)
+		{
+			Bound *b = static_cast<Bound *>(object);
+			std::lock_guard<std::mutex> l(b->_mutex);
+			static_cast<Bound *>(object)->_realPosition.y = y;
+		}
+		static_cast<Bound *>(object)->_realPosition.y = y;
+	}
+
+	static void setPosZ(void *object, double z)
+	{
+		if (_updateOnRender)
+		{
+			Bound *b = static_cast<Bound *>(object);
+			std::lock_guard<std::mutex> l(b->_mutex);
+			static_cast<Bound *>(object)->_realPosition.z = z;
+		}
+		static_cast<Bound *>(object)->_realPosition.z = z;
+	}
+	
+	vec3 getWorkingPosition();
+	
+	void setRealPosition(vec3 real);
 private:
+	std::mutex _mutex;
+	Structure *_structure;
+	vec3 _realPosition;
+	static double _radius;
+	bool _snapping;
 	bool _fixed;
+	static bool _updateOnRender;
 
 };
 

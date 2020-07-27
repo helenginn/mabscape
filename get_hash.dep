@@ -1,6 +1,9 @@
+libsrc/Data.h
 libsrc/SlipPanel.h
 libsrc/SlipObjFile.h
+libsrc/Refinement.h
 libsrc/SlipGL.h
+libsrc/Data.cpp
 libsrc/SlipPanel.cpp
 libsrc/SlipObject.h
 libsrc/shaders/fImage.h
@@ -17,4 +20,5 @@ libsrc/main.cpp
 libsrc/Experiment.cpp
 libsrc/Experiment.h
 libsrc/Bound.h
+libsrc/Refinement.cpp
 libsrc/Bound.cpp

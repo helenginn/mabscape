@@ -287,6 +287,11 @@ void SlipObject::render(SlipGL *sender)
 		return;
 	}
 	
+	if (_program == 0)
+	{
+		initialisePrograms();
+	}
+	
 	glUseProgram(_program);
 	rebindProgram();
 	
@@ -510,21 +515,14 @@ void SlipObject::changeMidPoint(double x, double y)
 
 	vec3 model = mat4x4_mult_vec3(_model, pos, &last);
 	vec3 proj = mat4x4_mult_vec3(_proj, model, &last);
-
-	std::cout << vec3_desc(pos) << " " << last << std::endl;
-	std::cout << vec3_desc(model) << " " << last << std::endl;
-	std::cout << vec3_desc(proj) << " " << last << std::endl;
 	
 	double newx = last * x / _proj.vals[0];
 	double newy = last * y / _proj.vals[5];
 	vec3 move = make_vec3(newx - model.x, newy - model.y, 0);
-	std::cout << vec3_desc(move) << std::endl;
 
 	mat3x3 rot = mat4x4_get_rot(_model);
 
 	vec3 newpos = mat3x3_mult_vec(rot, move);
-
-	std::cout << vec3_desc(newpos) << " " << last <<  std::endl;
 
 	addToVertices(newpos);
 	

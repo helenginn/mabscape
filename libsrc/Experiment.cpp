@@ -20,15 +20,24 @@
 #include "SurfaceView.h"
 #include "SlipGL.h"
 #include "Bound.h"
+#include "Data.h"
 #include "Structure.h"
+#include "Refinement.h"
 #include "FileReader.h"
 #include <iomanip>
+#include <fstream>
 #include <float.h>
 #include <QLabel>
+#include <QMenu>
+#include <QThread>
 
 Experiment::Experiment(SurfaceView *view)
 {
+	_bestMonte = FLT_MAX;
+	_worker = NULL;
+	_data = NULL;
 	_selected = NULL;
+	_monteCount = -1;
 	_dragging = false;
 	_view = view;
 	_gl = NULL;
@@ -38,6 +47,7 @@ Experiment::Experiment(SurfaceView *view)
 	_label->setAlignment(Qt::AlignHCenter);
 	QFont font = QFont("Helvetica", 16);
 	_label->setFont(font);
+	_label->setStyleSheet("QLabel { color : white; }");
 }
 
 
@@ -49,7 +59,7 @@ void Experiment::loadStructure(std::string filename)
 }
 
 
-void Experiment::loadBound(std::string filename)
+Bound *Experiment::loadBound(std::string filename)
 {
 	Bound *bnd = new Bound(filename);
 	bnd->setName("thing" + i_to_str(_bounds.size() + 1));
@@ -59,9 +69,11 @@ void Experiment::loadBound(std::string filename)
 	{
 		bnd->randomlyPositionInRegion(_structure);
 		bnd->snapToObject(_structure);
+		bnd->setStructure(_structure);
 	}
 
 	_bounds.push_back(bnd);
+	return bnd;
 }
 
 Bound *Experiment::findBound(double x, double y)
@@ -122,9 +134,13 @@ void Experiment::select(Bound *bound, double x, double y)
 	bound->setSelected(true);
 	QString name = QString::fromStdString(bound->name());
 	_view->convertToViewCoords(&x, &y);
-	_label->setGeometry(x - 50, y - 50, 100, 50);
-	_label->setText(name);
-	_label->show();
+
+	if (x > 0 && y > 0)
+	{
+		_label->setGeometry(x - 50, y - 50, 100, 50);
+		_label->setText(name);
+		_label->show();
+	}
 }
 
 void Experiment::checkDrag(double x, double y)
@@ -187,4 +203,246 @@ void Experiment::fixBound()
 	{
 		_selected->toggleFixPosition();
 	}
+}
+
+void Experiment::loadCSV(std::string filename)
+{
+	_data = new Data(filename);
+	createBinders();
+}
+
+void Experiment::createBinders()
+{
+	for (size_t i = 0; i < _data->boundCount(); i++)
+	{
+		std::string id = _data->boundName(i);
+		std::cout << "Making " << id << std::endl;
+		Bound *bound = loadBound(_boundObj);
+		bound->setName(id);
+		_nameMap[id] = bound;
+	}
+}
+
+void Experiment::addBindersToMenu(QMenu *binders)
+{
+	for (size_t i = 0; i < _bounds.size(); i += 10)
+	{
+		size_t end = std::min(i + 10, _bounds.size());
+
+		std::string title = "Binders " + i_to_str(i + 1) + " to " 
+		+ i_to_str(end);
+
+		QMenu *m = binders->addMenu(QString::fromStdString(title));
+		_view->addMenu(m);
+
+		for (size_t j = 0; i + j < _bounds.size() && j < 10; j++)
+		{
+			std::string name = _bounds[i + j]->name();
+			QString n = QString::fromStdString(name);
+			QAction *act = m->addAction(n);
+			connect(act, &QAction::triggered, 
+			        this, &Experiment::selectFromMenu);
+			_view->addAction(act);
+		}
+	}
+}
+
+void Experiment::selectFromMenu()
+{
+	QObject *obj = QObject::sender();
+	QAction *act = static_cast<QAction *>(obj);
+
+	std::string name = act->text().toStdString();
+	Bound *b = _nameMap[name];
+
+	if (b == NULL)
+	{
+		return;
+	}
+
+	deselectAll();
+	select(b, -1, -1);
+}
+
+void Experiment::refineModel(bool toSurface)
+{
+	if (_worker && _worker->isRunning())
+	{
+		return;
+	}
+	
+	if (!_worker)
+	{
+		_worker = new QThread();
+	}
+
+	_refinement = new Refinement(this, toSurface);
+	_refinement->moveToThread(_worker);
+
+	connect(this, SIGNAL(refine()),
+	        _refinement, SLOT(refine()));
+
+	connect(_refinement, SIGNAL(resultReady()), 
+	        this, SLOT(handleResults()));
+	connect(_refinement, SIGNAL(failed()), 
+	        this, SLOT(handleError()));
+	_worker->start();
+
+	emit refine();
+}
+
+void Experiment::handleResults()
+{
+	std::cout << "Done." << std::endl;
+	Refinement *obj = static_cast<Refinement *>(QObject::sender());
+
+	disconnect(this, SIGNAL(refine()), nullptr, nullptr);
+	disconnect(obj, SIGNAL(resultReady()), this, SLOT(handleResults()));
+	disconnect(obj, SIGNAL(failed()), this, SLOT(handleError()));
+
+	obj->deleteLater();
+	_worker = NULL;
+	
+	if (_monteCount >= 0 && _monteCount < 20)
+	{
+		double newest = Refinement::getScore(_refinement);
+		std::cout << "New score: " << newest << std::endl;
+		
+		if (newest < _bestMonte)
+		{
+			std::cout << "Best so far!" << std::endl;
+			savePositions(&_bestPositions);
+			_bestMonte = newest;
+		}
+		_monteCount++;
+
+		monteCarloRound();
+	}
+	else if (_monteCount >= 20)
+	{
+		applyPositions(_bestPositions);
+		std::cout << "Choosing best score: " << _bestMonte << std::endl;
+		_monteCount = -1;
+	}
+}
+
+void Experiment::handleError()
+{
+	std::cout << "Error." << std::endl;
+
+	Refinement *obj = static_cast<Refinement *>(QObject::sender());
+
+	disconnect(this, SIGNAL(refine()), nullptr, nullptr);
+	disconnect(obj, SIGNAL(resultReady()), this, SLOT(handleResults()));
+	disconnect(obj, SIGNAL(failed()), this, SLOT(handleError()));
+
+	obj->deleteLater();
+	_worker = NULL;
+}
+
+void Experiment::randomise()
+{
+	for (size_t i = 0; i < _bounds.size(); i++)
+	{
+		_bounds[i]->randomlyPositionInRegion(_structure);
+		_bounds[i]->snapToObject(_structure);
+	}
+}
+
+void Experiment::jiggle()
+{
+	for (int i = 0; i < 8; i++)
+	{
+		for (size_t i = 0; i < _bounds.size(); i++)
+		{
+			_bounds[i]->jiggleOnSurface(_structure);
+		}
+	}
+
+}
+
+void Experiment::monteCarloRound()
+{
+	std::cout << "Monte Carlo round " << _monteCount + 1 << std::endl;
+	randomise();
+	refineModel(false);
+}
+
+void Experiment::savePositions(std::map<Bound *, vec3> *posMap)
+{
+	posMap->clear();
+
+	for (size_t i = 0; i < _bounds.size(); i++)
+	{
+		vec3 wip = _bounds[i]->getWorkingPosition();
+		(*posMap)[_bounds[i]] = wip;
+	}
+}
+
+void Experiment::applyPositions(std::map<Bound *, vec3> posMap)
+{
+	for (size_t i = 0; i < _bounds.size(); i++)
+	{
+		if (posMap.count(_bounds[i]) == 0)
+		{
+			continue;
+		}
+
+		vec3 wip = posMap[_bounds[i]];
+		_bounds[i]->setRealPosition(wip);
+	}
+}
+
+void Experiment::monteCarlo()
+{
+	_monteCount = 0;
+
+	monteCarloRound();
+
+}
+
+void Experiment::writeOutCSV()
+{
+	std::ofstream file;
+	file.open("model.csv"); 
+	double radius = Bound::getRadius();
+
+	for (size_t i = 1; i < boundCount(); i++)
+	{
+		Bound *bi = bound(i);
+		std::string bin = bi->name();
+		vec3 posi = bi->getWorkingPosition();
+		for (size_t j = 0; j < i; j++)
+		{
+			Bound *bj = bound(j);
+			std::string bjn = bj->name();
+
+			double val = _data->valueFor(bin, bjn);
+
+			if (val != val)
+			{
+				continue;
+			}
+			
+			vec3 posj = bj->getWorkingPosition();
+
+			vec3 vector = vec3_subtract_vec3(posi, posj);
+			double distance = vec3_length(vector);
+			
+			/*
+			double prop = 0;
+			if (distance < 2 * radius)
+			{
+				double q = (2 * radius - distance) / 2;
+				prop = 2 * (3 * q * q - 2 * q * q * q);
+			}
+			*/
+			
+			double prop = exp(-(distance * distance) / (2 * radius));
+			file << bin << "," << bjn << "," << prop << std::endl;
+		}
+	}
+	
+	file.close();
+
 }

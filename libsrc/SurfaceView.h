@@ -25,6 +25,8 @@
 class Bound;
 class SlipGL;
 class QTimer;
+class QMenu;
+class QAction;
 class Experiment;
 
 class SurfaceView : public QMainWindow
@@ -42,6 +44,16 @@ public:
 	{
 
 	}
+	
+	void addMenu(QMenu *men)
+	{
+		_menus.push_back(men);
+	}
+	
+	void addAction(QAction *act)
+	{
+		_actions.push_back(act);
+	}
 
 	void convertToViewCoords(double *x, double *y);
 protected:
@@ -52,6 +64,9 @@ protected:
 	virtual void mouseReleaseEvent(QMouseEvent *e);
 	virtual void mouseMoveEvent(QMouseEvent *e);
 private slots:
+	void loadCSV();
+	void unrestrainedRefine();
+	void fixToSurfaceRefine();
 private:
 	void makeMenu();
 	void convertCoords(double *x, double *y);
@@ -63,6 +78,8 @@ private:
 	double _lastX; double _lastY;
 	bool _moving;
 
+	std::vector<QMenu *> _menus;
+	std::vector<QAction *> _actions;
 };
 
 #endif

@@ -49,7 +49,7 @@ public:
 	SlipObject();
 	virtual ~SlipObject() {};
 	void initialisePrograms(std::string *v = NULL, std::string *f = NULL);
-	void render(SlipGL *sender);
+	virtual void render(SlipGL *sender);
 	
 	Vertex *vPointer()
 	{

@@ -18,6 +18,11 @@
 
 #include <iostream>
 #include "Bound.h"
+#include <RefinementStrategy.h>
+#include "Structure.h"
+
+double Bound::_radius = 30.;
+bool Bound::_updateOnRender = false;
 
 vec3 random_vec3(bool absolute = false)
 {
@@ -49,10 +54,15 @@ Bound::Bound(std::string filename) : SlipObjFile(filename)
 
 void Bound::snapToObject(SlipObject *obj)
 {
+	if (obj == NULL)
+	{
+		obj = _structure;
+	}
 	vec3 myCentroid = centroid();
 	vec3 nearest = obj->nearestVertex(myCentroid);
 	vec3 diff = vec3_subtract_vec3(nearest, myCentroid);
 	addToVertices(diff);
+	_realPosition = centroid();
 }
 
 void Bound::randomlyPositionInRegion(SlipObject *obj)
@@ -93,4 +103,74 @@ void Bound::toggleFixPosition()
 		recolour(1, 0, 0, &_unselectedVertices);
 		recolour(0, 0, 1, &_vertices);
 	}
+}
+
+
+
+vec3 Bound::getWorkingPosition()
+{
+	if (!_snapping)
+	{
+		return _realPosition;
+	}
+	else
+	{
+		vec3 nearest;
+		if (_updateOnRender)
+		{
+			std::lock_guard<std::mutex> l(_mutex);
+			nearest = _structure->nearestVertex(_realPosition);
+			return nearest;
+		}
+
+		nearest = _structure->nearestVertex(_realPosition);
+		return nearest;
+	}
+}
+
+
+void Bound::setSnapping(bool snapping)
+{
+	_snapping = snapping;
+	_realPosition = centroid();
+}
+
+void Bound::render(SlipGL *gl)
+{
+	if (_updateOnRender)
+	{
+		vec3 current = centroid();
+		vec3 working = getWorkingPosition();
+		
+		vec3 diff = vec3_subtract_vec3(working, current);
+		addToVertices(diff);
+	}
+
+	SlipObject::render(gl);
+}
+
+void Bound::addToStrategy(RefinementStrategy *str)
+{
+	if (_fixed)
+	{
+		return;
+	}
+
+	double step = 10;
+	double tol = 0.01;
+	str->addParameter(this, Bound::getPosX, Bound::setPosX,
+	                  (rand() % 2 - 0.5) * step, tol, name() + "_x");
+	str->addParameter(this, Bound::getPosY, Bound::setPosY,
+	                  (rand() % 2 - 0.5) * step, tol, name() + "_y");
+	str->addParameter(this, Bound::getPosZ, Bound::setPosZ,
+	                  (rand() % 2 - 0.5) * step, tol, name() + "_z");
+}
+
+void Bound::setRealPosition(vec3 real)
+{
+	_realPosition = real;
+
+	vec3 current = centroid();
+	vec3 diff = vec3_subtract_vec3(real, current);
+	addToVertices(diff);
 }

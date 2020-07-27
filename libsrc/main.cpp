@@ -33,11 +33,8 @@ int main(int argc, char * argv[])
 
 	if (argc > 2)
 	{
-		std::cout << "Hello" << std::endl;
-		for (int i = 0; i < 100; i++)
-		{
-			e->loadBound(argv[2]);
-		}
+		std::cout << "Setting bound object" << std::endl;
+		e->setBoundObj(argv[2]);
 	}
 
 	s.show();

@@ -8,6 +8,7 @@ png_dep = dependency('libpng')
 boost_dep = dependency('boost')
 fftw_dep = dependency('fftw3f')
 dep_vag = dependency('libvag')
+dep_ica = dependency('libica')
 
 vagdir = dep_vag.get_pkgconfig_variable('prefix') + '/lib64'
 
@@ -31,6 +32,8 @@ gen_src = custom_target('commit-output',
 
 moc_files = qt5.preprocess(moc_headers : 
 ['libsrc/SlipGL.h',
+'libsrc/Experiment.h',
+'libsrc/Refinement.h',
 'libsrc/SurfaceView.h',
 ],
 			moc_extra_arguments: ['-DMAKES_MY_MOC_HEADER_COMPILE'])
@@ -38,6 +41,7 @@ moc_files = qt5.preprocess(moc_headers :
 executable('abmap', gen_src, moc_files,
 'libsrc/main.cpp',
 'libsrc/Bound.cpp',
+'libsrc/Data.cpp',
 'libsrc/Experiment.cpp',
 'libsrc/SlipGL.cpp',
 'libsrc/SlipPanel.cpp',
@@ -45,6 +49,7 @@ executable('abmap', gen_src, moc_files,
 'libsrc/SlipObjFile.cpp',
 'libsrc/Structure.cpp',
 'libsrc/SurfaceView.cpp',
-cpp_args: ['-std=c++11'], dependencies : [ boost_dep, dep_vag, png_dep, qt5_dep ], 
+'libsrc/Refinement.cpp',
+cpp_args: ['-std=c++11'], dependencies : [ boost_dep, dep_vag, png_dep, qt5_dep, dep_ica ], 
 install_rpath: vagdir, install: true)
 

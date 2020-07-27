@@ -49,10 +49,45 @@ SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 
 void SurfaceView::makeMenu()
 {
-	QMenu *data = menuBar()->addMenu(tr("&Data"));
-	QAction *act = data->addAction(tr("Load CSV"));
+	for (size_t i = 0; i < _menus.size(); i++)
+	{
+		_menus[i]->hide();
+		_menus[i]->deleteLater();
+	}
 
-	connect(act, &QAction::triggered, this, loadCSV);
+	for (size_t i = 0; i < _actions.size(); i++)
+	{
+		_actions[i]->deleteLater();
+	}
+	
+	_menus.clear();
+	_actions.clear();
+
+	QMenu *data = menuBar()->addMenu(tr("&Data"));
+	_menus.push_back(data);
+	QAction *act = data->addAction(tr("Load CSV"));
+	connect(act, &QAction::triggered, this, &SurfaceView::loadCSV);
+
+	QMenu *binders = menuBar()->addMenu(tr("&Binders"));
+	_menus.push_back(binders);
+	
+	_experiment->addBindersToMenu(binders);
+	
+	act = binders->addAction(tr("Write CSV"));
+	connect(act, &QAction::triggered, _experiment, &Experiment::writeOutCSV);
+
+	QMenu *refine = menuBar()->addMenu(tr("&Refine"));
+	_menus.push_back(refine);
+	act = refine->addAction(tr("Refine"));
+	connect(act, &QAction::triggered, this, &SurfaceView::unrestrainedRefine);
+	act = refine->addAction(tr("Monte Carlo"));
+	connect(act, &QAction::triggered, _experiment, &Experiment::monteCarlo);
+//	act = refine->addAction(tr("Fix to surface"));
+//	connect(act, &QAction::triggered, this, &SurfaceView::fixToSurfaceRefine);
+	act = refine->addAction(tr("Randomise positions"));
+	connect(act, &QAction::triggered, _experiment, &Experiment::randomise);
+	act = refine->addAction(tr("Jiggle"));
+	connect(act, &QAction::triggered, _experiment, &Experiment::jiggle);
 }
 
 void SurfaceView::convertCoords(double *x, double *y)
@@ -215,4 +250,17 @@ void SurfaceView::loadCSV()
 	std::string filename = fileNames[0].toStdString();
 	
 	_experiment->loadCSV(filename);
+	
+	makeMenu();
 }
+
+void SurfaceView::unrestrainedRefine()
+{
+	_experiment->refineModel(false);
+}
+
+void SurfaceView::fixToSurfaceRefine()
+{
+	_experiment->refineModel(true);
+}
+
