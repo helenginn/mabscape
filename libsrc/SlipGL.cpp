@@ -24,6 +24,7 @@
 #include <QWindow>
 #include <QTimer>
 #include <iostream>
+#include <iomanip>
 
 #define MOUSE_SENSITIVITY 500
 #define START_Z -64
@@ -32,9 +33,9 @@ void SlipGL::initializeGL()
 {
 	initializeOpenGLFunctions();
 
-	glClearColor(1.0, 1.0, 1.0, 1.0);
+	glClearColor(0.0, 0.0, 0.0, 1.0);
 
-//	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_TEST);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glEnable(GL_BLEND);
@@ -45,11 +46,12 @@ void SlipGL::initializeGL()
 
 SlipGL::SlipGL(QWidget *p) : QOpenGLWidget(p)
 {
-	/*
+	_time = 0;
 	_timer = new QTimer();
-	_timer->setInterval(1);
-	connect(_timer, &QTimer::timeout, this, &SlipGL::update);
-	*/
+	_timer->setInterval(20);
+	_timer->setSingleShot(false);
+	connect(_timer, &QTimer::timeout, this, &SlipGL::time);
+	_timer->start();
 
 	setGeometry(p->geometry());
 	updateProjection();
@@ -85,7 +87,7 @@ void SlipGL::preparePanels(int n)
 
 void SlipGL::panned(double x, double y)
 {
-
+	zoom(x, y, 0);
 }
 
 void SlipGL::zoom(float x, float y, float z)
@@ -98,6 +100,15 @@ void SlipGL::zoom(float x, float y, float z)
 	_transOnly.y += y;
 	_transOnly.z += z;
 
+}
+
+void SlipGL::time()
+{
+	_time += 0.002;
+	
+	if (_time > 1) _time -= 1;
+	
+	update();
 }
 
 void SlipGL::draggedLeftMouse(double x, double y)
@@ -139,7 +150,6 @@ void SlipGL::paintGL()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	for (unsigned int i = 0; i < _objects.size(); i++)
 	{
-		_objects[i]->initialisePrograms();
 		_objects[i]->render(this);
 	}
 }

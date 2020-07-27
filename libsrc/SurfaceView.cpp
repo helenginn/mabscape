@@ -17,21 +17,67 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #define PAN_SENSITIVITY 30
+#include <iostream>
 #include "SurfaceView.h"
+#include "SlipGL.h"
 #include "Structure.h"
+#include "Experiment.h"
+#include "Bound.h"
+#include <QTimer>
+#include <QMenuBar>
+#include <QFileDialog>
 
 SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 {
+	_mouseButton = Qt::NoButton;
+	_controlPressed = false;
+	_shiftPressed = false;
+	_lastX = -1; _lastY = -1;
+	_moving = false;
 	_gl = new SlipGL(this);
+	_experiment = new Experiment(this);
+	_experiment->setGL(_gl);
 	_gl->show();
+	
+	makeMenu();
 
 	resize(1000, 1000);
 	setFocus();
+	setMouseTracking(true);
+	_gl->setMouseTracking(true);
+}
+
+void SurfaceView::makeMenu()
+{
+	QMenu *data = menuBar()->addMenu(tr("&Data"));
+	QAction *act = data->addAction(tr("Load CSV"));
+
+	connect(act, &QAction::triggered, this, loadCSV);
+}
+
+void SurfaceView::convertCoords(double *x, double *y)
+{
+	double w = width();
+	double h = height();
+
+	*x = 2 * *x / w - 1.0;
+	*y =  - (2 * *y / h - 1.0);
+}
+
+
+void SurfaceView::convertToViewCoords(double *x, double *y)
+{
+	double w = width();
+	double h = height();
+	
+	*x = (*x + 1.0) * w / 2;
+	*y = (-*y + 1.0) * h / 2;
 }
 
 void SurfaceView::resizeEvent(QResizeEvent *event)
 {
-	_gl->setGeometry(0, 0, width(), height());
+	_gl->setGeometry(0, menuBar()->height(), width(), 
+	                 height() - menuBar()->height());
 }
 
 void SurfaceView::keyPressEvent(QKeyEvent *event)
@@ -43,6 +89,10 @@ void SurfaceView::keyPressEvent(QKeyEvent *event)
 	else if (event->key() == Qt::Key_Shift)
 	{
 		_shiftPressed = true;
+	}
+	else if (event->key() == Qt::Key_F)
+	{
+		_experiment->fixBound();
 	}
 }
 
@@ -69,12 +119,34 @@ void SurfaceView::mousePressEvent(QMouseEvent *e)
 
 void SurfaceView::mouseMoveEvent(QMouseEvent *e)
 {
+	double x = e->x(); double y = e->y();
+	convertCoords(&x, &y);
+
 	if (_mouseButton == Qt::NoButton)
 	{
+		_experiment->hoverMouse(x, y);
+
 		return;
 	}
-
+	
+	if (_shiftPressed && !_moving)
+	{
+		/* we've begun moving with shift pressed - we must see
+		 * if we have begun to drag a selected object */
+	
+		_experiment->checkDrag(x, y);
+		_experiment->drag(x, y);
+		_moving = true;
+		return;
+	}
+	else if (_shiftPressed)
+	{
+		_experiment->drag(x, y);
+		return;
+	}
+	
 	_moving = true;
+	_experiment->hideLabel();
 	
 	double newX = e->x();
 	double xDiff = _lastX - newX;
@@ -87,7 +159,7 @@ void SurfaceView::mouseMoveEvent(QMouseEvent *e)
 	{
 		if (_controlPressed)
 		{
-			_gl->panned(xDiff * 2, yDiff * 2);
+			_gl->panned(xDiff / PAN_SENSITIVITY, yDiff / PAN_SENSITIVITY);
 		}
 		else
 		{
@@ -101,28 +173,46 @@ void SurfaceView::mouseMoveEvent(QMouseEvent *e)
 	}
 }
 
-void SurfaceView::convertCoords(double *x, double *y)
-{
-	double w = width();
-	double h = height();
-
-	*x = 2 * *x / w - 1.0;
-	*y =  - (2 * *y / h - 1.0);
-}
-
 void SurfaceView::mouseReleaseEvent(QMouseEvent *e)
 {
-	if (!_moving)
+	if (!_moving && e->button() == Qt::LeftButton)
 	{
 		// this was just a click
+		double x = e->x(); double y = e->y();
+		convertCoords(&x, &y);
+		_experiment->clickMouse(x, y);
+	}
+	
+	if (_moving && e->button() == Qt::LeftButton && _shiftPressed)
+	{
+		_experiment->finishDragging();
 	}
 	
 	_mouseButton = Qt::NoButton;
 }
 
-void SurfaceView::loadStructure(std::string filename)
+void SurfaceView::loadCSV()
 {
-	Structure *str = new Structure(filename);
-	_gl->addObject(str, true);
+	QFileDialog *f = new QFileDialog(this, "Choose competition data CSV", 
+	                                 "Comma-separated values (*.csv)");
+	f->setFileMode(QFileDialog::AnyFile);
+	f->setOptions(QFileDialog::DontUseNativeDialog);
+	f->show();
 
+    QStringList fileNames;
+
+    if (f->exec())
+    {
+        fileNames = f->selectedFiles();
+    }
+    
+    if (fileNames.size() < 1)
+    {
+		return;
+    }
+
+	f->deleteLater();
+	std::string filename = fileNames[0].toStdString();
+	
+	_experiment->loadCSV(filename);
 }

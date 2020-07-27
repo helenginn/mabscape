@@ -37,6 +37,8 @@ moc_files = qt5.preprocess(moc_headers :
 
 executable('abmap', gen_src, moc_files,
 'libsrc/main.cpp',
+'libsrc/Bound.cpp',
+'libsrc/Experiment.cpp',
 'libsrc/SlipGL.cpp',
 'libsrc/SlipPanel.cpp',
 'libsrc/SlipObject.cpp',

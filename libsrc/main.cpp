@@ -11,6 +11,7 @@
 #include <iostream>
 #include <QApplication>
 #include "SurfaceView.h"
+#include "Experiment.h"
 
 int main(int argc, char * argv[])
 {
@@ -20,13 +21,23 @@ int main(int argc, char * argv[])
 	setlocale(LC_NUMERIC, "C");
 
 	SurfaceView s;
+	Experiment *e = s.getExperiment();
 	
 	std::cout << "Argc: " << argc << std::endl;
 	if (argc > 1)
 	{
 		std::string file = argv[1];
 		std::cout << "Loading" << std::endl;
-		s.loadStructure(file);
+		e->loadStructure(file);
+	}
+
+	if (argc > 2)
+	{
+		std::cout << "Hello" << std::endl;
+		for (int i = 0; i < 100; i++)
+		{
+			e->loadBound(argv[2]);
+		}
 	}
 
 	s.show();

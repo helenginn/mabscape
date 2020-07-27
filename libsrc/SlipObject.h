@@ -81,6 +81,16 @@ public:
 		return _indices.size();
 	}
 	
+	std::string name()
+	{
+		return _name;
+	}
+	
+	void setName(std::string name)
+	{
+		_name = name;
+	}
+	
 	bool isDisabled()
 	{
 		return _disabled;
@@ -91,35 +101,40 @@ public:
 		_model = model;
 	}
 	
-	void midpoint(double *x, double *y);
 	void setDisabled(bool dis);
 	
-	bool isCovered(double x, double y);
-	void setVertices(float t, float b, float l, float r);
-	void addToVertices(float x, float y);
-	void rotateVertices(double angle);
+	void addToVertices(vec3 add);
 	
-	void select(bool sel, double red, double green, double blue);
+	void recolour(double red, double green, double blue,
+	              std::vector<Vertex> *vs = NULL);
 	void changeProgram(std::string &v, std::string &f);
-	void wipeEffect();
 	vec3 centroid();
+	vec3 nearestVertex(vec3 pos);
 	
+	void changeMidPoint(double x, double y);
+	void setHighlighted(bool highlighted);
+	void setSelected(bool selected);
 	void reorderIndices();
-	void setZCoord(float z);
+	void boundaries(vec3 *min, vec3 *max);
+	bool intersects(double x, double y, double *z);
 protected:
 	void addVertex(float v1, float v2, float v3);
 	void addIndex(GLuint i);
+	void resize(double scale);
+	void setSelectable(bool selectable);
 
 	std::vector<Vertex> _vertices;
 	std::vector<GLuint> _indices;
+	std::vector<Vertex> _unselectedVertices;
 
+	bool _central;
 private:
 	GLuint addShaderFromString(GLuint program, GLenum type, std::string str);
 	void checkErrors();
 	void rebindProgram();
 	void deletePrograms();
 	void bindTextures();
-	void makeDummy();
+	void addToVertexArray(vec3 add, std::vector<Vertex> *vs);
 
 	static bool index_behind_index(IndexTrio one, IndexTrio two);
 	static bool index_in_front_of_index(IndexTrio one, IndexTrio two);
@@ -133,12 +148,18 @@ private:
 	GLuint _renderType;
 	GLuint _uModel;
 	GLuint _uProj;
+	GLuint _uTime;
 	std::vector<GLuint> _textures;
 	std::vector<IndexTrio> _temp; // stores with model mat
+	std::string _name;
 	mat4x4 _model;
+	mat4x4 _proj;
 	
 	bool _extra;
 	bool _disabled;
+	bool _selected;
+	bool _highlighted;
+	bool _selectable;
 	bool _backToFront;
 };
 

@@ -20,7 +20,9 @@
 #include "SlipGL.h"
 #include "charmanip.h"
 #include <mat3x3.h>
+#include <float.h>
 #include <iostream>
+#include <iomanip>
 #include <cmath>
 #include <string>
 #include <QImage>
@@ -28,131 +30,36 @@
 #include "shaders/fImage.h"
 #include "shaders/fWipe.h"
 
-void SlipObject::addToVertices(float x, float y)
+vec3 vec_from_pos(GLfloat *pos)
 {
-	for (size_t i = 0; i < _vertices.size(); i++)
+	vec3 tmpVec = make_vec3(pos[0], pos[1],
+	                        pos[2]);
+
+	return tmpVec;
+}
+
+void pos_from_vec(GLfloat *pos, vec3 v)
+{
+	pos[0] = v.x;
+	pos[1] = v.y;
+	pos[2] = v.z;
+}
+
+
+void SlipObject::addToVertexArray(vec3 add, std::vector<Vertex> *vs)
+{
+	for (size_t i = 0; i < vs->size(); i++)
 	{
-		_vertices[i].pos[0] += x;
-		_vertices[i].pos[1] += y;
+		(*vs)[i].pos[0] += add.x;
+		(*vs)[i].pos[1] += add.y;
+		(*vs)[i].pos[2] += add.z;
 	}
 }
 
-bool SlipObject::isCovered(double x, double y)
+void SlipObject::addToVertices(vec3 add)
 {
-	if (isDisabled())
-	{
-		return false;
-	}
-	
-	int all_s[] = {0, 1, 3, 2};
-	int all_e[] = {1, 3, 2, 0};
-
-	int crosses = 0;
-
-	for (int i = 0; i < 4; i++)
-	{
-		int s = all_s[i];
-		int e = all_e[i];
-
-		float sx = _vertices[s].pos[1];
-		float sy = _vertices[s].pos[0];
-		float ex = _vertices[e].pos[1];
-		float ey = _vertices[e].pos[0];
-
-		/* ys are outside of the range of this line cross */
-		if ((sy < ey && (y < sy || y > ey)) ||
-		    (sy >= ey && (y > sy || y < ey)))
-		{
-			continue;
-		}
-
-		float px = sx + (y - sy) * (ex - sx) / (ey - sy);
-
-		/* cross point is to the right of the x value */
-		if (px < x)
-		{
-			continue;
-		}
-
-		crosses++;
-	}
-
-	return (crosses % 2 == 1);
-}
-
-void SlipObject::setZCoord(float z)
-{
-	for (size_t i = 0; i < _vertices.size(); i++)
-	{
-		_vertices[i].pos[2] = z;
-	}
-}
-
-void SlipObject::setVertices(float t, float b, float l, float r)
-{
-	if (_vertices.size() == 0)
-	{
-		makeDummy();
-	}
-	
-	_vertices[0].pos[0] = b;
-	_vertices[0].pos[1] = l;
-	
-	_vertices[1].pos[0] = b;
-	_vertices[1].pos[1] = r;
-	
-	_vertices[2].pos[0] = t;
-	_vertices[2].pos[1] = l;
-	
-	_vertices[3].pos[0] = t;
-	_vertices[3].pos[1] = r;
-}
-
-void SlipObject::rotateVertices(double angle)
-{
-	double sina = sin(angle);
-	double cosa = cos(angle);
-
-	double mx, my;
-	midpoint(&mx, &my);
-	
-	for (size_t i = 0; i < _vertices.size(); i++)
-	{
-		float dx, dy;
-		dx = _vertices[i].pos[0] - mx;
-		dy = _vertices[i].pos[1] - my;
-		
-		float nx = dx * cosa - dy * sina;
-		float ny = dx * sina + dy * cosa;
-		
-		_vertices[i].pos[0] = mx + nx;
-		_vertices[i].pos[1] = my + ny;
-	}
-}
-
-void SlipObject::makeDummy()
-{
-	Vertex v; 
-	memset(&v, 0, sizeof(Vertex));
-	v.pos[0] = -0.5; v.pos[1] = -0.5;
-	v.tex[0] = 0; v.tex[1] = 1;
-	_vertices.push_back(v);
-	v.pos[0] = -0.5; v.pos[1] = +0.5;
-	v.tex[0] = 0; v.tex[1] = 0;
-	 _vertices.push_back(v);
-	v.pos[0] = +0.5; v.pos[1] = -0.5;
-	v.tex[0] = 1; v.tex[1] = 1;
-	_vertices.push_back(v);
-	v.pos[0] = +0.5; v.pos[1] = +0.5;
-	v.tex[0] = 1; v.tex[1] = 0;
-	_vertices.push_back(v);
-	
-	_indices.push_back(0);
-	_indices.push_back(1);
-	_indices.push_back(2);
-	_indices.push_back(2);
-	_indices.push_back(1);
-	_indices.push_back(3);
+	addToVertexArray(add, &_vertices);
+	addToVertexArray(add, &_unselectedVertices);
 }
 
 SlipObject::SlipObject()
@@ -164,7 +71,11 @@ SlipObject::SlipObject()
 	_vbo = 0;
 	_uModel = 0;
 	_extra = 0;
+	_central = 0;
 	_disabled = 0;
+	_highlighted = 0;
+	_selected = 0;
+	_selectable = 0;
 }
 
 GLuint SlipObject::addShaderFromString(GLuint program, GLenum type, 
@@ -223,7 +134,6 @@ void SlipObject::initialisePrograms(std::string *v, std::string *f)
 	}
 	
 	initializeOpenGLFunctions();
-	bindTextures();
 
 	GLint result;
 
@@ -267,6 +177,8 @@ void SlipObject::initialisePrograms(std::string *v, std::string *f)
 
 	glGenBuffers(1, &_bufferID);
 	glGenBuffers(1, &_vbo);
+
+	bindTextures();
 	rebindProgram();
 }
 
@@ -385,10 +297,15 @@ void SlipObject::render(SlipGL *sender)
 	_uModel = glGetUniformLocation(_program, uniform_name);
 	glUniformMatrix4fv(_uModel, 1, GL_FALSE, &_model.vals[0]);
 
-	mat4x4 proj = sender->getProjection();
+	_proj = sender->getProjection();
 	uniform_name = "projection";
 	_uProj = glGetUniformLocation(_program, uniform_name);
-	glUniformMatrix4fv(_uProj, 1, GL_FALSE, &proj.vals[0]);
+	glUniformMatrix4fv(_uProj, 1, GL_FALSE, &_proj.vals[0]);
+
+	float time = sender->getTime();
+	uniform_name = "time";
+	_uTime = glGetUniformLocation(_program, uniform_name);
+	glUniform1f(_uTime, time);
 
 	if (_textures.size())
 	{
@@ -401,20 +318,35 @@ void SlipObject::render(SlipGL *sender)
 	glUseProgram(0);
 }
 
-void SlipObject::select(bool sel, double red, double green, double blue)
+void SlipObject::recolour(double red, double green, double blue,
+                          std::vector<Vertex> *vs)
 {
-	if (_vertices.size() == 0)
+	if (vs == NULL)
 	{
-		makeDummy();
+		vs = &_vertices;
 	}
-
 	for (size_t i = 0; i < _vertices.size(); i++)
 	{
-		_vertices[i].color[0] = red * sel;
-		_vertices[i].color[1] = green * sel;
-		_vertices[i].color[2] = blue * sel;
-		_vertices[i].color[3] = 0.0;
+		(*vs)[i].color[0] = red;
+		(*vs)[i].color[1] = green;
+		(*vs)[i].color[2] = blue;
+		(*vs)[i].color[3] = 1.0;
 	}
+}
+
+void SlipObject::resize(double scale)
+{
+	vec3 centre = centroid();
+	
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		vec3 pos = vec_from_pos(_vertices[i].pos);
+		vec3_subtract_from_vec3(&pos, centre);
+		vec3_mult(&pos, scale);
+		vec3_add_to_vec3(&pos, centre);
+		pos_from_vec(_vertices[i].pos, pos);
+	}
+
 }
 
 void SlipObject::changeProgram(std::string &v, std::string &f)
@@ -423,29 +355,9 @@ void SlipObject::changeProgram(std::string &v, std::string &f)
 	initialisePrograms(&v, &f);
 }
 
-void SlipObject::wipeEffect()
-{
-	std::string pencil = Pencil_vsh();
-	changeProgram(pencil, fImage);
-}
-
 void SlipObject::setDisabled(bool dis)
 {
 	_disabled = dis;
-}
-
-void SlipObject::midpoint(double *x, double *y)
-{
-	*x = 0; *y = 0;
-
-	for (size_t i = 0; i < _vertices.size(); i++)
-	{
-		*x += _vertices[i].pos[0];
-		*y += _vertices[i].pos[1];
-	}
-	
-	*x /= (double)_vertices.size();
-	*y /= (double)_vertices.size();
 }
 
 vec3 SlipObject::centroid()
@@ -458,7 +370,7 @@ vec3 SlipObject::centroid()
 		sum.y += _vertices[i].pos[1];
 		sum.z += _vertices[i].pos[2];
 	}
-
+	
 	double scale = 1 / (double)_vertices.size();
 	vec3_mult(&sum, scale);
 	
@@ -483,15 +395,6 @@ void SlipObject::addIndex(GLuint i)
 {
 	_indices.push_back(i);
 }
-
-vec3 vec_from_pos(GLfloat *pos)
-{
-	vec3 tmpVec = make_vec3(pos[0], pos[1],
-	                        pos[2]);
-
-	return tmpVec;
-}
-
 
 bool SlipObject::index_behind_index(IndexTrio one, IndexTrio two)
 {
@@ -549,4 +452,191 @@ void SlipObject::reorderIndices()
 		_indices[count + 2] = _temp[i].index[2];
 		count += 3;
 	}
+}
+
+vec3 SlipObject::nearestVertex(vec3 pos)
+{
+	double closest = FLT_MAX;
+	Vertex *vClose = NULL;
+	
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		Vertex v = _vertices[i];
+		vec3 diff = make_vec3(pos.x - v.pos[0],
+		                      pos.y - v.pos[1],
+		                      pos.z - v.pos[2]);
+
+		if (abs(diff.x) > closest || abs(diff.y) > closest 
+		    || abs(diff.z) > closest)
+		{
+			continue;
+		}
+
+		double length = vec3_length(diff);
+		
+		if (length < closest)
+		{
+			closest = length;
+			vClose = &_vertices[i];
+		}
+	}
+
+	vec3 finvec = vec_from_pos(vClose->pos);
+	return finvec;
+}
+
+void SlipObject::boundaries(vec3 *min, vec3 *max)
+{
+	*min = make_vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+	*max = make_vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		Vertex v = _vertices[i];
+		if (v.pos[0] < min->x) min->x = v.pos[0];
+		if (v.pos[1] < min->y) min->y = v.pos[1];
+		if (v.pos[2] < min->z) min->z = v.pos[2];
+
+		if (v.pos[0] > max->x) max->x = v.pos[0];
+		if (v.pos[1] > max->y) max->y = v.pos[1];
+		if (v.pos[2] > max->z) max->z = v.pos[2];
+	}
+}
+
+void SlipObject::changeMidPoint(double x, double y)
+{
+	vec3 pos = centroid();
+	double last = 1;
+
+	vec3 model = mat4x4_mult_vec3(_model, pos, &last);
+	vec3 proj = mat4x4_mult_vec3(_proj, model, &last);
+
+	std::cout << vec3_desc(pos) << " " << last << std::endl;
+	std::cout << vec3_desc(model) << " " << last << std::endl;
+	std::cout << vec3_desc(proj) << " " << last << std::endl;
+	
+	double newx = last * x / _proj.vals[0];
+	double newy = last * y / _proj.vals[5];
+	vec3 move = make_vec3(newx - model.x, newy - model.y, 0);
+	std::cout << vec3_desc(move) << std::endl;
+
+	mat3x3 rot = mat4x4_get_rot(_model);
+
+	vec3 newpos = mat3x3_mult_vec(rot, move);
+
+	std::cout << vec3_desc(newpos) << " " << last <<  std::endl;
+
+	addToVertices(newpos);
+	
+}
+
+bool SlipObject::intersects(double x, double y, double *z)
+{
+	vec3 target = make_vec3(x, y, 0);
+	bool found = false;
+	
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		vec3 pos = vec_from_pos(_vertices[i].pos);
+		
+		if (_central)
+		{
+			pos = centroid();
+		}
+		
+		double last = 1;
+		vec3 model = mat4x4_mult_vec3(_model, pos, &last);
+		vec3 proj = mat4x4_mult_vec3(_proj, model, &last);
+		
+		vec3_mult(&proj, 1 / last);
+
+		if (proj.x < -1 || proj.x > 1)
+		{
+			continue;
+		}
+
+		if (proj.y < -1 || proj.y > 1)
+		{
+			continue;
+		}
+		
+		if (model.z > 0)
+		{
+			continue;
+		}
+
+		vec3 diff = vec3_subtract_vec3(proj, target);
+		
+		if (fabs(diff.x) < 0.04 && fabs(diff.y) < 0.04)
+		{
+			if (model.z > *z)
+			{
+				*z = model.z;
+				found = true;
+			}
+		}
+		
+		if (_central)
+		{
+			break;
+		}
+	}
+	
+	return found;
+}
+
+void SlipObject::setSelectable(bool selectable)
+{
+	if (selectable)
+	{
+		_unselectedVertices = _vertices;
+	}
+	else
+	{
+		_unselectedVertices.clear();
+	}
+
+	_selectable = selectable;
+}
+
+void SlipObject::setHighlighted(bool highlighted)
+{
+	if (!_selectable)
+	{
+		return;
+	}
+	
+	if (highlighted && !_highlighted && !_selected)
+	{
+		_vertices = _unselectedVertices;
+		resize(1.3);
+	}
+	
+	if (!highlighted && _highlighted && !_selected)
+	{
+		_vertices = _unselectedVertices;
+	}
+
+	_highlighted = highlighted;
+}
+
+void SlipObject::setSelected(bool selected)
+{
+	if (!_selected && selected)
+	{
+		recolour(0, 0, 1);
+		
+		if (!_highlighted)
+		{
+			resize(1.3);
+		}
+	}
+	
+	if ((_selected || _highlighted) && !selected)
+	{
+		_vertices = _unselectedVertices;
+	}
+
+	_highlighted = selected;
+	_selected = selected;
 }

@@ -16,10 +16,28 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include "Structure.h"
+#ifndef __abmap__Bound__
+#define __abmap__Bound__
 
-Structure::Structure(std::string filename) : SlipObjFile(filename)
+#include "SlipObjFile.h"
+
+class Bound : public SlipObjFile
 {
-	resize(1);
-	setName("Structure");
-}
+public:
+	Bound(std::string filename);
+
+	void snapToObject(SlipObject *obj);
+	void jiggleOnSurface(SlipObject *obj);
+	void randomlyPositionInRegion(SlipObject *obj);
+	void toggleFixPosition();
+	
+	bool isFixed()
+	{
+		return _fixed;
+	}
+private:
+	bool _fixed;
+
+};
+
+#endif

@@ -111,9 +111,5 @@ void SlipObjFile::readInput()
 			}
 		}
 	}
-	
-	reorderIndices();
-	std::cout << _vertices.size() << " vertices and "
-	<< _indices.size() << " indices." << std::endl;
 }
 

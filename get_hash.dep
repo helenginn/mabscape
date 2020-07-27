@@ -14,3 +14,7 @@ libsrc/SlipObject.cpp
 libsrc/Structure.h
 libsrc/Structure.cpp
 libsrc/main.cpp
+libsrc/Experiment.cpp
+libsrc/Experiment.h
+libsrc/Bound.h
+libsrc/Bound.cpp

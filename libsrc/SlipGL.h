@@ -26,6 +26,7 @@
 #include <mat4x4.h>
 
 class SlipObject;
+class QTimer;
 
 class SlipGL : public QOpenGLWidget, QOpenGLFunctions
 {
@@ -40,6 +41,16 @@ public:
 	void panned(double x, double y);
 	void draggedLeftMouse(double x, double y);
 	void draggedRightMouse(double x, double y);
+	
+	SlipObject *activeObj()
+	{
+		return _activeObj;
+	}
+	
+	float getTime()
+	{
+		return _time;
+	}
 	
 	mat4x4 getModel()
 	{
@@ -64,6 +75,7 @@ private:
 	void updateCamera();
 	void setupCamera();
 	void updateProjection();
+	void time();
 
 	SlipObject *activeObject()
 	{
@@ -72,7 +84,9 @@ private:
 	
 	float _camAlpha, _camBeta, _camGamma;
 	float zNear, zFar;
+	float _time;
 
+	QTimer *_timer;
 	vec3 _centre;
 	vec3 _translation;
 	vec3 _transOnly;

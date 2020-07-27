@@ -1,4 +1,4 @@
-// Spikey thing
+// abmap
 // Copyright (C) 2019 Helen Ginn
 // 
 // This program is free software: you can redistribute it and/or modify
@@ -16,53 +16,52 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#ifndef __abmap__SurfaceView__
-#define __abmap__SurfaceView__
+#ifndef __abmap__Experiment__
+#define __abmap__Experiment__
 
-#include <QMainWindow>
-#include <QMouseEvent>
+#include <string>
+#include <vector>
 
-class Bound;
+class SurfaceView;
 class SlipGL;
-class QTimer;
-class Experiment;
+class Structure;
+class Bound;
+class QLabel;
 
-class SurfaceView : public QMainWindow
+class Experiment
 {
-Q_OBJECT
 public:
-	SurfaceView(QWidget *p = NULL);
+	Experiment(SurfaceView *view);
 	
-	Experiment *getExperiment()
+	void setGL(SlipGL *gl)
 	{
-		return _experiment;
+		_gl = gl;
 	}
 
-	~SurfaceView()
-	{
-
-	}
-
-	void convertToViewCoords(double *x, double *y);
-protected:
-	virtual void resizeEvent(QResizeEvent *event);
-	virtual void keyPressEvent(QKeyEvent *event);
-	virtual void keyReleaseEvent(QKeyEvent *event);
-	virtual void mousePressEvent(QMouseEvent *e);
-	virtual void mouseReleaseEvent(QMouseEvent *e);
-	virtual void mouseMoveEvent(QMouseEvent *e);
-private slots:
+	void loadStructure(std::string filename);
+	void loadBound(std::string filename);
+	void hoverMouse(double x, double y);
+	void clickMouse(double x, double y);
+	void checkDrag(double x, double y);
+	void finishDragging();
+	void drag(double x, double y);
+	void hideLabel();
+	void fixBound();
+	void loadCSV(std::string filename);
 private:
-	void makeMenu();
+	Bound *findBound(double x, double y);
+	void select(Bound *bound, double x, double y);
 	void convertCoords(double *x, double *y);
-	Experiment *_experiment;
+	void deselectAll();
+	void dehighlightAll();
+	bool _dragging;
+	SurfaceView *_view;
 	SlipGL *_gl;
-	Qt::MouseButton _mouseButton;
-	bool _controlPressed;
-	bool _shiftPressed;
-	double _lastX; double _lastY;
-	bool _moving;
 
+	Structure *_structure;
+	std::vector<Bound *> _bounds;
+	Bound *_selected;
+	QLabel *_label;
 };
 
 #endif
