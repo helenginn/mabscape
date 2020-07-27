@@ -159,6 +159,7 @@ SlipObject::SlipObject()
 {
 	_renderType = GL_TRIANGLES;
 	_program = 0;
+	_backToFront = false;
 	_bufferID = 0;
 	_vbo = 0;
 	_uModel = 0;
@@ -212,7 +213,8 @@ void SlipObject::initialisePrograms(std::string *v, std::string *f)
 {
 	if (v == NULL)
 	{
-		v = &vImage;
+		_vString = Pencil_vsh();
+		v = &_vString;
 	}
 
 	if (f == NULL)
@@ -378,10 +380,15 @@ void SlipObject::render(SlipGL *sender)
 	
 	checkErrors();
 
-	mat4x4 model = sender->getModel();
+	_model = sender->getModel();
 	const char *uniform_name = "model";
 	_uModel = glGetUniformLocation(_program, uniform_name);
-	glUniformMatrix4fv(_uModel, 1, GL_FALSE, &model.vals[0]);
+	glUniformMatrix4fv(_uModel, 1, GL_FALSE, &_model.vals[0]);
+
+	mat4x4 proj = sender->getProjection();
+	uniform_name = "projection";
+	_uProj = glGetUniformLocation(_program, uniform_name);
+	glUniformMatrix4fv(_uProj, 1, GL_FALSE, &proj.vals[0]);
 
 	if (_textures.size())
 	{
@@ -418,7 +425,8 @@ void SlipObject::changeProgram(std::string &v, std::string &f)
 
 void SlipObject::wipeEffect()
 {
-	changeProgram(vImage, fImage);
+	std::string pencil = Pencil_vsh();
+	changeProgram(pencil, fImage);
 }
 
 void SlipObject::setDisabled(bool dis)
@@ -438,4 +446,107 @@ void SlipObject::midpoint(double *x, double *y)
 	
 	*x /= (double)_vertices.size();
 	*y /= (double)_vertices.size();
+}
+
+vec3 SlipObject::centroid()
+{
+	vec3 sum = empty_vec3();
+
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		sum.x += _vertices[i].pos[0];
+		sum.y += _vertices[i].pos[1];
+		sum.z += _vertices[i].pos[2];
+	}
+
+	double scale = 1 / (double)_vertices.size();
+	vec3_mult(&sum, scale);
+	
+	return sum;
+}
+
+void SlipObject::addVertex(float v1, float v2, float v3)
+{
+	Vertex v;
+	memset(v.pos, 0, sizeof(Vertex));
+
+	v.color[2] = 0.5;
+	v.color[3] = 1;
+	v.pos[0] = v1;
+	v.pos[1] = v2;
+	v.pos[2] = v3;
+	_vertices.push_back(v);
+
+}
+
+void SlipObject::addIndex(GLuint i)
+{
+	_indices.push_back(i);
+}
+
+vec3 vec_from_pos(GLfloat *pos)
+{
+	vec3 tmpVec = make_vec3(pos[0], pos[1],
+	                        pos[2]);
+
+	return tmpVec;
+}
+
+
+bool SlipObject::index_behind_index(IndexTrio one, IndexTrio two)
+{
+	return (one.z > two.z);
+}
+
+bool SlipObject::index_in_front_of_index(IndexTrio one, IndexTrio two)
+{
+	return (one.z < two.z);
+}
+
+void SlipObject::reorderIndices()
+{
+	if (_renderType == GL_LINES)
+	{
+		return;
+	}
+
+	_temp.resize(_indices.size() / 3);
+	
+	int count = 0;
+	for (size_t i = 0; i < _indices.size(); i+=3)
+	{
+		int n = _indices[i];
+		vec3 tmpVec = vec_from_pos(_vertices[n].pos);
+		n = _indices[i + 1];
+		vec3 tmpVec1 = vec_from_pos(_vertices[n].pos);
+		n = _indices[i + 2];
+		vec3 tmpVec2 = vec_from_pos(_vertices[n].pos);
+		vec3_add_to_vec3(&tmpVec, tmpVec1);
+		vec3_add_to_vec3(&tmpVec, tmpVec2);
+		tmpVec = mat4x4_mult_vec(_model, tmpVec);
+		_temp[count].z = tmpVec.z;
+		_temp[count].index[0] = _indices[i];
+		_temp[count].index[1] = _indices[i + 1];
+		_temp[count].index[2] = _indices[i + 2];
+		count++;
+	}
+	
+	if (_backToFront)
+	{
+		std::sort(_temp.begin(), _temp.end(), index_behind_index);
+	}
+	else
+	{
+		std::sort(_temp.begin(), _temp.end(), index_in_front_of_index);
+	}
+
+	count = 0;
+
+	for (size_t i = 0; i < _temp.size(); i++)
+	{
+		_indices[count + 0] = _temp[i].index[0];
+		_indices[count + 1] = _temp[i].index[1];
+		_indices[count + 2] = _temp[i].index[2];
+		count += 3;
+	}
 }

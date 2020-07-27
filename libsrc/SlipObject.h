@@ -22,6 +22,9 @@
 #include <QtGui/qopengl.h>
 #include <QtGui/qopenglfunctions.h>
 
+#include <vec3.h>
+#include <mat4x4.h>
+
 typedef struct
 {
 	GLfloat pos[3];
@@ -30,6 +33,13 @@ typedef struct
 	GLfloat extra[4];
 	GLfloat tex[2];
 } Vertex;
+
+typedef struct
+{
+	GLuint index[3];
+	GLfloat z;
+} IndexTrio;
+
 
 class SlipGL;
 
@@ -76,6 +86,11 @@ public:
 		return _disabled;
 	}
 	
+	void setModel(mat4x4 model)
+	{
+		_model = model;
+	}
+	
 	void midpoint(double *x, double *y);
 	void setDisabled(bool dis);
 	
@@ -87,9 +102,14 @@ public:
 	void select(bool sel, double red, double green, double blue);
 	void changeProgram(std::string &v, std::string &f);
 	void wipeEffect();
+	vec3 centroid();
 	
+	void reorderIndices();
 	void setZCoord(float z);
 protected:
+	void addVertex(float v1, float v2, float v3);
+	void addIndex(GLuint i);
+
 	std::vector<Vertex> _vertices;
 	std::vector<GLuint> _indices;
 
@@ -101,16 +121,25 @@ private:
 	void bindTextures();
 	void makeDummy();
 
+	static bool index_behind_index(IndexTrio one, IndexTrio two);
+	static bool index_in_front_of_index(IndexTrio one, IndexTrio two);
+
+	std::string _vString;
+	std::string _fString;
 	std::string _random;
 	GLuint _program;
 	GLuint _bufferID;
 	GLuint _vbo;
 	GLuint _renderType;
 	GLuint _uModel;
+	GLuint _uProj;
 	std::vector<GLuint> _textures;
+	std::vector<IndexTrio> _temp; // stores with model mat
+	mat4x4 _model;
 	
 	bool _extra;
 	bool _disabled;
+	bool _backToFront;
 };
 
 #endif

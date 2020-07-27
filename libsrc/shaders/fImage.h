@@ -11,7 +11,7 @@ std::string fImage =
 "\n"\
 "void main()\n"\
 "{\n"\
-"	gl_FragColor = vec4(0, 0, 0, 1);\n"\
+"	gl_FragColor = vColor;\n"\
 "\n"\
 "\n"\
 "\n"\

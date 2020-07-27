@@ -25,7 +25,7 @@
 
 #include <mat4x4.h>
 
-class SlipPanel;
+class SlipObject;
 
 class SlipGL : public QOpenGLWidget, QOpenGLFunctions
 {
@@ -45,6 +45,13 @@ public:
 	{
 		return _model;
 	}
+	
+	mat4x4 getProjection()
+	{
+		return _proj;
+	}
+	
+	void addObject(SlipObject *obj, bool active);
 public slots:
 	
 protected:
@@ -53,9 +60,29 @@ protected:
 
 private:
 	void initialisePrograms();
+	void zoom(float x, float y, float z);
+	void updateCamera();
+	void setupCamera();
+	void updateProjection();
+
+	SlipObject *activeObject()
+	{
+		return _activeObj;
+	}
 	
+	float _camAlpha, _camBeta, _camGamma;
+	float zNear, zFar;
+
+	vec3 _centre;
+	vec3 _translation;
+	vec3 _transOnly;
+	vec3 _totalCentroid;
+
 	mat4x4 _model;
-	std::vector<SlipPanel *> _panels;
+	mat4x4 _proj;
+	std::vector<SlipObject *> _objects;
+	
+	SlipObject *_activeObj;
 
 	struct detector *_d;
 };

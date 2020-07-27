@@ -40,6 +40,8 @@ executable('abmap', gen_src, moc_files,
 'libsrc/SlipGL.cpp',
 'libsrc/SlipPanel.cpp',
 'libsrc/SlipObject.cpp',
+'libsrc/SlipObjFile.cpp',
+'libsrc/Structure.cpp',
 'libsrc/SurfaceView.cpp',
 cpp_args: ['-std=c++11'], dependencies : [ boost_dep, dep_vag, png_dep, qt5_dep ], 
 install_rpath: vagdir, install: true)

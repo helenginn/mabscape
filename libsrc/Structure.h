@@ -1,4 +1,4 @@
-// Spikey thing
+// abmap
 // Copyright (C) 2019 Helen Ginn
 // 
 // This program is free software: you can redistribute it and/or modify
@@ -16,41 +16,18 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#ifndef __abmap__SurfaceView__
-#define __abmap__SurfaceView__
+#ifndef __abmap__Structure__
+#define __abmap__Structure__
 
-#include <QMainWindow>
-#include <QMouseEvent>
-#include "SlipGL.h"
+#include "SlipObjFile.h"
+#include <vec3.h>
 
-class SurfaceView : public QMainWindow
+class Structure : public SlipObjFile
 {
-Q_OBJECT
 public:
-	SurfaceView(QWidget *p = NULL);
-
-	void loadStructure(std::string filename);
-
-	~SurfaceView()
-	{
-
-	}
-protected:
-	virtual void resizeEvent(QResizeEvent *event);
-	virtual void keyPressEvent(QKeyEvent *event);
-	virtual void keyReleaseEvent(QKeyEvent *event);
-	virtual void mousePressEvent(QMouseEvent *e);
-	virtual void mouseReleaseEvent(QMouseEvent *e);
-	virtual void mouseMoveEvent(QMouseEvent *e);
+	Structure(std::string filename);
+	
 private:
-	void convertCoords(double *x, double *y);
-	SlipGL *_gl;
-	Qt::MouseButton _mouseButton;
-	bool _controlPressed;
-	bool _shiftPressed;
-	double _lastX; double _lastY;
-	bool _moving;
-
 };
 
 #endif

@@ -1,4 +1,4 @@
-// Slip n Slide
+// abmap
 // Copyright (C) 2019 Helen Ginn
 // 
 // This program is free software: you can redistribute it and/or modify
@@ -16,45 +16,9 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include <iostream>
-#include "SlipPanel.h"
-#include "SlipObject.h"
+#include "Structure.h"
 
-
-SlipPanel::SlipPanel(vec3 x1, vec3 x2, vec3 x3) : SlipObject()
+Structure::Structure(std::string filename) : SlipObjFile(filename)
 {
-	/* local panel copy */
-	setupVertices(x1, x2, x3);
+
 }
-
-void SlipPanel::setupVertices(vec3 x1, vec3 x2, vec3 x3)
-{
-	_vertices.clear();
-	_indices.clear();
-	
-	_indices.push_back(0);
-	_indices.push_back(1);
-	_indices.push_back(2);
-	
-	Vertex v;
-	memset(v.pos, 0, sizeof(Vertex));
-
-	v.color[3] = 1;
-	v.pos[0] = x1.x;
-	v.pos[1] = x1.y;
-	v.pos[2] = x1.z;
-	_vertices.push_back(v);
-	
-	v.pos[0] = x2.x;
-	v.pos[1] = x2.y;
-	v.pos[2] = x2.z;
-	_vertices.push_back(v);
-
-	v.pos[0] = x3.x;
-	v.pos[1] = x3.y;
-	v.pos[2] = x3.z;
-	_vertices.push_back(v);
-	
-	std::cout << "Yes" << std::endl;
-}
-

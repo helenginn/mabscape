@@ -20,6 +20,15 @@ int main(int argc, char * argv[])
 	setlocale(LC_NUMERIC, "C");
 
 	SurfaceView s;
+	
+	std::cout << "Argc: " << argc << std::endl;
+	if (argc > 1)
+	{
+		std::string file = argv[1];
+		std::cout << "Loading" << std::endl;
+		s.loadStructure(file);
+	}
+
 	s.show();
 
 	int status = app.exec();
