@@ -20,8 +20,10 @@
 #include "Bound.h"
 #include <RefinementStrategy.h>
 #include "Structure.h"
+#include <Fibonacci.h>
+#include "Data.h"
 
-double Bound::_radius = 30.;
+double Bound::_radius = 20.;
 bool Bound::_updateOnRender = false;
 
 vec3 random_vec3(bool absolute = false)
@@ -42,11 +44,12 @@ vec3 random_vec3(bool absolute = false)
 	return jiggle;
 }
 
-Bound::Bound(std::string filename) : SlipObjFile(filename)
+Bound::Bound(std::string filename) : Icosahedron()
 {
 	_fixed = false;
-	recolour(1, 0, 0);
-	resize(1);
+	recolour(0.8, 0.8, 0.8);
+	triangulate();
+	resize(2);
 	_central = true;
 
 	setSelectable(true);
@@ -59,7 +62,7 @@ void Bound::snapToObject(SlipObject *obj)
 		obj = _structure;
 	}
 	vec3 myCentroid = centroid();
-	vec3 nearest = obj->nearestVertex(myCentroid);
+	vec3 nearest = obj->nearestVertex(myCentroid, true);
 	vec3 diff = vec3_subtract_vec3(nearest, myCentroid);
 	addToVertices(diff);
 	_realPosition = centroid();
@@ -67,6 +70,11 @@ void Bound::snapToObject(SlipObject *obj)
 
 void Bound::randomlyPositionInRegion(SlipObject *obj)
 {
+	if (_fixed)
+	{
+		return;
+	}
+	
 	vec3 min, max;
 	obj->boundaries(&min, &max);
 	vec3 scale = vec3_subtract_vec3(max, min);
@@ -84,6 +92,11 @@ void Bound::randomlyPositionInRegion(SlipObject *obj)
 
 void Bound::jiggleOnSurface(SlipObject *obj)
 {
+	if (_fixed)
+	{
+		return;
+	}
+	
 	vec3 jiggle = random_vec3();
 	addToVertices(jiggle);
 	snapToObject(obj);
@@ -135,17 +148,20 @@ void Bound::setSnapping(bool snapping)
 	_realPosition = centroid();
 }
 
+void Bound::updatePositionToReal()
+{
+	vec3 current = centroid();
+	vec3 working = getWorkingPosition();
+
+	vec3 diff = vec3_subtract_vec3(working, current);
+	lockMutex();
+	addToVertices(diff);
+	unlockMutex();
+
+}
+
 void Bound::render(SlipGL *gl)
 {
-	if (_updateOnRender)
-	{
-		vec3 current = centroid();
-		vec3 working = getWorkingPosition();
-		
-		vec3 diff = vec3_subtract_vec3(working, current);
-		addToVertices(diff);
-	}
-
 	SlipObject::render(gl);
 }
 
@@ -174,3 +190,178 @@ void Bound::setRealPosition(vec3 real)
 	vec3 diff = vec3_subtract_vec3(real, current);
 	addToVertices(diff);
 }
+
+double Bound::carefulScoreWithOther(Bound *other, Data *data, double *raw)
+{
+	/*
+	std::string bin = name();
+	std::string bjn = other->name();
+	double val = data->valueFor(bin, bjn);
+	if (val != val)
+	{
+		return val;
+	}
+	*/
+
+	vec3 your_centre = other->getWorkingPosition();
+	vec3 my_centre = getWorkingPosition();
+
+	Vertex *close = _structure->nearestVertexPtr(my_centre, true);
+	vec3 mynorm = vec_from_pos(close->normal);
+	close = _structure->nearestVertexPtr(your_centre, true);
+	vec3 yournorm = vec_from_pos(close->normal);
+
+	double dot = vec3_dot_vec3(mynorm, yournorm);
+//	dot = dot / 4 + 0.75;
+
+	if (dot < -0.9)
+	{
+		return 0;
+	}
+	
+	return 1;
+}
+
+double Bound::scoreWithOther(Bound *other, Data *data, double *raw,
+                             bool quick)
+{
+	std::string bin = name();
+	vec3 posi = getWorkingPosition();
+	std::string bjn = other->name();
+	double val = data->valueFor(bin, bjn);
+	if (val != val)
+	{
+		return val;
+	}
+	
+	vec3 posj = other->getWorkingPosition();
+
+	vec3 vector = vec3_subtract_vec3(posi, posj);
+	double distance = vec3_length(vector);
+	double radius = getRadius();
+
+	double prop = 0;
+	if (distance < 2 * radius)
+	{
+		double q = (2 * radius - distance) / 2;
+		q /= 2 * radius;
+		prop = 2 * (3 * q * q - 2 * q * q * q);
+	}
+
+	prop = 1 - exp(-4 * prop);
+	if (!quick)
+	{
+		prop *= carefulScoreWithOther(other, data, raw);
+	}
+
+	*raw = prop;
+
+	double diff = val - prop;
+	diff *= diff;
+	
+	return diff;
+}
+
+double Bound::percentageCloudInOther(Bound *b)
+{
+	filterCloud();
+	vec3 other = b->getWorkingPosition();
+	double sqr = getRadius();
+	double clash = 0;
+
+	for (size_t i = 0; i < _viableCloud.size(); i++)
+	{
+		vec3 p = _viableCloud[i];
+		vec3_subtract_from_vec3(&p, other);
+		
+		double sql = vec3_sqlength(p);
+		if (sql < sqr)
+		{
+			clash++;
+		}
+	}
+
+	return clash / (double)_viableCloud.size();
+}
+
+void Bound::filterCloud()
+{
+	_viableCloud.clear();
+	if (_pointCloud.size() == 0)
+	{
+		cloud(120);
+	}
+
+	vec3 centre = centroid();
+	for (size_t i = 0; i < _pointCloud.size(); i++)
+	{
+		vec3 p = _pointCloud[i];
+		vec3_add_to_vec3(&p, centre);
+
+		if (!_structure->pointInside(p))
+		{
+			_viableCloud.push_back(p);
+		}
+	}
+}
+
+void Bound::cloud(double totalPoints)
+{
+	double totalSurfaces = 0;
+	double factor = pow(totalPoints, 1./3.) * 2;
+	int layers = lrint(factor);
+	_pointCloud.clear();
+
+	layers = 1;
+	
+	std::vector<double> layerSurfaces;
+
+	/* Work out relative ratios of the surfaces on which points
+	 * will be generated. */
+	for (int i = 1; i <= layers; i++)
+	{
+		layerSurfaces.push_back(i * i);
+		totalSurfaces += i * i;
+	}
+
+	double scale = totalPoints / (double)totalSurfaces;
+
+	double addTotal = 0;
+	Fibonacci fib;
+	fib.generateLattice(layers, 1);
+	std::vector<vec3> directions = fib.getPoints();
+	
+	if (totalPoints < 2)
+	{
+		_pointCloud.push_back(empty_vec3());
+	}
+
+	_pointCloud.reserve(totalPoints);
+	vec3 yAxis = make_vec3(0, 1, 0);
+
+	for (int j = 0; j < layers; j++)
+	{
+		vec3 cross = vec3_cross_vec3(directions[j], yAxis);
+		
+		mat3x3 mat = mat3x3_closest_rot_mat(yAxis, directions[j], cross);
+
+		double m = getRadius() * (double)(j + 1) / (double)layers;
+
+		int samples = layerSurfaces[j] * scale + 1;
+		
+		fib.generateLattice(samples, m);
+		std::vector<vec3> points = fib.getPoints();
+		
+		for (size_t i = 0; i < points.size(); i++)
+		{
+			double add = 1;
+			addTotal += add;
+			
+			mat3x3_mult_vec(mat, &points[i]);
+
+			_pointCloud.push_back(points[i]);
+		}
+	}
+}
+
+

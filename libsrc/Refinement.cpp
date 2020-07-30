@@ -40,46 +40,28 @@ Refinement::Refinement(Experiment *expt, bool restrained)
 
 double Refinement::score()
 {
-	double radius = Bound::getRadius();
 	double sum = 0;
 	double count = 0;
 
 	for (size_t i = 1; i < _experiment->boundCount(); i++)
 	{
 		Bound *bi = _experiment->bound(i);
-		std::string bin = bi->name();
-		vec3 posi = bi->getWorkingPosition();
+		bi->updatePositionToReal();
+
 		for (size_t j = 0; j < i; j++)
 		{
 			Bound *bj = _experiment->bound(j);
-			std::string bjn = bj->name();
-
-			double val = _data->valueFor(bin, bjn);
-			if (val != val)
+			
+			double raw = 0;
+			double diff = bi->scoreWithOther(bj, _data, &raw, true);
+			
+			if (diff != diff)
 			{
 				continue;
 			}
 			
-			vec3 posj = bj->getWorkingPosition();
-
-			vec3 vector = vec3_subtract_vec3(posi, posj);
-			double distance = vec3_length(vector);
-			
-			/*
-			double prop = 0;
-			if (distance < 2 * radius)
-			{
-				double q = (2 * radius - distance) / 2;
-				prop = 2 * (3 * q * q - 2 * q * q * q);
-			}
-			*/
-			
-			double prop = exp(-(distance * distance) / (2 * radius));
-			count++;
-			
-			double diff = val - prop;
-			diff *= diff;
 			sum += diff;
+			count++;
 		}
 	}
 
@@ -89,7 +71,6 @@ double Refinement::score()
 void Refinement::refine()
 {
 	std::cout << "Refining..." << std::endl;
-	Bound::updateOnRender(true);
 	
 	RefinementLBFGS *ref = new RefinementLBFGS();
 

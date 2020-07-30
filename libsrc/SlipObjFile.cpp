@@ -35,6 +35,11 @@ void SlipObjFile::readInput()
 	{
 		std::vector<std::string> bits = split(lines[i], ' ');
 
+		if (bits.size() < 1)
+		{
+			continue;
+		}
+
 		if (bits[0] == "v")
 		{
 			if (bits.size() < 4)
@@ -46,7 +51,7 @@ void SlipObjFile::readInput()
 			}
 
 			float v1 = atof(bits[1].c_str());
-			float v2 = atof(bits[2].c_str());
+			float v2 = -atof(bits[2].c_str());
 			float v3 = atof(bits[3].c_str());
 
 			addVertex(v1, v2, v3);

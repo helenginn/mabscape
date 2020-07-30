@@ -63,10 +63,24 @@ void SurfaceView::makeMenu()
 	_menus.clear();
 	_actions.clear();
 
+	QMenu *structure = menuBar()->addMenu(tr("&Structure"));
+	_menus.push_back(structure);
+	QAction *act = structure->addAction(tr("Make collision mesh"));
+	connect(act, &QAction::triggered, _experiment, &Experiment::meshStructure);
+	_actions.push_back(act);
+	act = structure->addAction(tr("Refine mesh"));
+	connect(act, &QAction::triggered, _experiment, &Experiment::refineMesh);
+	_actions.push_back(act);
+	act = structure->addAction(tr("Triangulate mesh"));
+	connect(act, &QAction::triggered, _experiment, &Experiment::triangulateMesh);
+	_actions.push_back(act);
+
 	QMenu *data = menuBar()->addMenu(tr("&Data"));
 	_menus.push_back(data);
-	QAction *act = data->addAction(tr("Load CSV"));
+	act = data->addAction(tr("Load CSV"));
 	connect(act, &QAction::triggered, this, &SurfaceView::loadCSV);
+	act = data->addAction(tr("Load positions"));
+	connect(act, &QAction::triggered, this, &SurfaceView::loadPositions);
 
 	QMenu *binders = menuBar()->addMenu(tr("&Binders"));
 	_menus.push_back(binders);
@@ -224,6 +238,34 @@ void SurfaceView::mouseReleaseEvent(QMouseEvent *e)
 	}
 	
 	_mouseButton = Qt::NoButton;
+}
+
+void SurfaceView::loadPositions()
+{
+	QFileDialog *f = new QFileDialog(this, "Choose position CSV", 
+	                                 "Comma-separated values (*.csv)");
+	f->setFileMode(QFileDialog::AnyFile);
+	f->setOptions(QFileDialog::DontUseNativeDialog);
+	f->show();
+
+    QStringList fileNames;
+
+    if (f->exec())
+    {
+        fileNames = f->selectedFiles();
+    }
+    
+    if (fileNames.size() < 1)
+    {
+		return;
+    }
+
+	f->deleteLater();
+	std::string filename = fileNames[0].toStdString();
+	
+	_experiment->loadPositions(filename);
+	
+	makeMenu();
 }
 
 void SurfaceView::loadCSV()

@@ -22,6 +22,7 @@
 #include "Bound.h"
 #include "Data.h"
 #include "Structure.h"
+#include "Mesh.h"
 #include "Refinement.h"
 #include "FileReader.h"
 #include <iomanip>
@@ -33,6 +34,7 @@
 
 Experiment::Experiment(SurfaceView *view)
 {
+	_mesh = NULL;
 	_bestMonte = FLT_MAX;
 	_worker = NULL;
 	_data = NULL;
@@ -56,6 +58,54 @@ void Experiment::loadStructure(std::string filename)
 	Structure *str = new Structure(filename);
 	_gl->addObject(str, true);
 	_structure = str;
+}
+
+void Experiment::meshStructure()
+{
+	Mesh *mesh = _structure->makeMesh();
+	_gl->addObject(mesh, false);
+	_mesh = mesh;
+
+	refineMesh();
+}
+
+void Experiment::triangulateMesh()
+{
+	if (_mesh == NULL)
+	{
+		return;
+	}
+	
+	_mesh->changeToTriangles();
+	_mesh->SlipObject::triangulate();
+	_mesh->changeToLines();
+}
+
+void Experiment::refineMesh()
+{
+	if (_mesh == NULL)
+	{
+		return;
+	}
+
+	if (_worker && _worker->isRunning())
+	{
+		return;
+	}
+	
+	if (!_worker)
+	{
+		_worker = new QThread();
+	}
+
+	_mesh->moveToThread(_worker);
+
+	connect(this, SIGNAL(refine()), _mesh, SLOT(shrinkWrap()));
+	connect(_mesh, SIGNAL(resultReady()), this, SLOT(handleMesh()));
+
+	_worker->start();
+
+	emit refine();
 }
 
 
@@ -326,10 +376,18 @@ void Experiment::handleResults()
 	}
 }
 
+void Experiment::handleMesh()
+{
+	Mesh *obj = static_cast<Mesh *>(QObject::sender());
+
+	disconnect(this, SIGNAL(refine()), nullptr, nullptr);
+	disconnect(obj, SIGNAL(resultReady()), this, SLOT(handleMesh()));
+
+	_worker = NULL;
+}
+
 void Experiment::handleError()
 {
-	std::cout << "Error." << std::endl;
-
 	Refinement *obj = static_cast<Refinement *>(QObject::sender());
 
 	disconnect(this, SIGNAL(refine()), nullptr, nullptr);
@@ -390,7 +448,69 @@ void Experiment::applyPositions(std::map<Bound *, vec3> posMap)
 
 		vec3 wip = posMap[_bounds[i]];
 		_bounds[i]->setRealPosition(wip);
+		_bounds[i]->updatePositionToReal();
 	}
+}
+
+void Experiment::loadPositions(std::string filename)
+{
+	std::string contents = get_file_contents(filename);
+	
+	std::vector<std::string> lines = split(contents, '\n');
+	
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		std::vector<std::string> bits = split(lines[i], ',');
+		
+		if (bits.size() < 4)
+		{
+			continue;
+		}
+		
+		std::string name = bits[0];
+		bool fixed = false;
+		bool colour = false;
+		
+		if (name[0] == '*' && name.length() > 1)
+		{
+			name = &bits[0][1];
+			fixed = true;
+		}
+		
+		if (name[0] == '^' && name.length() > 1)
+		{
+			name = &bits[0][1];
+			colour = true;
+		}
+
+		float v1 = atof(bits[1].c_str());
+		float v2 = -atof(bits[2].c_str());
+		float v3 = atof(bits[3].c_str());
+
+		vec3 pos = make_vec3(v1, v2, v3);
+		Bound *b = _nameMap[name];
+		
+		if (b == NULL)
+		{
+			continue;
+		}
+
+		b->setRealPosition(pos);
+
+		if ((fixed && !b->isFixed()) ||
+		    (!fixed && b->isFixed()))
+		{
+			b->toggleFixPosition();
+		}
+
+		if (colour)
+		{
+			b->recolour(0.8, 0.0, 0.0);
+		}
+
+		b->updatePositionToReal();
+	}
+
 }
 
 void Experiment::monteCarlo()
@@ -403,46 +523,33 @@ void Experiment::monteCarlo()
 
 void Experiment::writeOutCSV()
 {
+	std::ofstream posicsv;
+	posicsv.open("positions.csv"); 
 	std::ofstream file;
 	file.open("model.csv"); 
-	double radius = Bound::getRadius();
 
-	for (size_t i = 1; i < boundCount(); i++)
+	for (size_t i = 0; i < boundCount(); i++)
 	{
 		Bound *bi = bound(i);
 		std::string bin = bi->name();
 		vec3 posi = bi->getWorkingPosition();
+		std::string fixed = bi->isFixed() ? "*" : "";
+		
+		posicsv << fixed << bin << "," << posi.x << "," << -posi.y << ","
+		<< posi.z << std::endl;
+
 		for (size_t j = 0; j < i; j++)
 		{
 			Bound *bj = bound(j);
 			std::string bjn = bj->name();
-
-			double val = _data->valueFor(bin, bjn);
-
-			if (val != val)
-			{
-				continue;
-			}
-			
-			vec3 posj = bj->getWorkingPosition();
-
-			vec3 vector = vec3_subtract_vec3(posi, posj);
-			double distance = vec3_length(vector);
-			
-			/*
 			double prop = 0;
-			if (distance < 2 * radius)
-			{
-				double q = (2 * radius - distance) / 2;
-				prop = 2 * (3 * q * q - 2 * q * q * q);
-			}
-			*/
-			
-			double prop = exp(-(distance * distance) / (2 * radius));
+			bi->scoreWithOther(bj, _data, &prop, true);
+
 			file << bin << "," << bjn << "," << prop << std::endl;
 		}
 	}
 	
 	file.close();
-
+	posicsv.close();
 }
+

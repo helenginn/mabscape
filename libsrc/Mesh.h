@@ -16,13 +16,28 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include "Structure.h"
+#ifndef __abmap__Mesh__
+#define __abmap__Mesh__
 
-Structure::Structure(std::string filename) : SlipObjFile(filename)
+#include <QObject>
+#include "Icosahedron.h"
+
+class SlipGL;
+
+class Mesh : public QObject, public Icosahedron
 {
-	resize(1);
-	setName("Structure");
-	
-	collapseCommonVertices();
-	writeObjFile("smaller-" + filename);
-}
+Q_OBJECT
+public:
+	Mesh(SlipObject *other);
+
+signals:
+	void resultReady();
+public slots:
+	void shrinkWrap();
+private:
+
+	SlipObject *_parent;
+
+};
+
+#endif

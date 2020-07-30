@@ -22,6 +22,7 @@
 #include <QtGui/qopengl.h>
 #include <QtGui/qopenglfunctions.h>
 
+#include <mutex>
 #include <vec3.h>
 #include <mat4x4.h>
 
@@ -40,8 +41,23 @@ typedef struct
 	GLfloat z;
 } IndexTrio;
 
+inline vec3 vec_from_pos(GLfloat *pos)
+{
+	vec3 tmpVec = make_vec3(pos[0], pos[1],
+	                        pos[2]);
+
+	return tmpVec;
+}
+
+inline void pos_from_vec(GLfloat *pos, vec3 v)
+{
+	pos[0] = v.x;
+	pos[1] = v.y;
+	pos[2] = v.z;
+}
 
 class SlipGL;
+class Mesh;
 
 class SlipObject : public QOpenGLFunctions
 {
@@ -54,6 +70,21 @@ public:
 	Vertex *vPointer()
 	{
 		return &_vertices[0];
+	}
+	
+	Vertex vertex(size_t idx)
+	{
+		return _vertices[idx];
+	}
+	
+	size_t vertexCount()
+	{
+		return _vertices.size();
+	}
+	
+	void setVertex(size_t idx, Vertex v)
+	{
+		_vertices[idx] = v;
 	}
 
 	size_t vSize()
@@ -101,15 +132,33 @@ public:
 		_model = model;
 	}
 	
+	void lockMutex()
+	{
+		_mut.lock();
+	}
+	
+	bool tryLockMutex()
+	{
+		return _mut.try_lock();
+	}
+	
+	void unlockMutex()
+	{
+		_mut.unlock();
+	}
+	
 	void setDisabled(bool dis);
 	
 	void addToVertices(vec3 add);
 	
+	void collapseCommonVertices();
 	void recolour(double red, double green, double blue,
 	              std::vector<Vertex> *vs = NULL);
 	void changeProgram(std::string &v, std::string &f);
 	vec3 centroid();
-	vec3 nearestVertex(vec3 pos);
+	vec3 nearestVertex(vec3 pos, bool useMesh = false);
+	vec3 nearestVertexNearNormal(vec3 pos, vec3 normal, bool *isBehind);
+	Vertex *nearestVertexPtr(vec3 pos, bool useMesh);
 	
 	void changeMidPoint(double x, double y);
 	void setHighlighted(bool highlighted);
@@ -117,11 +166,27 @@ public:
 	void reorderIndices();
 	void boundaries(vec3 *min, vec3 *max);
 	bool intersects(double x, double y, double *z);
+	void writeObjFile(std::string filename);
+	double envelopeRadius();
+	double averageRadius();
+	Mesh *makeMesh();
+	bool pointInside(vec3 point);
+	void colourOutlayBlack();
+	void changeToLines();
+	void changeToTriangles();
+	virtual void triangulate();
+
 protected:
+	bool polygonIncludes(vec3 point, GLuint *trio);
+	vec3 rayTraceToPlane(vec3 point, GLuint *trio, vec3 dir,
+	                     bool *backwards);
 	void addVertex(float v1, float v2, float v3);
 	void addIndex(GLuint i);
+	void addIndices(GLuint i1, GLuint i2, GLuint i3);
+	virtual void calculateNormals();
 	void resize(double scale);
 	void setSelectable(bool selectable);
+	void fixCentroid(vec3 centre);
 
 	std::vector<Vertex> _vertices;
 	std::vector<GLuint> _indices;
@@ -154,6 +219,8 @@ private:
 	std::string _name;
 	mat4x4 _model;
 	mat4x4 _proj;
+	Mesh *_mesh;
+	std::mutex _mut;
 	
 	bool _extra;
 	bool _disabled;

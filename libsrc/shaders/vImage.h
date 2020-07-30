@@ -34,8 +34,11 @@ inline std::string Pencil_vsh()
 	"    gl_Position = vPos;\n"\
 	"	 float red = 0.4 *((1.0 - color[0]) * dot) + color[0];\n"\
 	"	 float green = 0.4 *((1. - color[1]) * gdot) + color[1];\n"\
-	"//	 red = max(red, 0.); red = min(red, 1.);\n"\
-	"//	 green = max(green, 0.); green = min(green, 1.);\n"\
+	"    origdot *= color[2] * 2.;\n"\
+	"	 if (color[1] < 0.01)\n"\
+	"	 {\n"\
+	"//		 red = origdot;\n"\
+	"	 }\n"\
 	"	 vColor = vec4(red, origdot, color[2], color[3]);\n"\
 	"}";
 	return str;

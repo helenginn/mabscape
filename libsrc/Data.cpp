@@ -65,6 +65,9 @@ void Data::load()
 			continue;
 		}
 		
+		if (val < 0) val = 0;
+		if (val > 1) val = 1;
+		
 		for (size_t j = 0; j < components.size(); j++)
 		{
 			std::string id0 = components[0];
@@ -73,7 +76,6 @@ void Data::load()
 			_idCounts[id1]++;
 			
 			_relationships[id0][id1] = val;
-			_relationships[id1][id0] = val;
 		}
 	}
 	
@@ -88,11 +90,29 @@ void Data::load()
 
 double Data::valueFor(std::string i, std::string j)
 {
-	if (_relationships.count(i) > 0 && 
-	    _relationships[i].count(j))
+	double val1 = _relationships[i][j];
+	double val2 = _relationships[j][i];
+	
+	if (val1 != val1 && val2 != val2)
 	{
-		return _relationships[i][j];
+		return nan(" ");
 	}
 	
-	return nan(" ");
+	if (fabs(val1) < 1e-6 && fabs(val2) < 1e-6)
+	{
+		return nan(" ");
+	}
+	
+	if (fabs(val1) < 1e-6)
+	{
+		return val2;
+	}
+	
+	if (fabs(val2) < 1e-6)
+	{
+		return val1;
+	}
+	
+	return std::min(val2, val1);
 }
+

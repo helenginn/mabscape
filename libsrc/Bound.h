@@ -21,12 +21,14 @@
 
 #include <mutex>
 #include "SlipObjFile.h"
+#include "Icosahedron.h"
 
 class Structure;
 class SlipGL;
+class Data;
 class RefinementStrategy;
 
-class Bound : public SlipObjFile
+class Bound : public Icosahedron
 {
 public:
 	Bound(std::string filename);
@@ -35,6 +37,7 @@ public:
 	void jiggleOnSurface(SlipObject *obj);
 	void randomlyPositionInRegion(SlipObject *obj);
 	void toggleFixPosition();
+	void updatePositionToReal();
 	
 	bool isFixed()
 	{
@@ -132,7 +135,16 @@ public:
 	vec3 getWorkingPosition();
 	
 	void setRealPosition(vec3 real);
+	double scoreWithOther(Bound *other, Data *data, double *raw, bool quick);
+	double carefulScoreWithOther(Bound *other, Data *data, double *raw);
 private:
+	double percentageCloudInOther(Bound *b);
+	void cloud(double totalPoints);
+	void filterCloud();
+
+	std::vector<vec3> _pointCloud;
+	std::vector<vec3> _viableCloud;
+
 	std::mutex _mutex;
 	Structure *_structure;
 	vec3 _realPosition;

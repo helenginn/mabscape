@@ -1,6 +1,7 @@
 libsrc/Data.h
 libsrc/SlipPanel.h
 libsrc/SlipObjFile.h
+libsrc/Icosahedron.h
 libsrc/Refinement.h
 libsrc/SlipGL.h
 libsrc/Data.cpp
@@ -9,7 +10,10 @@ libsrc/SlipObject.h
 libsrc/shaders/fImage.h
 libsrc/shaders/vImage.h
 libsrc/shaders/fWipe.h
+libsrc/Mesh.h
 libsrc/SlipGL.cpp
+libsrc/Mesh.cpp
+libsrc/Icosahedron.cpp
 libsrc/SlipObjFile.cpp
 libsrc/SurfaceView.h
 libsrc/SurfaceView.cpp

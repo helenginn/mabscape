@@ -32,6 +32,7 @@ class Bound;
 class Refinement;
 class Data;
 class QMenu;
+class Mesh;
 class QLabel;
 class QThread;
 
@@ -67,6 +68,7 @@ public:
 	}
 
 	void loadStructure(std::string filename);
+	void loadPositions(std::string filename);
 	void hoverMouse(double x, double y);
 	void clickMouse(double x, double y);
 	void checkDrag(double x, double y);
@@ -80,12 +82,16 @@ public:
 signals:
 	void refine();
 public slots:
+	void handleMesh();
 	void jiggle();
 	void randomise();
 	void selectFromMenu();
 	void handleResults();
 	void handleError();
 	void monteCarlo();
+	void refineMesh();
+	void triangulateMesh();
+	void meshStructure();
 	void writeOutCSV();
 private:
 	void createBinders();
@@ -111,6 +117,7 @@ private:
 	QLabel *_label;
 	QThread *_worker;
 
+	Mesh *_mesh;
 	double _bestMonte;
 	int _monteCount;
 	std::map<Bound *, vec3> _bestPositions;

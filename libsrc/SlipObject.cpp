@@ -18,10 +18,13 @@
 
 #include "SlipObject.h"
 #include "SlipGL.h"
+#include "Mesh.h"
 #include "charmanip.h"
 #include <mat3x3.h>
+#include <maths.h>
 #include <float.h>
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include <cmath>
 #include <string>
@@ -29,21 +32,6 @@
 #include "shaders/vImage.h"
 #include "shaders/fImage.h"
 #include "shaders/fWipe.h"
-
-vec3 vec_from_pos(GLfloat *pos)
-{
-	vec3 tmpVec = make_vec3(pos[0], pos[1],
-	                        pos[2]);
-
-	return tmpVec;
-}
-
-void pos_from_vec(GLfloat *pos, vec3 v)
-{
-	pos[0] = v.x;
-	pos[1] = v.y;
-	pos[2] = v.z;
-}
 
 
 void SlipObject::addToVertexArray(vec3 add, std::vector<Vertex> *vs)
@@ -64,6 +52,7 @@ void SlipObject::addToVertices(vec3 add)
 
 SlipObject::SlipObject()
 {
+	_mesh = NULL;
 	_renderType = GL_TRIANGLES;
 	_program = 0;
 	_backToFront = false;
@@ -282,6 +271,11 @@ void SlipObject::checkErrors()
 
 void SlipObject::render(SlipGL *sender)
 {
+	if (!tryLockMutex())
+	{
+		return;
+	}
+
 	if (_disabled)
 	{
 		return;
@@ -321,6 +315,7 @@ void SlipObject::render(SlipGL *sender)
 	checkErrors();
 	
 	glUseProgram(0);
+	unlockMutex();
 }
 
 void SlipObject::recolour(double red, double green, double blue,
@@ -354,10 +349,56 @@ void SlipObject::resize(double scale)
 
 }
 
+double SlipObject::averageRadius()
+{
+	vec3 centre = centroid();
+	double all = 0;
+	
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		vec3 pos = vec_from_pos(_vertices[i].pos);
+		vec3_subtract_from_vec3(&pos, centre);
+		double length = vec3_length(pos);
+		all += length;
+	}
+	
+	all /= (double)_vertices.size();
+	return all;
+}
+
+
+double SlipObject::envelopeRadius()
+{
+	double longest = 0;
+
+	vec3 centre = centroid();
+	
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		vec3 pos = vec_from_pos(_vertices[i].pos);
+		vec3_subtract_from_vec3(&pos, centre);
+		double sqlength = vec3_sqlength(pos);
+		
+		if (sqlength > longest)
+		{
+			longest = sqlength;
+		}
+	}
+	
+	return sqrt(longest);
+}
+
 void SlipObject::changeProgram(std::string &v, std::string &f)
 {
 	deletePrograms();
 	initialisePrograms(&v, &f);
+}
+
+void SlipObject::fixCentroid(vec3 centre)
+{
+	vec3 current = centroid();
+	vec3 diff = vec3_subtract_vec3(centre, current);
+	addToVertices(diff);
 }
 
 void SlipObject::setDisabled(bool dis)
@@ -394,6 +435,13 @@ void SlipObject::addVertex(float v1, float v2, float v3)
 	v.pos[2] = v3;
 	_vertices.push_back(v);
 
+}
+
+void SlipObject::addIndices(GLuint i1, GLuint i2, GLuint i3)
+{
+	_indices.push_back(i1);
+	_indices.push_back(i2);
+	_indices.push_back(i3);
 }
 
 void SlipObject::addIndex(GLuint i)
@@ -459,8 +507,155 @@ void SlipObject::reorderIndices()
 	}
 }
 
-vec3 SlipObject::nearestVertex(vec3 pos)
+bool SlipObject::pointInside(vec3 point)
 {
+	if (_mesh != NULL)
+	{
+		return _mesh->pointInside(point);
+	}
+
+	int skip = (_renderType == GL_LINES ? 6 : 3);
+	vec3 dir = make_vec3(0, 0, 1);
+	bool c = false;
+
+	for (size_t i = 0; i < _indices.size(); i += skip)
+	{
+		GLuint *ptr = &_indices[i];
+		bool backwards = false;
+		
+		if ((point.x < _vertices[_indices[i]].pos[0] &&
+		    point.x < _vertices[_indices[i+1]].pos[0] &&
+		     point.x < _vertices[_indices[i+2]].pos[0]) ||
+		(point.x > _vertices[_indices[i]].pos[0] &&
+		 point.x > _vertices[_indices[i+1]].pos[0] &&
+		 point.x > _vertices[_indices[i+2]].pos[0]))
+		{
+			continue;
+		}
+
+		if ((point.y < _vertices[_indices[i]].pos[1] &&
+		    point.y < _vertices[_indices[i+1]].pos[1] &&
+		     point.y < _vertices[_indices[i+2]].pos[1]) ||
+		(point.y > _vertices[_indices[i]].pos[1] &&
+		 point.y > _vertices[_indices[i+1]].pos[1] &&
+		 point.y > _vertices[_indices[i+2]].pos[1]))
+		{
+			continue;
+		}
+
+		vec3 ray = rayTraceToPlane(point, ptr, dir, &backwards);
+		if (backwards)
+		{
+			continue;
+		}
+
+		bool inside = polygonIncludes(ray, ptr);
+		if (inside)
+		{
+			c = !c;
+		}
+	}
+
+	return c;
+}
+
+vec3 SlipObject::rayTraceToPlane(vec3 point, GLuint *trio, vec3 dir,
+                                 bool *backwards)
+{
+	vec3 vs[3];
+	vs[0] = vec_from_pos(_vertices[trio[0]].pos); 
+	vs[1] = vec_from_pos(_vertices[trio[1]].pos);
+	vs[2] = vec_from_pos(_vertices[trio[2]].pos);
+
+	vec3 diff1 = vec3_subtract_vec3(vs[1], vs[0]);
+	vec3 diff2 = vec3_subtract_vec3(vs[2], vs[0]);
+	vec3 cross = vec3_cross_vec3(diff1, diff2);
+	vec3_set_length(&cross, 1); 
+	
+	double denom = vec3_dot_vec3(dir, cross);
+	vec3 subtract = vec3_subtract_vec3(vs[0], point);
+	double nom = vec3_dot_vec3(subtract, cross);
+	double d = nom / denom;
+	
+	vec3_mult(&dir, d);
+	vec3_add_to_vec3(&point, dir);
+	
+	*backwards = (d < 0);
+	return point;
+}
+
+bool SlipObject::polygonIncludes(vec3 point, GLuint *trio)
+{
+	vec3 vs[3];
+	vs[0] = vec_from_pos(_vertices[trio[0]].pos);
+	vs[1] = vec_from_pos(_vertices[trio[1]].pos);
+	vs[2] = vec_from_pos(_vertices[trio[2]].pos);
+
+	bool c = false;
+	
+	for (int i = 0, j = 2; i < 3; j = i++) 
+	{
+		if (((vs[i].y > point.y) != (vs[j].y > point.y))
+		    && (point.x < (vs[j].x - vs[i].x) * (point.y - vs[i].y)
+		    / (vs[j].y - vs[i].y) + vs[i].x)) 
+		{
+			c = !c;
+		}
+	}
+
+	return c;
+}
+
+vec3 SlipObject::nearestVertexNearNormal(vec3 pos, vec3 normal,
+                                         bool *isBehind)
+{
+	double closest = FLT_MAX;
+	Vertex *vClose = NULL;
+	*isBehind = false;
+	
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		Vertex v = _vertices[i];
+		vec3 diff = make_vec3(pos.x - v.pos[0],
+		                      pos.y - v.pos[1],
+		                      pos.z - v.pos[2]);
+
+		if (abs(diff.x) > closest || abs(diff.y) > closest 
+		    || abs(diff.z) > closest)
+		{
+			continue;
+		}
+
+		double length = vec3_length(diff);
+		vec3_mult(&diff, 1 / length);
+		
+		double dot = vec3_dot_vec3(diff, normal);
+		
+		if (fabs(dot) < 0.9) { continue; }
+		
+		if (dot < 0) { *isBehind = true; }
+		
+		if (*isBehind && dot > 0) { continue; }
+		
+		if (length < closest)
+		{
+			closest = length;
+			vClose = &_vertices[i];
+		}
+	}
+
+	vec3 finvec = vec_from_pos(vClose->pos);
+	return finvec;
+
+}
+
+Vertex *SlipObject::nearestVertexPtr(vec3 pos, bool useMesh)
+{
+	if (useMesh && _mesh != NULL)
+	{
+		return _mesh->nearestVertexPtr(pos, false);
+	}
+
 	double closest = FLT_MAX;
 	Vertex *vClose = NULL;
 	
@@ -485,6 +680,19 @@ vec3 SlipObject::nearestVertex(vec3 pos)
 			vClose = &_vertices[i];
 		}
 	}
+	
+	return vClose;
+}
+
+vec3 SlipObject::nearestVertex(vec3 pos, bool useMesh)
+{
+	if (useMesh && _mesh != NULL)
+	{
+		return _mesh->nearestVertex(pos, false);
+	}
+
+	double closest = FLT_MAX;
+	Vertex *vClose = nearestVertexPtr(pos, useMesh);
 
 	vec3 finvec = vec_from_pos(vClose->pos);
 	return finvec;
@@ -514,7 +722,7 @@ void SlipObject::changeMidPoint(double x, double y)
 	double last = 1;
 
 	vec3 model = mat4x4_mult_vec3(_model, pos, &last);
-	vec3 proj = mat4x4_mult_vec3(_proj, model, &last);
+	mat4x4_mult_vec3(_proj, model, &last);
 	
 	double newx = last * x / _proj.vals[0];
 	double newy = last * y / _proj.vals[5];
@@ -583,6 +791,44 @@ bool SlipObject::intersects(double x, double y, double *z)
 	return found;
 }
 
+void SlipObject::calculateNormals()
+{
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		_vertices[i].normal[0] = 0;
+		_vertices[i].normal[1] = 0;
+		_vertices[i].normal[2] = 0;
+	}
+	
+	for (size_t i = 0; i < _indices.size(); i += 3)
+	{
+		vec3 pos1 = vec_from_pos(_vertices[_indices[i+0]].pos);
+		vec3 pos2 = vec_from_pos(_vertices[_indices[i+1]].pos);
+		vec3 pos3 = vec_from_pos(_vertices[_indices[i+2]].pos);
+
+		vec3 diff31 = vec3_subtract_vec3(pos3, pos1);
+		vec3 diff21 = vec3_subtract_vec3(pos2, pos1);
+
+		vec3 cross = vec3_cross_vec3(diff31, diff21);
+		vec3_set_length(&cross, 1);
+
+		/* Normals */					
+		for (int j = 0; j < 3; j++)
+		{
+			_vertices[_indices[i + j]].normal[0] += cross.x;
+			_vertices[_indices[i + j]].normal[1] += cross.y;
+			_vertices[_indices[i + j]].normal[2] += cross.z;
+		}
+	}
+
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		vec3 norm = vec_from_pos(_vertices[i].normal);
+		vec3_set_length(&norm, 1);
+		pos_from_vec(_vertices[i].normal, norm);
+	}
+}
+
 void SlipObject::setSelectable(bool selectable)
 {
 	if (selectable)
@@ -637,4 +883,225 @@ void SlipObject::setSelected(bool selected)
 
 	_highlighted = selected;
 	_selected = selected;
+}
+
+void SlipObject::collapseCommonVertices()
+{
+	std::cout << "Collapsing common vertices..." << std::endl;
+	size_t prior = _vertices.size();
+
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		for (size_t j = i + 1; j < _vertices.size(); j++)
+		{
+			if (fabs(_vertices[i].pos[0] - _vertices[j].pos[0]) > 1e-3)
+			{
+				continue;
+			}
+			if (fabs(_vertices[i].pos[1] - _vertices[j].pos[1]) > 1e-3)
+			{
+				continue;
+			}
+			if (fabs(_vertices[i].pos[2] - _vertices[j].pos[2]) > 1e-3)
+			{
+				continue;
+			}
+
+			/* duplicate */
+			for (size_t k = 0; k < _indices.size(); k++)
+			{
+				if (_indices[k] == j)
+				{
+					_indices[k] = i;
+				}
+			}
+
+			/* mark to delete later */
+			_vertices[j].pos[0] = nan(" ");
+		}
+	}
+
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		if (_vertices[i].pos[0] == _vertices[i].pos[0])
+		{
+			/* this vertex is already in use */
+			continue;
+		}
+		
+		_vertices.erase(_vertices.begin() + i);
+
+		for (size_t k = 0; k < _indices.size(); k++)
+		{
+			/* i itself should not be in this list anymore */
+			if (_indices[k] > i)
+			{
+				_indices[k]--;
+			}
+		}
+		
+		i--;
+	}
+
+	size_t post = _vertices.size();
+	
+	std::cout << "From " << prior << " to " << post << " vertices." << std::endl;
+}
+
+void SlipObject::writeObjFile(std::string filename)
+{
+	std::ofstream file;
+	file.open(filename);
+
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		file << "v " << _vertices[i].pos[0] << " " <<
+		-_vertices[i].pos[1] << " " <<
+		_vertices[i].pos[2] << std::endl;
+		file << "vn " << _vertices[i].normal[0] << " " <<
+		_vertices[i].normal[1] << " " <<
+		_vertices[i].normal[2] << std::endl;
+	}
+	
+	file << std::endl;
+
+	for (size_t k = 0; k < _indices.size(); k += 3)
+	{
+		file << "f " << _indices[k] + 1 << "//" << _indices[k] + 1
+		<< " " << _indices[k + 1] + 1 << "//" << _indices[k + 1] + 1
+		<< " " << _indices[k + 2] + 1 << "//" << _indices[k + 2] + 1 << std::endl;
+	}
+	
+	file << std::endl;
+	
+	file.close();
+}
+
+void SlipObject::triangulate()
+{
+	if (_renderType == GL_LINES)
+	{
+		return;
+	}
+
+	std::map<std::pair<GLuint, GLuint>, GLuint> lines;
+	std::map<std::pair<GLuint, GLuint>, GLuint>::iterator linesit;
+
+	std::map<GLuint, std::map<GLuint, GLuint> > newVs;
+
+	for (size_t i = 0; i < _indices.size(); i += 3)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			int ij = i + (j % 3);
+			int ij1 = i + ((j + 1) % 3);
+			int min = std::min(_indices[ij], _indices[ij1]);
+			int max = std::max(_indices[ij], _indices[ij1]);
+			
+			std::pair<GLuint, GLuint> pair = std::make_pair(min, max);
+
+			lines[pair] = 1;
+		}
+	}
+
+	for (linesit = lines.begin(); linesit != lines.end(); linesit++)
+	{
+		std::pair<GLuint, GLuint> pair = linesit->first;
+		GLuint front = pair.first;
+		GLuint back = pair.second;
+		
+		vec3 v1 = vec_from_pos(_vertices[front].pos);
+		vec3 v2 = vec_from_pos(_vertices[back].pos);
+		
+		vec3_add_to_vec3(&v1, v2);
+		vec3_mult(&v1, 0.5);
+		
+		Vertex v = _vertices[front]; 
+		pos_from_vec(v.pos, v1);
+		
+		_vertices.push_back(v);
+		newVs[front][back] = _vertices.size() - 1;
+		newVs[back][front] = _vertices.size() - 1;
+	}
+	
+	size_t idxSize = _indices.size();
+	for (size_t i = 0; i < idxSize; i += 3)
+	{
+		GLuint i1 = _indices[i];
+		GLuint i2 = _indices[i + 1];
+		GLuint i3 = _indices[i + 2];
+		
+		GLuint i12 = newVs[i1][i2];
+		GLuint i13 = newVs[i1][i3];
+		GLuint i23 = newVs[i2][i3];
+		
+		_indices[i+1] = i12;
+		_indices[i+2] = i13;
+		
+		addIndices(i12, i13, i23);
+		addIndices(i13, i23, i3);
+		addIndices(i12, i23, i2);
+	}
+}
+
+void SlipObject::changeToLines()
+{
+	if (_renderType == GL_LINES)
+	{
+		return;
+	}
+
+	_renderType = GL_LINES;
+	std::vector<GLuint> is = _indices;
+	_indices.clear();
+
+	for (size_t i = 0; i < is.size(); i += 3)
+	{
+		addIndices(is[i], is[i + 1], is[i + 2]);
+		addIndices(is[i], is[i + 1], is[i + 2]);
+	}
+}
+
+void SlipObject::changeToTriangles()
+{
+	if (_renderType == GL_TRIANGLES)
+	{
+		return;
+	}
+
+	_renderType = GL_TRIANGLES;
+	std::vector<GLuint> is = _indices;
+	_indices.clear();
+
+	for (size_t i = 0; i < is.size(); i += 6)
+	{
+		addIndices(is[i], is[i + 1], is[i + 2]);
+	}
+
+}
+
+Mesh *SlipObject::makeMesh()
+{
+	_mesh = new Mesh(this);
+	return _mesh;
+}
+
+void SlipObject::colourOutlayBlack()
+{
+	for (size_t i = 0; i < vertexCount(); i++)
+	{
+		Vertex v = vertex(i);
+		vec3 p = vec_from_pos(v.pos);
+		
+		if (!pointInside(p))
+		{
+			v.color[0] = 0;
+			v.color[1] = 0;
+			v.color[2] = 0.2;
+			
+			lockMutex();
+			setVertex(i, v);
+			unlockMutex();
+		}
+	}
 }

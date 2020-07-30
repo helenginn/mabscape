@@ -65,6 +65,7 @@ protected:
 	virtual void mouseMoveEvent(QMouseEvent *e);
 private slots:
 	void loadCSV();
+	void loadPositions();
 	void unrestrainedRefine();
 	void fixToSurfaceRefine();
 private:

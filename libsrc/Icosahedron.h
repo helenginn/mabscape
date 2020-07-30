@@ -16,13 +16,22 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include "Structure.h"
+#ifndef __abmap__Icosahedron__
+#define __abmap__Icosahedron__
 
-Structure::Structure(std::string filename) : SlipObjFile(filename)
+#include "SlipObject.h"
+
+class Icosahedron : public SlipObject
 {
-	resize(1);
-	setName("Structure");
-	
-	collapseCommonVertices();
-	writeObjFile("smaller-" + filename);
-}
+public:
+	Icosahedron();
+
+protected:
+	virtual void triangulate();
+	virtual void calculateNormals();
+	virtual void removeUselessVertices(bool flaps = false);
+private:
+	void makeIco();
+};
+
+#endif
