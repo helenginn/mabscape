@@ -71,13 +71,35 @@ void Data::load()
 		for (size_t j = 0; j < components.size(); j++)
 		{
 			std::string id0 = components[0];
-			_idCounts[id0]++;
 			std::string id1 = components[1];
-			_idCounts[id1]++;
+			
+			if (id0 == id1)
+			{
+				continue;
+			}
+			
+			if (_idCounts.count(id0) == 0)
+			{
+				_idCounts[id0] = 1; 
+			}
+			else 
+			{ 
+				_idCounts[id0]++;
+			}
+
+			if (_idCounts.count(id1) == 0) 
+			{
+				_idCounts[id1] = 1;
+			}
+			else 
+			{ 
+				_idCounts[id1]++; 
+			}
 			
 			_relationships[id0][id1] = val;
 		}
 	}
+	
 	
 	for (std::map<std::string, int>::iterator it = _idCounts.begin(); 
 	     it != _idCounts.end(); it++)

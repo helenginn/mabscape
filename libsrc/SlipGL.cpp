@@ -150,6 +150,13 @@ void SlipGL::paintGL()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	for (unsigned int i = 0; i < _objects.size(); i++)
 	{
+		if (_objects[i]->shouldRemove())
+		{
+			delete _objects[i];
+			_objects.erase(_objects.begin() + i);
+			continue;
+		}
+
 		_objects[i]->render(this);
 	}
 }

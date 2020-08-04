@@ -16,14 +16,18 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include "Structure.h"
+#ifndef __abmap__PositionMap__
+#define __abmap__PositionMap__
 
-Structure::Structure(std::string filename) : SlipObjFile(filename)
+#include <vec3.h>
+class Bound;
+typedef std::map<Bound *, vec3> PositionMap;
+
+typedef struct
 {
-	resize(1);
-	setName("Structure");
-	recolour(0, 0.5, 0.5);
-	
-	collapseCommonVertices();
-	writeObjFile("smaller-" + filename);
-}
+	PositionMap posMap;
+	double score;
+} PosMapScore;
+
+#endif
+

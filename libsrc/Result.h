@@ -16,14 +16,49 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include "Structure.h"
+#ifndef __abmap__Result__
+#define __abmap__Result__
 
-Structure::Structure(std::string filename) : SlipObjFile(filename)
+#include <QTreeWidgetItem>
+#include "PositionMap.h"
+
+class Experiment;
+
+class Result : public QTreeWidgetItem
 {
-	resize(1);
-	setName("Structure");
-	recolour(0, 0.5, 0.5);
+public:
+	Result();
 	
-	collapseCommonVertices();
-	writeObjFile("smaller-" + filename);
-}
+	void savePositions(Experiment *exp);
+	void applyPositions(Experiment *exp);
+
+	void setPositions(PositionMap map)
+	{
+		_map = map;
+	}
+	
+	void setScore(double score)
+	{
+		_score = score;
+		setText(0, "Score: " + QString::number(_score));
+	}
+	
+	vec3 vecForBound(Bound *b);
+	
+	double score()
+	{
+		return _score;
+	}
+	
+	static bool result_is_less_than(Result *a, Result *b)
+	{
+		return (a->_score < b->_score);
+
+	}
+private:
+	PositionMap _map;
+	double _score;
+
+};
+
+#endif

@@ -16,14 +16,21 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include "Structure.h"
+#ifndef __abmap__Squiggle__
+#define __abmap__Squiggle__
 
-Structure::Structure(std::string filename) : SlipObjFile(filename)
+#include <vec3.h>
+#include "SlipObject.h"
+
+class Squiggle : public SlipObject
 {
-	resize(1);
-	setName("Structure");
-	recolour(0, 0.5, 0.5);
-	
-	collapseCommonVertices();
-	writeObjFile("smaller-" + filename);
-}
+public:
+	Squiggle();
+
+	void setPositions(std::vector<vec3> poz);
+	void clear();
+private:
+
+};
+
+#endif

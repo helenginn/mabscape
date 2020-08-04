@@ -23,7 +23,7 @@
 #include <Fibonacci.h>
 #include "Data.h"
 
-double Bound::_radius = 20.;
+double Bound::_radius = 14.;
 bool Bound::_updateOnRender = false;
 
 vec3 random_vec3(bool absolute = false)
@@ -46,8 +46,11 @@ vec3 random_vec3(bool absolute = false)
 
 Bound::Bound(std::string filename) : Icosahedron()
 {
+	_nearestNorm = make_vec3(1, 0, 0);
+	_special = false;
+	_snapping = false;
 	_fixed = false;
-	recolour(0.8, 0.8, 0.8);
+	setColour(0.8, 0.8, 0.8);
 	triangulate();
 	resize(2);
 	_central = true;
@@ -62,7 +65,7 @@ void Bound::snapToObject(SlipObject *obj)
 		obj = _structure;
 	}
 	vec3 myCentroid = centroid();
-	vec3 nearest = obj->nearestVertex(myCentroid, true);
+	vec3 nearest = obj->nearestVertex(myCentroid);
 	vec3 diff = vec3_subtract_vec3(nearest, myCentroid);
 	addToVertices(diff);
 	_realPosition = centroid();
@@ -102,6 +105,15 @@ void Bound::jiggleOnSurface(SlipObject *obj)
 	snapToObject(obj);
 }
 
+void Bound::colourFixed()
+{
+	if (_fixed)
+	{
+		recolour(0.0, 0, 0, &_unselectedVertices);
+		recolour(0.0, 0, 0, &_vertices);
+	}
+}
+
 void Bound::toggleFixPosition()
 {
 	_fixed = !_fixed;
@@ -113,8 +125,8 @@ void Bound::toggleFixPosition()
 	}
 	else
 	{
-		recolour(1, 0, 0, &_unselectedVertices);
-		recolour(0, 0, 1, &_vertices);
+		recolour(_red, _green, _blue, &_unselectedVertices);
+		recolour(_red, _green, _blue, &_vertices);
 	}
 }
 
@@ -152,6 +164,12 @@ void Bound::updatePositionToReal()
 {
 	vec3 current = centroid();
 	vec3 working = getWorkingPosition();
+
+	if (_structure->hasMesh())
+	{
+		Vertex *close = _structure->nearestVertexPtr(working, true);
+		_nearestNorm = vec_from_pos(close->normal);
+	}
 
 	vec3 diff = vec3_subtract_vec3(working, current);
 	lockMutex();
@@ -191,48 +209,31 @@ void Bound::setRealPosition(vec3 real)
 	addToVertices(diff);
 }
 
-double Bound::carefulScoreWithOther(Bound *other, Data *data, double *raw)
+double Bound::carefulScoreWithOther(Bound *other)
 {
-	/*
-	std::string bin = name();
-	std::string bjn = other->name();
-	double val = data->valueFor(bin, bjn);
-	if (val != val)
+	if (!_structure->hasMesh())
 	{
-		return val;
+		return 1;
 	}
-	*/
 
 	vec3 your_centre = other->getWorkingPosition();
 	vec3 my_centre = getWorkingPosition();
 
-	Vertex *close = _structure->nearestVertexPtr(my_centre, true);
-	vec3 mynorm = vec_from_pos(close->normal);
-	close = _structure->nearestVertexPtr(your_centre, true);
-	vec3 yournorm = vec_from_pos(close->normal);
+	vec3 mynorm = _nearestNorm;
+	vec3 yournorm = other->_nearestNorm;
 
 	double dot = vec3_dot_vec3(mynorm, yournorm);
-//	dot = dot / 4 + 0.75;
-
-	if (dot < -0.9)
-	{
-		return 0;
-	}
+	dot /= 4;
+	dot += 0.75;
 	
-	return 1;
+	return dot;
 }
 
-double Bound::scoreWithOther(Bound *other, Data *data, double *raw,
-                             bool quick)
+double Bound::scoreWithOther(Bound *other)
 {
 	std::string bin = name();
 	vec3 posi = getWorkingPosition();
 	std::string bjn = other->name();
-	double val = data->valueFor(bin, bjn);
-	if (val != val)
-	{
-		return val;
-	}
 	
 	vec3 posj = other->getWorkingPosition();
 
@@ -248,18 +249,15 @@ double Bound::scoreWithOther(Bound *other, Data *data, double *raw,
 		prop = 2 * (3 * q * q - 2 * q * q * q);
 	}
 
-	prop = 1 - exp(-4 * prop);
-	if (!quick)
-	{
-		prop *= carefulScoreWithOther(other, data, raw);
-	}
-
-	*raw = prop;
-
-	double diff = val - prop;
-	diff *= diff;
+	prop = pow(prop, 0.35);
+	double slide = std::max(0.2 * (1 - distance / 100.), 0.);
+	prop += slide;
+	prop = std::min(1., prop);
 	
-	return diff;
+	double decrease = carefulScoreWithOther(other);
+	prop *= decrease;
+
+	return prop;
 }
 
 double Bound::percentageCloudInOther(Bound *b)
@@ -364,4 +362,17 @@ void Bound::cloud(double totalPoints)
 	}
 }
 
+void Bound::setSpecial(bool special)
+{
+	_special = special;
+
+	if (_special)
+	{
+		setColour(0.8, 0.8, 0.0);
+	}
+	else
+	{
+		setColour(0.8, 0.8, 0.8);
+	}
+}
 

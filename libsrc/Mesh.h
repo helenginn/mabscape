@@ -34,10 +34,16 @@ signals:
 	void resultReady();
 public slots:
 	void shrinkWrap();
+	void smoothCycles();
+	void inflateCycles();
+
 private:
+	void smoothen(std::vector<Vertex> &vcopy);
+	void hug(std::vector<Vertex> &vcopy);
 
 	SlipObject *_parent;
 
+	static double _speed;
 };
 
 #endif

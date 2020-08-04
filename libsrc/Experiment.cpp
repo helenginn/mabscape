@@ -17,6 +17,7 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #include "Experiment.h"
+#include "Explorer.h"
 #include "SurfaceView.h"
 #include "SlipGL.h"
 #include "Bound.h"
@@ -24,6 +25,7 @@
 #include "Structure.h"
 #include "Mesh.h"
 #include "Refinement.h"
+#include "Result.h"
 #include "FileReader.h"
 #include <iomanip>
 #include <fstream>
@@ -32,19 +34,24 @@
 #include <QMenu>
 #include <QThread>
 
+#define DEFAULT_MONTE_CARLO (100)
+
 Experiment::Experiment(SurfaceView *view)
 {
+	_passToResults = false;
 	_mesh = NULL;
-	_bestMonte = FLT_MAX;
 	_worker = NULL;
+	_explorer = NULL;
 	_data = NULL;
 	_selected = NULL;
 	_monteCount = -1;
 	_dragging = false;
+	_refinement = NULL;
 	_view = view;
 	_gl = NULL;
 	_structure = NULL;
 	_label = new QLabel("", _view);
+	_label->setFocusProxy(_view);
 	_label->setAlignment(Qt::AlignVCenter);
 	_label->setAlignment(Qt::AlignHCenter);
 	QFont font = QFont("Helvetica", 16);
@@ -60,6 +67,16 @@ void Experiment::loadStructure(std::string filename)
 	_structure = str;
 }
 
+void Experiment::recolourByCorrelation()
+{
+	if (!_refinement)
+	{
+		_refinement = new Refinement(this);
+	}
+
+	_refinement->recolourByScore();
+}
+
 void Experiment::meshStructure()
 {
 	Mesh *mesh = _structure->makeMesh();
@@ -67,6 +84,12 @@ void Experiment::meshStructure()
 	_mesh = mesh;
 
 	refineMesh();
+}
+
+void Experiment::chooseTarget(Target t)
+{
+	Refinement::chooseTarget(t);
+	_view->makeMenu();
 }
 
 void Experiment::triangulateMesh()
@@ -81,16 +104,16 @@ void Experiment::triangulateMesh()
 	_mesh->changeToLines();
 }
 
-void Experiment::refineMesh()
+bool Experiment::prepareWorkForMesh()
 {
 	if (_mesh == NULL)
 	{
-		return;
+		return false;
 	}
 
 	if (_worker && _worker->isRunning())
 	{
-		return;
+		return false;
 	}
 	
 	if (!_worker)
@@ -100,9 +123,55 @@ void Experiment::refineMesh()
 
 	_mesh->moveToThread(_worker);
 
-	connect(this, SIGNAL(refine()), _mesh, SLOT(shrinkWrap()));
 	connect(_mesh, SIGNAL(resultReady()), this, SLOT(handleMesh()));
+	return true;
+}
 
+void Experiment::smoothMesh()
+{
+	if (!prepareWorkForMesh())
+	{
+		return;
+	}
+
+	connect(this, SIGNAL(refine()), _mesh, SLOT(smoothCycles()));
+	_worker->start();
+
+	emit refine();
+}
+
+void Experiment::inflateMesh()
+{
+	if (!prepareWorkForMesh())
+	{
+		return;
+	}
+
+	connect(this, SIGNAL(refine()), _mesh, SLOT(inflateCycles()));
+	_worker->start();
+
+	emit refine();
+}
+
+void Experiment::removeMesh()
+{
+	if (_mesh == NULL)
+	{
+		return;
+	}
+	
+	_structure->clearMesh();
+	_mesh = NULL;
+}
+
+void Experiment::refineMesh()
+{
+	if (!prepareWorkForMesh())
+	{
+		return;
+	}
+
+	connect(this, SIGNAL(refine()), _mesh, SLOT(shrinkWrap()));
 	_worker->start();
 
 	emit refine();
@@ -152,10 +221,28 @@ void Experiment::hoverMouse(double x, double y)
 	{
 		dehighlightAll();
 		which->setHighlighted(true);
+		QString name = QString::fromStdString(which->name());
+
+		_view->convertToViewCoords(&x, &y);
+		_label->setGeometry(x - 50, y - 50, 100, 50);
+		_label->setText(name);
+		_label->show();
+		_view->setCursor(Qt::PointingHandCursor);
+		
+		if (_passToResults && _explorer)
+		{
+			_explorer->highlightBound(which);
+		}
 	}
 	else
 	{
 		dehighlightAll();
+		_view->setCursor(Qt::CrossCursor);
+
+		if (_passToResults && _explorer)
+		{
+			_explorer->highlightBound(NULL);
+		}
 	}
 }
 
@@ -165,6 +252,8 @@ void Experiment::dehighlightAll()
 	{
 		_bounds[i]->setHighlighted(false);
 	}
+	
+	hideLabel();
 }
 
 void Experiment::deselectAll()
@@ -204,6 +293,8 @@ void Experiment::checkDrag(double x, double y)
 	double z = -FLT_MAX;
 
 	_dragging = _selected->intersects(x, y, &z);
+	
+	_view->setCursor(_dragging ? Qt::ClosedHandCursor : Qt::PointingHandCursor);
 }
 
 void Experiment::drag(double x, double y)
@@ -245,6 +336,8 @@ void Experiment::finishDragging()
 	{
 		_selected->snapToObject(_structure);
 	}
+
+	_view->setCursor(Qt::OpenHandCursor);
 }
 
 void Experiment::fixBound()
@@ -257,7 +350,16 @@ void Experiment::fixBound()
 
 void Experiment::loadCSV(std::string filename)
 {
-	_data = new Data(filename);
+	if (_data != NULL)
+	{
+		_data->changeFilename(filename);
+		_data->load();
+	}
+	else
+	{
+		_data = new Data(filename);
+	}
+
 	createBinders();
 }
 
@@ -266,6 +368,12 @@ void Experiment::createBinders()
 	for (size_t i = 0; i < _data->boundCount(); i++)
 	{
 		std::string id = _data->boundName(i);
+		
+		if (_nameMap.count(id) > 0)
+		{
+			continue;
+		}
+
 		std::cout << "Making " << id << std::endl;
 		Bound *bound = loadBound(_boundObj);
 		bound->setName(id);
@@ -314,7 +422,12 @@ void Experiment::selectFromMenu()
 	select(b, -1, -1);
 }
 
-void Experiment::refineModel(bool toSurface)
+void Experiment::svdRefine()
+{
+	refineModel(false, true);
+}
+
+void Experiment::refineModel(bool fixedOnly, bool svd)
 {
 	if (_worker && _worker->isRunning())
 	{
@@ -326,8 +439,11 @@ void Experiment::refineModel(bool toSurface)
 		_worker = new QThread();
 	}
 
-	_refinement = new Refinement(this, toSurface);
+	_refinement = new Refinement(this);
 	_refinement->moveToThread(_worker);
+
+	_refinement->setFixedOnly(fixedOnly);
+	_refinement->setConvert(svd);
 
 	connect(this, SIGNAL(refine()),
 	        _refinement, SLOT(refine()));
@@ -343,7 +459,6 @@ void Experiment::refineModel(bool toSurface)
 
 void Experiment::handleResults()
 {
-	std::cout << "Done." << std::endl;
 	Refinement *obj = static_cast<Refinement *>(QObject::sender());
 
 	disconnect(this, SIGNAL(refine()), nullptr, nullptr);
@@ -353,27 +468,59 @@ void Experiment::handleResults()
 	obj->deleteLater();
 	_worker = NULL;
 	
-	if (_monteCount >= 0 && _monteCount < 20)
+	if (_monteCount >= 0 && _monteCount < DEFAULT_MONTE_CARLO)
 	{
 		double newest = Refinement::getScore(_refinement);
-		std::cout << "New score: " << newest << std::endl;
 		
-		if (newest < _bestMonte)
-		{
-			std::cout << "Best so far!" << std::endl;
-			savePositions(&_bestPositions);
-			_bestMonte = newest;
-		}
+		Result *result = new Result();
+		result->savePositions(this);
+		result->setScore(newest);
+		_results.push_back(result);
+
 		_monteCount++;
 
 		monteCarloRound();
 	}
-	else if (_monteCount >= 20)
+	else if (_monteCount >= DEFAULT_MONTE_CARLO)
 	{
-		applyPositions(_bestPositions);
-		std::cout << "Choosing best score: " << _bestMonte << std::endl;
-		_monteCount = -1;
+		finishUpMonteCarlo();
 	}
+}
+
+bool is_lesser_score(PosMapScore &a, PosMapScore &b)
+{
+	return (a.score < b.score);
+}
+
+void Experiment::finishUpMonteCarlo()
+{
+	_monteCount = -1;
+
+	std::sort(_results.begin(), _results.end(), Result::result_is_less_than);
+
+	for (size_t i = 0; i < 10 && i < _results.size(); i++)
+	{
+		std::cout << _results[i]->score() << std::endl;
+	}
+
+	if (_results.size())
+	{
+		std::cout << "Choosing best score: " << 
+		_results[0]->score() << std::endl;
+
+		_results[0]->applyPositions(this);
+	}
+	
+	if (_explorer == NULL)
+	{
+		_explorer = new Explorer(NULL);
+		_explorer->setExperiment(this);
+		_gl->addObject(_explorer, false);
+	}
+	
+	_explorer->addResults(_results);
+	_results.clear();
+	_explorer->show();
 }
 
 void Experiment::handleMesh()
@@ -409,7 +556,7 @@ void Experiment::randomise()
 
 void Experiment::jiggle()
 {
-	for (int i = 0; i < 8; i++)
+	for (int i = 0; i < 15; i++)
 	{
 		for (size_t i = 0; i < _bounds.size(); i++)
 		{
@@ -421,35 +568,9 @@ void Experiment::jiggle()
 
 void Experiment::monteCarloRound()
 {
-	std::cout << "Monte Carlo round " << _monteCount + 1 << std::endl;
+	std::cout << "Round " << _monteCount + 1 << ": " << std::flush;
 	randomise();
-	refineModel(false);
-}
-
-void Experiment::savePositions(std::map<Bound *, vec3> *posMap)
-{
-	posMap->clear();
-
-	for (size_t i = 0; i < _bounds.size(); i++)
-	{
-		vec3 wip = _bounds[i]->getWorkingPosition();
-		(*posMap)[_bounds[i]] = wip;
-	}
-}
-
-void Experiment::applyPositions(std::map<Bound *, vec3> posMap)
-{
-	for (size_t i = 0; i < _bounds.size(); i++)
-	{
-		if (posMap.count(_bounds[i]) == 0)
-		{
-			continue;
-		}
-
-		vec3 wip = posMap[_bounds[i]];
-		_bounds[i]->setRealPosition(wip);
-		_bounds[i]->updatePositionToReal();
-	}
+	refineModel(true);
 }
 
 void Experiment::loadPositions(std::string filename)
@@ -479,8 +600,9 @@ void Experiment::loadPositions(std::string filename)
 		
 		if (name[0] == '^' && name.length() > 1)
 		{
-			name = &bits[0][1];
+			name = &name[1];
 			colour = true;
+			std::cout << name << " marked in red" << std::endl;
 		}
 
 		float v1 = atof(bits[1].c_str());
@@ -496,17 +618,15 @@ void Experiment::loadPositions(std::string filename)
 		}
 
 		b->setRealPosition(pos);
+		b->setSpecial(colour);
 
 		if ((fixed && !b->isFixed()) ||
 		    (!fixed && b->isFixed()))
 		{
 			b->toggleFixPosition();
 		}
-
-		if (colour)
-		{
-			b->recolour(0.8, 0.0, 0.0);
-		}
+		
+		b->colourFixed();
 
 		b->updatePositionToReal();
 	}
@@ -534,17 +654,24 @@ void Experiment::writeOutCSV()
 		std::string bin = bi->name();
 		vec3 posi = bi->getWorkingPosition();
 		std::string fixed = bi->isFixed() ? "*" : "";
+		std::string special = bi->isSpecial() ? "^" : "";
 		
-		posicsv << fixed << bin << "," << posi.x << "," << -posi.y << ","
-		<< posi.z << std::endl;
+		posicsv << fixed << special << bin << "," << 
+		posi.x << "," << -posi.y << "," << posi.z << std::endl;
 
 		for (size_t j = 0; j < i; j++)
 		{
 			Bound *bj = bound(j);
 			std::string bjn = bj->name();
-			double prop = 0;
-			bi->scoreWithOther(bj, _data, &prop, true);
+			double val = _data->valueFor(bin, bjn);
+			
+			if (val != val)
+			{
+				continue;
+			}
 
+			double prop = bi->scoreWithOther(bj);
+			
 			file << bin << "," << bjn << "," << prop << std::endl;
 		}
 	}
@@ -553,3 +680,12 @@ void Experiment::writeOutCSV()
 	posicsv.close();
 }
 
+
+void Experiment::clearMonteCarlo()
+{
+	if (_explorer)
+	{
+		_explorer->clear();
+	}
+
+}

@@ -16,14 +16,45 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include "Structure.h"
+#include "Result.h"
+#include "Experiment.h"
+#include "Bound.h"
 
-Structure::Structure(std::string filename) : SlipObjFile(filename)
+Result::Result()
 {
-	resize(1);
-	setName("Structure");
-	recolour(0, 0.5, 0.5);
-	
-	collapseCommonVertices();
-	writeObjFile("smaller-" + filename);
+	_score = 0;
+
+}
+
+void Result::applyPositions(Experiment *exp)
+{
+	for (size_t i = 0; i < exp->boundCount(); i++)
+	{
+		Bound *bi = exp->bound(i);
+		if (_map.count(bi) == 0)
+		{
+			continue;
+		}
+
+		vec3 wip = _map[bi];
+		bi->setRealPosition(wip);
+		bi->updatePositionToReal();
+	}
+}
+
+void Result::savePositions(Experiment *exp)
+{
+	_map.clear();
+
+	for (size_t i = 0; i < exp->boundCount(); i++)
+	{
+		vec3 wip = exp->bound(i)->getWorkingPosition();
+		_map[exp->bound(i)] = wip;
+	}
+
+}
+
+vec3 Result::vecForBound(Bound *b)
+{
+	return _map[b];
 }

@@ -17,6 +17,7 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #define PAN_SENSITIVITY 30
+#include "Refinement.h"
 #include <iostream>
 #include "SurfaceView.h"
 #include "SlipGL.h"
@@ -73,13 +74,23 @@ void SurfaceView::makeMenu()
 	_actions.push_back(act);
 	act = structure->addAction(tr("Triangulate mesh"));
 	connect(act, &QAction::triggered, _experiment, &Experiment::triangulateMesh);
+	act = structure->addAction(tr("Smooth mesh"));
+	connect(act, &QAction::triggered, _experiment, &Experiment::smoothMesh);
+	_actions.push_back(act);
+	act = structure->addAction(tr("Inflate mesh"));
+	connect(act, &QAction::triggered, _experiment, &Experiment::inflateMesh);
+	_actions.push_back(act);
+	act = structure->addAction(tr("Remove mesh"));
+	connect(act, &QAction::triggered, _experiment, &Experiment::removeMesh);
 	_actions.push_back(act);
 
 	QMenu *data = menuBar()->addMenu(tr("&Data"));
 	_menus.push_back(data);
-	act = data->addAction(tr("Load CSV"));
+	act = data->addAction(tr("Load competition data"));
+	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::loadCSV);
 	act = data->addAction(tr("Load positions"));
+	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::loadPositions);
 
 	QMenu *binders = menuBar()->addMenu(tr("&Binders"));
@@ -89,25 +100,57 @@ void SurfaceView::makeMenu()
 	
 	act = binders->addAction(tr("Write CSV"));
 	connect(act, &QAction::triggered, _experiment, &Experiment::writeOutCSV);
+	_actions.push_back(act);
 
 	QMenu *refine = menuBar()->addMenu(tr("&Refine"));
 	_menus.push_back(refine);
 	act = refine->addAction(tr("Refine"));
+	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::unrestrainedRefine);
+	act = refine->addAction(tr("Refine, axis change"));
+	_actions.push_back(act);
+	connect(act, &QAction::triggered, _experiment, &Experiment::svdRefine);
 	act = refine->addAction(tr("Monte Carlo"));
+	_actions.push_back(act);
 	connect(act, &QAction::triggered, _experiment, &Experiment::monteCarlo);
-//	act = refine->addAction(tr("Fix to surface"));
-//	connect(act, &QAction::triggered, this, &SurfaceView::fixToSurfaceRefine);
+	act = refine->addAction(tr("Clear results"));
+	connect(act, &QAction::triggered, _experiment, 
+	        &Experiment::clearMonteCarlo);
+	_actions.push_back(act);
 	act = refine->addAction(tr("Randomise positions"));
+	_actions.push_back(act);
 	connect(act, &QAction::triggered, _experiment, &Experiment::randomise);
 	act = refine->addAction(tr("Jiggle"));
+	_actions.push_back(act);
 	connect(act, &QAction::triggered, _experiment, &Experiment::jiggle);
+	refine->addSeparator();
+
+	act = refine->addAction(tr("Use correlation"));
+	_actions.push_back(act);
+	act->setCheckable(true);
+	act->setChecked(Refinement::currentTarget() == TargetCorrelation);
+	connect(act, &QAction::triggered, _experiment, 
+	[=]() { _experiment->chooseTarget(TargetCorrelation); });
+
+	act = refine->addAction(tr("Use least squares"));
+	_actions.push_back(act);
+	act->setCheckable(true);
+	act->setChecked(Refinement::currentTarget() == TargetLeastSquares);
+	connect(act, &QAction::triggered, _experiment, 
+	[=]() { _experiment->chooseTarget(TargetLeastSquares); });
+
+	refine->addSeparator();
+	act = refine->addAction(tr("Recolour by correlation"));
+	_actions.push_back(act);
+	connect(act, &QAction::triggered, _experiment, 
+	        &Experiment::recolourByCorrelation);
 }
 
 void SurfaceView::convertCoords(double *x, double *y)
 {
 	double w = width();
-	double h = height();
+	double h = height() - menuBar()->height();
+	*y -= menuBar()->height();
 
 	*x = 2 * *x / w - 1.0;
 	*y =  - (2 * *y / h - 1.0);

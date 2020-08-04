@@ -133,10 +133,18 @@ public:
 	}
 	
 	vec3 getWorkingPosition();
-	
+
 	void setRealPosition(vec3 real);
-	double scoreWithOther(Bound *other, Data *data, double *raw, bool quick);
-	double carefulScoreWithOther(Bound *other, Data *data, double *raw);
+	double scoreWithOther(Bound *other);
+	double carefulScoreWithOther(Bound *other);
+	
+	void setSpecial(bool special);
+	void colourFixed();
+	
+	bool isSpecial()
+	{
+		return _special;
+	}
 private:
 	double percentageCloudInOther(Bound *b);
 	void cloud(double totalPoints);
@@ -148,9 +156,11 @@ private:
 	std::mutex _mutex;
 	Structure *_structure;
 	vec3 _realPosition;
+	vec3 _nearestNorm;
 	static double _radius;
 	bool _snapping;
 	bool _fixed;
+	bool _special;
 	static bool _updateOnRender;
 
 };

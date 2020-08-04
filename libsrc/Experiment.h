@@ -19,19 +19,22 @@
 #ifndef __abmap__Experiment__
 #define __abmap__Experiment__
 
+#include "Refinement.h"
 #include <string>
 #include <vector>
 #include <map>
 #include <QObject>
-#include <vec3.h>
+#include "PositionMap.h"
 
 class SurfaceView;
+class Explorer;
 class SlipGL;
 class Structure;
 class Bound;
 class Refinement;
 class Data;
 class QMenu;
+class Result;
 class Mesh;
 class QLabel;
 class QThread;
@@ -66,6 +69,11 @@ public:
 	{
 		return _bounds[i];
 	}
+	
+	Structure *structure()
+	{
+		return _structure;
+	}
 
 	void loadStructure(std::string filename);
 	void loadPositions(std::string filename);
@@ -78,30 +86,42 @@ public:
 	void fixBound();
 	void addBindersToMenu(QMenu *menu);
 	void loadCSV(std::string filename);
-	void refineModel(bool toSurface);
+	void refineModel(bool fixedOnly, bool svd = false);
+	
+	void setPassToResults(bool pass)
+	{
+		_passToResults = pass;
+	}
 signals:
 	void refine();
 public slots:
 	void handleMesh();
 	void jiggle();
 	void randomise();
+	void svdRefine();
+	void clearMonteCarlo();
+	void recolourByCorrelation();
 	void selectFromMenu();
 	void handleResults();
 	void handleError();
 	void monteCarlo();
 	void refineMesh();
+	void removeMesh();
+	void smoothMesh();
+	void inflateMesh();
 	void triangulateMesh();
 	void meshStructure();
 	void writeOutCSV();
+	void chooseTarget(Target t);
 private:
+	bool prepareWorkForMesh();
 	void createBinders();
-	void savePositions(std::map<Bound *, vec3> *posMap);
-	void applyPositions(std::map<Bound *, vec3> posMap);
 	Bound *findBound(double x, double y);
 	Bound *loadBound(std::string filename);
 	void select(Bound *bound, double x, double y);
 	void convertCoords(double *x, double *y);
 	void monteCarloRound();
+	void finishUpMonteCarlo();
 	void deselectAll();
 	void dehighlightAll();
 	bool _dragging;
@@ -118,11 +138,12 @@ private:
 	QThread *_worker;
 
 	Mesh *_mesh;
-	double _bestMonte;
 	int _monteCount;
-	std::map<Bound *, vec3> _bestPositions;
+	Explorer *_explorer;
+	std::vector<Result *> _results;
 	
 	std::string _boundObj;
+	bool _passToResults;
 };
 
 #endif

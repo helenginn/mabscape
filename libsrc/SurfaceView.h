@@ -56,6 +56,7 @@ public:
 	}
 
 	void convertToViewCoords(double *x, double *y);
+	void makeMenu();
 protected:
 	virtual void resizeEvent(QResizeEvent *event);
 	virtual void keyPressEvent(QKeyEvent *event);
@@ -69,7 +70,6 @@ private slots:
 	void unrestrainedRefine();
 	void fixToSurfaceRefine();
 private:
-	void makeMenu();
 	void convertCoords(double *x, double *y);
 	Experiment *_experiment;
 	SlipGL *_gl;

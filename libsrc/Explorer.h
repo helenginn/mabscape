@@ -16,14 +16,44 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include "Structure.h"
+#ifndef __abmap__Explorer__
+#define __abmap__Explorer__
 
-Structure::Structure(std::string filename) : SlipObjFile(filename)
+#include <QMainWindow>
+#include <QTreeWidget>
+#include "SlipObject.h"
+
+class Result;
+class Experiment;
+class Squiggle;
+class Bound;
+
+class Explorer : public QMainWindow, public SlipObject
 {
-	resize(1);
-	setName("Structure");
-	recolour(0, 0.5, 0.5);
+Q_OBJECT
+public:
+	Explorer(QWidget *parent);
+
+	void addResults(std::vector<Result *> results);
 	
-	collapseCommonVertices();
-	writeObjFile("smaller-" + filename);
-}
+	void setExperiment(Experiment *exp)
+	{
+		_experiment = exp;
+	}
+
+	void highlightBound(Bound *bi);
+	
+	virtual void render(SlipGL *gl);
+	void clear();
+private slots:
+	void currentItemChanged(QTreeWidgetItem *current, 
+	                        QTreeWidgetItem *prev);
+	void itemSelectionChanged();
+private:
+	Squiggle *_squiggle;
+
+	Experiment *_experiment;
+	QTreeWidget *_widget;
+};
+
+#endif

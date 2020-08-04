@@ -154,6 +154,7 @@ public:
 	void collapseCommonVertices();
 	void recolour(double red, double green, double blue,
 	              std::vector<Vertex> *vs = NULL);
+	void setAlpha(double alpha);
 	void changeProgram(std::string &v, std::string &f);
 	vec3 centroid();
 	vec3 nearestVertex(vec3 pos, bool useMesh = false);
@@ -170,11 +171,44 @@ public:
 	double envelopeRadius();
 	double averageRadius();
 	Mesh *makeMesh();
+	
+	bool hasMesh()
+	{
+		return (_mesh != NULL);
+	}
+	
+	Mesh *mesh()
+	{
+		return _mesh;
+	}
+
 	bool pointInside(vec3 point);
 	void colourOutlayBlack();
 	void changeToLines();
 	void changeToTriangles();
 	virtual void triangulate();
+	
+	void remove()
+	{
+		_remove = true;
+	}
+	
+	bool shouldRemove()
+	{
+		return _remove;
+	}
+
+	
+	void clearMesh();
+	
+	void setColour(double red, double green, double blue)
+	{
+		_red = red;
+		_green = green;
+		_blue = blue;
+		recolour(red, green, blue);
+		recolour(red, green, blue, &_unselectedVertices);
+	}
 
 protected:
 	bool polygonIncludes(vec3 point, GLuint *trio);
@@ -192,7 +226,14 @@ protected:
 	std::vector<GLuint> _indices;
 	std::vector<Vertex> _unselectedVertices;
 
+	double _red;
+	double _green;
+	double _blue;
+
 	bool _central;
+	GLuint _renderType;
+	std::string _vString;
+	std::string _fString;
 private:
 	GLuint addShaderFromString(GLuint program, GLenum type, std::string str);
 	void checkErrors();
@@ -204,13 +245,10 @@ private:
 	static bool index_behind_index(IndexTrio one, IndexTrio two);
 	static bool index_in_front_of_index(IndexTrio one, IndexTrio two);
 
-	std::string _vString;
-	std::string _fString;
 	std::string _random;
 	GLuint _program;
 	GLuint _bufferID;
 	GLuint _vbo;
-	GLuint _renderType;
 	GLuint _uModel;
 	GLuint _uProj;
 	GLuint _uTime;
@@ -223,6 +261,7 @@ private:
 	std::mutex _mut;
 	
 	bool _extra;
+	bool _remove;
 	bool _disabled;
 	bool _selected;
 	bool _highlighted;

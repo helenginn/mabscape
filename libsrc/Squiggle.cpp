@@ -16,14 +16,38 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include "Structure.h"
+#include "Squiggle.h"
+#include "shaders/White.h"
 
-Structure::Structure(std::string filename) : SlipObjFile(filename)
+Squiggle::Squiggle() : SlipObject()
 {
-	resize(1);
-	setName("Structure");
-	recolour(0, 0.5, 0.5);
-	
-	collapseCommonVertices();
-	writeObjFile("smaller-" + filename);
+	_renderType = GL_LINES;
+	_vString = White_vsh();
+
 }
+
+void Squiggle::clear()
+{
+	_vertices.clear();
+	_indices.clear();
+}
+
+void Squiggle::setPositions(std::vector<vec3> poz)
+{
+	_vertices.clear();
+	_indices.clear();
+
+	vec3 p = poz[0];
+	addVertex(p.x, p.y, p.z);
+
+	for (size_t i = 1; i < poz.size(); i++)
+	{
+		vec3 p = poz[i];
+		addVertex(p.x, p.y, p.z);
+		addIndex(i-1);
+		addIndex(i);
+	}
+
+	recolour(1, 1, 1);
+}
+

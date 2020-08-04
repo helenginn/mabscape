@@ -52,6 +52,9 @@ void SlipObject::addToVertices(vec3 add)
 
 SlipObject::SlipObject()
 {
+	_vString = Pencil_vsh();
+	_fString = Pencil_fsh();
+	_remove = false;
 	_mesh = NULL;
 	_renderType = GL_TRIANGLES;
 	_program = 0;
@@ -113,13 +116,12 @@ void SlipObject::initialisePrograms(std::string *v, std::string *f)
 {
 	if (v == NULL)
 	{
-		_vString = Pencil_vsh();
 		v = &_vString;
 	}
 
 	if (f == NULL)
 	{
-		f = &fImage;
+		f = &_fString;
 	}
 	
 	initializeOpenGLFunctions();
@@ -318,6 +320,19 @@ void SlipObject::render(SlipGL *sender)
 	unlockMutex();
 }
 
+void SlipObject::setAlpha(double alpha)
+{
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		_vertices[i].color[3] = alpha;
+	}
+
+	for (size_t i = 0; i < _unselectedVertices.size(); i++)
+	{
+		_unselectedVertices[i].color[3] = alpha;
+	}
+}
+
 void SlipObject::recolour(double red, double green, double blue,
                           std::vector<Vertex> *vs)
 {
@@ -325,7 +340,7 @@ void SlipObject::recolour(double red, double green, double blue,
 	{
 		vs = &_vertices;
 	}
-	for (size_t i = 0; i < _vertices.size(); i++)
+	for (size_t i = 0; i < vs->size(); i++)
 	{
 		(*vs)[i].color[0] = red;
 		(*vs)[i].color[1] = green;
@@ -428,8 +443,8 @@ void SlipObject::addVertex(float v1, float v2, float v3)
 	Vertex v;
 	memset(v.pos, 0, sizeof(Vertex));
 
-	v.color[2] = 0.5;
-	v.color[3] = 1;
+	v.color[2] = 0.;
+	v.color[3] = 1.;
 	v.pos[0] = v1;
 	v.pos[1] = v2;
 	v.pos[2] = v3;
@@ -1104,4 +1119,10 @@ void SlipObject::colourOutlayBlack()
 			unlockMutex();
 		}
 	}
+}
+
+void SlipObject::clearMesh()
+{
+	_mesh->remove();
+	_mesh = NULL;
 }

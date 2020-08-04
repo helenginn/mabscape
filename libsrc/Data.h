@@ -44,6 +44,11 @@ public:
 		return _ids[i];
 	}
 	
+	void changeFilename(std::string fn)
+	{
+		_filename = fn;
+	}
+	
 	double valueFor(std::string i, std::string j);
 private:
 	std::string _filename;

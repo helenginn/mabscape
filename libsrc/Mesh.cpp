@@ -19,6 +19,8 @@
 #include "Mesh.h"
 #include <iostream>
 
+double Mesh::_speed = 0.2;
+
 Mesh::Mesh(SlipObject *other) : Icosahedron()
 {
 	double rad = other->envelopeRadius();
@@ -33,94 +35,133 @@ Mesh::Mesh(SlipObject *other) : Icosahedron()
 	_parent = other;
 }
 
+void Mesh::hug(std::vector<Vertex> &vcopy)
+{
+	for (size_t i = 0; i < vcopy.size(); i++)
+	{
+		bool isBehind = false;
+		vec3 vtx = vec_from_pos(vcopy[i].pos);
+		vec3 norm = vec_from_pos(vcopy[i].normal);
+		vec3 nearest = _parent->nearestVertexNearNormal(vtx, norm, 
+		                                                &isBehind);
+		vec3 diff = vec3_subtract_vec3(nearest, vtx);
+		if (!isBehind)
+		{
+			vec3_mult(&diff, _speed);
+		}
+		vec3_add_to_vec3(&vtx, diff);
+		pos_from_vec(vcopy[i].pos, vtx);
+	}
+}
+
+void Mesh::smoothen(std::vector<Vertex> &vcopy)
+{
+	vec3 centre = centroid();
+	double all = 0;
+
+	for (size_t i = 0; i < vcopy.size(); i++)
+	{
+		vec3 vtx = vec_from_pos(vcopy[i].pos);
+		vec3_subtract_from_vec3(&vtx, centre);
+		double length = vec3_length(vtx);
+		all += length;
+		double longest = -1;
+		vec3 target = empty_vec3();
+		vec3 local_ctr = empty_vec3();
+		double count = 0;
+
+		for (size_t j = 0; j < _indices.size(); j += 2) /* GL LINES */
+		{
+			if (_indices[j] != i && _indices[j + 1] != i)
+			{
+				continue;
+			}
+
+			int other = (_indices[j] == i) ? _indices[j + 1] : _indices[j];
+			vec3 pos = vec_from_pos(vcopy[other].pos);
+			vec3_add_to_vec3(&local_ctr, pos);
+
+			vec3_subtract_from_vec3(&pos, vtx);
+			double length = vec3_sqlength(pos);
+
+			count++;
+
+			if (longest < length)
+			{
+				longest = length;
+				target = pos;
+			}
+		}
+
+		if (longest < 0)
+		{
+			continue;
+		}
+
+		vec3 norm = vec_from_pos(vcopy[i].normal);
+		vec3_mult(&local_ctr, 1 / count);
+
+		vec3 booster = vec3_subtract_vec3(local_ctr, vtx);
+		vec3_mult(&booster, _speed * 1.3);
+		vec3_set_length(&norm, _speed * 1.3);
+
+		vec3_add_to_vec3(&vtx, booster);
+		vec3_add_to_vec3(&vtx, norm);
+
+		pos_from_vec(vcopy[i].pos, vtx);
+	}
+
+	all /= vcopy.size();
+}
+
 void Mesh::shrinkWrap()
 {
-	double speed = 0.1;
 	std::vector<Vertex> vcopy = _vertices;
 
 	for (int i = 0; i < 100; i++)
 	{
-		for (size_t i = 0; i < vcopy.size(); i++)
-		{
-			bool isBehind = false;
-			vec3 vtx = vec_from_pos(vcopy[i].pos);
-			vec3 norm = vec_from_pos(vcopy[i].normal);
-			vec3 nearest = _parent->nearestVertexNearNormal(vtx, norm, 
-			                                                &isBehind);
-			vec3 diff = vec3_subtract_vec3(nearest, vtx);
-			if (!isBehind)
-			{
-				vec3_mult(&diff, speed);
-			}
-			vec3_add_to_vec3(&vtx, diff);
-			pos_from_vec(vcopy[i].pos, vtx);
-		}
-		
-		double ave = averageRadius();
-
-		for (size_t i = 0; i < vcopy.size(); i++)
-		{
-			vec3 vtx = vec_from_pos(vcopy[i].pos);
-			double longest = -1;
-			vec3 target = empty_vec3();
-			vec3 local_ctr = empty_vec3();
-			double count = 0;
-
-			for (size_t j = 0; j < _indices.size(); j += 2) /* GL LINES */
-			{
-				if (_indices[j] != i && _indices[j + 1] != i)
-				{
-					continue;
-				}
-
-				int other = (_indices[j] == i) ? _indices[j + 1] : _indices[j];
-				vec3 pos = vec_from_pos(vcopy[other].pos);
-				vec3_add_to_vec3(&local_ctr, pos);
-
-				vec3_subtract_from_vec3(&pos, vtx);
-				double length = vec3_sqlength(pos);
-
-				count++;
-
-				if (longest < length)
-				{
-					longest = length;
-					target = pos;
-				}
-			}
-
-			if (longest < 0)
-			{
-				continue;
-			}
-			
-			vec3 norm = vec_from_pos(vcopy[i].normal);
-			vec3_mult(&local_ctr, 1 / count);
-
-			vec3 booster = vec3_subtract_vec3(local_ctr, vtx);
-			vec3_mult(&booster, speed * 2);
-			vec3_set_length(&norm, speed * 2);
-
-			vec3_add_to_vec3(&vtx, booster);
-			vec3_add_to_vec3(&vtx, norm);
-
-			pos_from_vec(vcopy[i].pos, vtx);
-		}
-		
-		double now = averageRadius();
-		resize(1.0 * ave / now);
-		calculateNormals();
+		hug(vcopy);
+		smoothen(vcopy);
 		
 		lockMutex();
 		_vertices = vcopy;
-		
-		if (i % 100 == 0 && i > 0)
-		{
-//			removeUselessVertices();
-		}
 		unlockMutex();
 	}
 	
-//	_parent->colourOutlayBlack();
+	resultReady();
+}
+
+void Mesh::smoothCycles()
+{
+	std::vector<Vertex> vcopy = _vertices;
+
+	for (int i = 0; i < 15; i++)
+	{
+		double ave = averageRadius();
+		smoothen(vcopy);
+
+		lockMutex();
+		_vertices = vcopy;
+		unlockMutex();
+
+		double now = averageRadius();
+		resize(1.0 * ave / now);
+		calculateNormals();
+	}
+
+	resultReady();
+}
+
+void Mesh::inflateCycles()
+{
+	std::vector<Vertex> vcopy = _vertices;
+
+	for (int i = 0; i < 15; i++)
+	{
+		lockMutex();
+		resize(1.01);
+		unlockMutex();
+	}
+
 	resultReady();
 }

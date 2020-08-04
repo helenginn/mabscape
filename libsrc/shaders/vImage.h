@@ -24,8 +24,8 @@ inline std::string Pencil_vsh()
 	"	 vec4 norm4 = vec4(normal[0], normal[1], normal[2], 1.0);\n"\
 	"	 pos = model * pos;\n"\
 	"	 vec4 lightpos = vec4(pos[0], pos[1], pos[2], 1);\n"\
-	"    float origdot = abs(dot(normalize(norm4), normalize(lightpos)));"\
-	"    float adot = (asin(origdot) + time * 12.56);\n"\
+	"    float green = abs(dot(normalize(norm4), normalize(lightpos)));"\
+	"    float adot = (asin(green) + time * 12.56);\n"\
 	"	 if (adot != adot) adot = 0.;\n"\
 	"	 while (adot > 6.28) adot -= 6.28;\n"\
 	"    float dot = abs(sin(adot));\n"\
@@ -33,13 +33,13 @@ inline std::string Pencil_vsh()
 	"    vPos = projection * pos;\n"\
 	"    gl_Position = vPos;\n"\
 	"	 float red = 0.4 *((1.0 - color[0]) * dot) + color[0];\n"\
-	"	 float green = 0.4 *((1. - color[1]) * gdot) + color[1];\n"\
-	"    origdot *= color[2] * 2.;\n"\
+	"    green *= color[1] * 2.;\n"\
+	"    float blue = color[2];\n"\
 	"	 if (color[1] < 0.01)\n"\
 	"	 {\n"\
 	"//		 red = origdot;\n"\
 	"	 }\n"\
-	"	 vColor = vec4(red, origdot, color[2], color[3]);\n"\
+	"	 vColor = vec4(red, green, blue, color[3]);\n"\
 	"}";
 	return str;
 }

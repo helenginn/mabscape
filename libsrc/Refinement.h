@@ -20,30 +20,73 @@
 #define __abmap__Refinement__
 
 #include <QObject>
+#include <Converter.h>
 
 class Experiment;
 class Data;
+class Bound;
+
+typedef enum
+{
+	TargetLeastSquares,
+	TargetCorrelation
+} Target;
 
 class Refinement : public QObject
 {
 Q_OBJECT
 public:
-	Refinement(Experiment *exp, bool restrained);
+	Refinement(Experiment *exp);
 
 	static double getScore(void *object)
 	{
 		return static_cast<Refinement *>(object)->score();
 	}
+
+	static double getPartialScore(void *object, void *bound)
+	{
+		Bound *bi = static_cast<Bound *>(bound);
+		return static_cast<Refinement *>(object)->partialScore(bi);
+	}
+	
+	static void chooseTarget(Target t)
+	{
+		_target = t;
+	}
+	
+	static Target currentTarget()
+	{
+		return _target;
+	}
+	
+	void setFixedOnly(bool only)
+	{
+		_fixedOnly = only;
+	}
+	
+	void setConvert(bool conv)
+	{
+		_convert = conv;
+	}
+
+	void recolourByScore();
+	
+	static double compareBinders(void *obj, Parameter &p1, Parameter &p2);
 signals:
 	void failed();
 	void resultReady();
 public slots:
 	void refine();
+protected:
 private:
-	double score();
-
-	Experiment *_experiment;
 	Data *_data;
+	double score();
+	double partialScore(Bound *bi);
+	bool _fixedOnly;
+	bool _convert;
+
+	static Target _target;
+	Experiment *_experiment;
 
 };
 
