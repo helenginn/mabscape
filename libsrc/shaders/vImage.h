@@ -25,7 +25,7 @@ inline std::string Pencil_vsh()
 	"	 pos = model * pos;\n"\
 	"	 vec4 lightpos = vec4(pos[0], pos[1], pos[2], 1);\n"\
 	"    float green = abs(dot(normalize(norm4), normalize(lightpos)));"\
-	"    float adot = (asin(green) + time * 12.56);\n"\
+	"    float adot = (asin(green) + 0. * 12.56);\n"\
 	"	 if (adot != adot) adot = 0.;\n"\
 	"	 while (adot > 6.28) adot -= 6.28;\n"\
 	"    float dot = abs(sin(adot));\n"\

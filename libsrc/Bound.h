@@ -39,6 +39,12 @@ public:
 	void toggleFixPosition();
 	void updatePositionToReal();
 	
+	void setFixed(bool fixed)
+	{
+		_fixed = fixed;
+		colourFixed();
+	}
+	
 	bool isFixed()
 	{
 		return _fixed;

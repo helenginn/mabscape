@@ -210,7 +210,7 @@ void Refinement::refine()
 
 	bool changed = true;
 	int count = 0;
-	int target = 10;
+	int target = 15;
 	if (!_fixedOnly && !_convert)
 	{
 		target = 100;
@@ -255,7 +255,6 @@ void Refinement::refine()
 		
 		count++;
 		changed = ref->changedSignificantly();
-		std::cout << " ... " << score() << std::flush;
 		
 		if (_fixedOnly && count == 4)
 		{
@@ -263,6 +262,7 @@ void Refinement::refine()
 		}
 	}
 
+	std::cout << score() << std::flush;
 	std::cout << std::endl;
 
 	Bound::updateOnRender(false);

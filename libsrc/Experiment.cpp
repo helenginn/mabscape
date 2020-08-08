@@ -17,6 +17,7 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #include "Experiment.h"
+#include "PDBView.h"
 #include "Explorer.h"
 #include "SurfaceView.h"
 #include "SlipGL.h"
@@ -29,12 +30,17 @@
 #include "FileReader.h"
 #include <iomanip>
 #include <fstream>
+#include <AveCSV.h>
+#include <Group.h>
+#include <ClusterList.h>
+#include <Screen.h>
 #include <float.h>
 #include <QLabel>
 #include <QMenu>
 #include <QThread>
+#include <QVariant>
 
-#define DEFAULT_MONTE_CARLO (100)
+#define DEFAULT_MONTE_CARLO (1000)
 
 Experiment::Experiment(SurfaceView *view)
 {
@@ -45,6 +51,7 @@ Experiment::Experiment(SurfaceView *view)
 	_data = NULL;
 	_selected = NULL;
 	_monteCount = -1;
+	_monteTarget = DEFAULT_MONTE_CARLO;
 	_dragging = false;
 	_refinement = NULL;
 	_view = view;
@@ -62,6 +69,12 @@ Experiment::Experiment(SurfaceView *view)
 
 void Experiment::loadStructure(std::string filename)
 {
+	if (_structure != NULL)
+	{
+		std::cout << "Got structure already, not loading new one." 
+		<< std::endl;
+		exit(1);
+	}
 	Structure *str = new Structure(filename);
 	_gl->addObject(str, true);
 	_structure = str;
@@ -77,13 +90,17 @@ void Experiment::recolourByCorrelation()
 	_refinement->recolourByScore();
 }
 
-void Experiment::meshStructure()
+QThread *Experiment::meshStructure()
 {
-	Mesh *mesh = _structure->makeMesh();
-	_gl->addObject(mesh, false);
-	_mesh = mesh;
+	if (_mesh == NULL)
+	{
+		Mesh *mesh = _structure->makeMesh();
+		_gl->addObject(mesh, false);
+		_mesh = mesh;
+	}
 
 	refineMesh();
+	return _worker;
 }
 
 void Experiment::chooseTarget(Target t)
@@ -395,11 +412,23 @@ void Experiment::addBindersToMenu(QMenu *binders)
 
 		for (size_t j = 0; i + j < _bounds.size() && j < 10; j++)
 		{
+			void *b = &*_bounds[i + j];
 			std::string name = _bounds[i + j]->name();
 			QString n = QString::fromStdString(name);
-			QAction *act = m->addAction(n);
+			QMenu *mb = m->addMenu(n);
+			_view->addMenu(mb);
+
+			QVariant v = QVariant::fromValue(b);
+			QAction *act = mb->addAction("Select");
+			act->setProperty("bound", v);
 			connect(act, &QAction::triggered, 
 			        this, &Experiment::selectFromMenu);
+			_view->addAction(act);
+
+			act = mb->addAction("Fix from PDB");
+			act->setProperty("bound", v);
+			connect(act, &QAction::triggered, 
+			        this, &Experiment::fixFromPDB);
 			_view->addAction(act);
 		}
 	}
@@ -410,8 +439,8 @@ void Experiment::selectFromMenu()
 	QObject *obj = QObject::sender();
 	QAction *act = static_cast<QAction *>(obj);
 
-	std::string name = act->text().toStdString();
-	Bound *b = _nameMap[name];
+	void *v = act->property("bound").value<void *>();
+	Bound *b = static_cast<Bound *>(v);
 
 	if (b == NULL)
 	{
@@ -429,7 +458,7 @@ void Experiment::svdRefine()
 
 void Experiment::refineModel(bool fixedOnly, bool svd)
 {
-	if (_worker && _worker->isRunning())
+	if (_worker && _worker->isRunning() && !fixedOnly)
 	{
 		return;
 	}
@@ -457,6 +486,18 @@ void Experiment::refineModel(bool fixedOnly, bool svd)
 	emit refine();
 }
 
+bool Experiment::isRunningMonteCarlo()
+{
+	int count = 0;
+	_mut.lock();
+	count = _monteCount + 1;
+	_mut.unlock();
+
+	bool finished = (count >= _monteTarget);
+
+	return !finished;
+}
+
 void Experiment::handleResults()
 {
 	Refinement *obj = static_cast<Refinement *>(QObject::sender());
@@ -465,31 +506,52 @@ void Experiment::handleResults()
 	disconnect(obj, SIGNAL(resultReady()), this, SLOT(handleResults()));
 	disconnect(obj, SIGNAL(failed()), this, SLOT(handleError()));
 
-	obj->deleteLater();
-	_worker = NULL;
-	
-	if (_monteCount >= 0 && _monteCount < DEFAULT_MONTE_CARLO)
-	{
-		double newest = Refinement::getScore(_refinement);
-		
-		Result *result = new Result();
-		result->savePositions(this);
-		result->setScore(newest);
-		_results.push_back(result);
+	bool finished = !isRunningMonteCarlo();
+	std::cout << "Finished: " << finished << std::endl;
 
-		_monteCount++;
+	double newest = Refinement::getScore(obj);
+
+	Result *result = new Result();
+	result->setExperiment(this);
+	result->savePositions();
+	result->setScore(newest);
+	_results.push_back(result);
+
+	if (!finished)
+	{
+		if (_monteCount >= 0)
+		{
+			_mut.lock();
+			_monteCount++;
+			_mut.unlock();
+		}
 
 		monteCarloRound();
 	}
-	else if (_monteCount >= DEFAULT_MONTE_CARLO)
+	else 
 	{
+		std::cout << "Finishing Monte Carlo" << std::endl;
 		finishUpMonteCarlo();
 	}
+
+	obj->deleteLater();
 }
 
 bool is_lesser_score(PosMapScore &a, PosMapScore &b)
 {
 	return (a.score < b.score);
+}
+
+void Experiment::makeExplorer()
+{
+	if (_explorer == NULL)
+	{
+		_explorer = new Explorer(NULL);
+		_explorer->setExperiment(this);
+		_explorer->setClusterScreen(_view->clusterScreen());
+		_gl->addObject(_explorer, false);
+	}
+
 }
 
 void Experiment::finishUpMonteCarlo()
@@ -498,29 +560,13 @@ void Experiment::finishUpMonteCarlo()
 
 	std::sort(_results.begin(), _results.end(), Result::result_is_less_than);
 
-	for (size_t i = 0; i < 10 && i < _results.size(); i++)
-	{
-		std::cout << _results[i]->score() << std::endl;
-	}
-
-	if (_results.size())
-	{
-		std::cout << "Choosing best score: " << 
-		_results[0]->score() << std::endl;
-
-		_results[0]->applyPositions(this);
-	}
-	
-	if (_explorer == NULL)
-	{
-		_explorer = new Explorer(NULL);
-		_explorer->setExperiment(this);
-		_gl->addObject(_explorer, false);
-	}
-	
+	makeExplorer();
 	_explorer->addResults(_results);
 	_results.clear();
 	_explorer->show();
+
+	_worker->quit();
+	_worker->wait();
 }
 
 void Experiment::handleMesh()
@@ -530,7 +576,8 @@ void Experiment::handleMesh()
 	disconnect(this, SIGNAL(refine()), nullptr, nullptr);
 	disconnect(obj, SIGNAL(resultReady()), this, SLOT(handleMesh()));
 
-	_worker = NULL;
+	_worker->quit();
+	_worker->wait();
 }
 
 void Experiment::handleError()
@@ -542,7 +589,8 @@ void Experiment::handleError()
 	disconnect(obj, SIGNAL(failed()), this, SLOT(handleError()));
 
 	obj->deleteLater();
-	_worker = NULL;
+	_worker->quit();
+	_worker->wait();
 }
 
 void Experiment::randomise()
@@ -627,18 +675,33 @@ void Experiment::loadPositions(std::string filename)
 		}
 		
 		b->colourFixed();
+		b->snapToObject(NULL);
 
 		b->updatePositionToReal();
 	}
 
 }
 
-void Experiment::monteCarlo()
+void Experiment::mCarloStop()
+{
+	_mut.lock();
+	_monteCount = _monteTarget;
+	_mut.unlock();
+}
+
+void Experiment::mCarloStart()
+{
+	_monteCount = -2;
+
+	monteCarloRound();
+}
+
+QThread *Experiment::monteCarlo()
 {
 	_monteCount = 0;
 
 	monteCarloRound();
-
+	return _worker;
 }
 
 void Experiment::writeOutCSV()
@@ -680,12 +743,85 @@ void Experiment::writeOutCSV()
 	posicsv.close();
 }
 
-
-void Experiment::clearMonteCarlo()
+AveCSV *Experiment::csv()
 {
 	if (_explorer)
 	{
-		_explorer->clear();
+		_explorer->setClusterScreen(_view->clusterScreen());
 	}
 
+	return _data->getClusterCSV();
+}
+
+void Experiment::updateCSV(AveCSV *csv, bool data)
+{
+	if (data)
+	{
+		_data->updateCSV(csv);
+		return;
+	}
+
+	for (size_t i = 0; i < boundCount(); i++)
+	{
+		Bound *bi = bound(i);
+		std::string bin = bi->name();
+
+		for (size_t j = 0; j < i; j++)
+		{
+			Bound *bj = bound(j);
+			std::string bjn = bj->name();
+			double val = _data->valueFor(bin, bjn);
+			if (val != val)
+			{
+				continue;
+			}
+
+			double prop = bi->scoreWithOther(bj);
+			
+			csv->addValue(bin, bjn, prop);
+			csv->addValue(bjn, bin, prop);
+		}
+	}
+}
+
+void Experiment::somethingToCluster4x(bool data)
+{
+	if (_view->clusterScreen() == NULL)
+	{
+		std::cout << "No screen" << std::endl;
+		return;
+	}
+
+	ClusterList *list = _view->clusterScreen()->getList();
+	size_t count = list->groupCount();
+	Group *grp = list->group(count - 1);
+	AveCSV *csv = Group::topGroup()->getAveCSV();
+	updateCSV(csv, data);
+	_view->clusterScreen()->getList()->cluster(grp);
+}
+
+
+void Experiment::openResults()
+{
+	makeExplorer();
+	_explorer->show();
+}
+
+void Experiment::fixFromPDB()
+{
+	QObject *obj = QObject::sender();
+	QAction *act = static_cast<QAction *>(obj);
+
+	void *v = act->property("bound").value<void *>();
+	Bound *b = static_cast<Bound *>(v);
+	PDBView *view = new PDBView(b);
+
+	if (!view->successful())
+	{
+		view->deleteLater();
+	}
+	else
+	{
+		view->setExperiment(this);
+	}
 }

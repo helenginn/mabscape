@@ -17,6 +17,7 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #include "Data.h"
+#include <AveCSV.h>
 #include <iostream>
 #include <cmath>
 #include <FileReader.h>
@@ -135,6 +136,30 @@ double Data::valueFor(std::string i, std::string j)
 		return val1;
 	}
 	
+	return (val2 + val1) / 2;
 	return std::min(val2, val1);
 }
 
+void Data::updateCSV(AveCSV *csv)
+{
+	for (size_t i = 0; i < _ids.size(); i++)
+	{
+		for (size_t j = 0; j < _ids.size(); j++)
+		{
+			if (_relationships.count(_ids[i]) &&
+			    _relationships[_ids[i]].count(_ids[j]))
+			{
+				double value = _relationships[_ids[i]][_ids[j]];
+				csv->addValue(_ids[i], _ids[j], value);
+			}
+		}
+	}
+
+}
+
+AveCSV *Data::getClusterCSV()
+{
+	AveCSV *csv = new AveCSV(NULL, "");
+	updateCSV(csv);
+	return csv;
+}

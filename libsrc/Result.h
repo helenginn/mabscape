@@ -21,16 +21,23 @@
 
 #include <QTreeWidgetItem>
 #include "PositionMap.h"
+#include "MtzFFTPtr.h"
 
 class Experiment;
+class Structure;
 
 class Result : public QTreeWidgetItem
 {
 public:
 	Result();
 	
-	void savePositions(Experiment *exp);
-	void applyPositions(Experiment *exp);
+	void savePositions();
+	void applyPositions();
+	
+	void setExperiment(Experiment *exp)
+	{
+		_exp = exp;
+	}
 
 	void setPositions(PositionMap map)
 	{
@@ -55,7 +62,14 @@ public:
 		return (a->_score < b->_score);
 
 	}
+
+	void populateFromString(std::string contents, size_t *pos);
+	void writeToStream(std::ofstream &file);
+	void markVerticesAroundBound(Structure *s, Bound *b);
+
+	MtzFFTPtr makeDatasetForCluster4x();
 private:
+	Experiment *_exp;
 	PositionMap _map;
 	double _score;
 

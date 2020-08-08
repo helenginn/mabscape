@@ -24,6 +24,7 @@
 #include <vector>
 
 class Bound;
+class AveCSV;
 
 typedef std::map<std::string, double> MapStringDouble;
 
@@ -49,6 +50,8 @@ public:
 		_filename = fn;
 	}
 	
+	AveCSV *getClusterCSV();
+	void updateCSV(AveCSV *csv);
 	double valueFor(std::string i, std::string j);
 private:
 	std::string _filename;

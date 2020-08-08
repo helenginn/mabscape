@@ -64,9 +64,11 @@ void Bound::snapToObject(SlipObject *obj)
 	{
 		obj = _structure;
 	}
-	vec3 myCentroid = centroid();
-	vec3 nearest = obj->nearestVertex(myCentroid);
-	vec3 diff = vec3_subtract_vec3(nearest, myCentroid);
+	
+	vec3 p = centroid();
+	vec3 nearest = obj->nearestVertex(p, true);
+
+	vec3 diff = vec3_subtract_vec3(nearest, p);
 	addToVertices(diff);
 	_realPosition = centroid();
 }
@@ -78,6 +80,7 @@ void Bound::randomlyPositionInRegion(SlipObject *obj)
 		return;
 	}
 	
+	/*
 	vec3 min, max;
 	obj->boundaries(&min, &max);
 	vec3 scale = vec3_subtract_vec3(max, min);
@@ -86,6 +89,8 @@ void Bound::randomlyPositionInRegion(SlipObject *obj)
 	place.y *= scale.y;
 	place.z *= scale.z;
 	vec3_add_to_vec3(&place, min);
+	*/
+	vec3 place = obj->randomVertex();
 
 	vec3 myCentroid = centroid();
 	vec3 diff = vec3_subtract_vec3(place, myCentroid);
@@ -112,17 +117,6 @@ void Bound::colourFixed()
 		recolour(0.0, 0, 0, &_unselectedVertices);
 		recolour(0.0, 0, 0, &_vertices);
 	}
-}
-
-void Bound::toggleFixPosition()
-{
-	_fixed = !_fixed;
-
-	if (_fixed)
-	{
-		recolour(0.0, 0, 0, &_unselectedVertices);
-		recolour(0.0, 0, 0, &_vertices);
-	}
 	else
 	{
 		recolour(_red, _green, _blue, &_unselectedVertices);
@@ -130,7 +124,11 @@ void Bound::toggleFixPosition()
 	}
 }
 
-
+void Bound::toggleFixPosition()
+{
+	_fixed = !_fixed;
+	colourFixed();
+}
 
 vec3 Bound::getWorkingPosition()
 {
@@ -216,9 +214,6 @@ double Bound::carefulScoreWithOther(Bound *other)
 		return 1;
 	}
 
-	vec3 your_centre = other->getWorkingPosition();
-	vec3 my_centre = getWorkingPosition();
-
 	vec3 mynorm = _nearestNorm;
 	vec3 yournorm = other->_nearestNorm;
 
@@ -254,8 +249,10 @@ double Bound::scoreWithOther(Bound *other)
 	prop += slide;
 	prop = std::min(1., prop);
 	
+	/*
 	double decrease = carefulScoreWithOther(other);
 	prop *= decrease;
+	*/
 
 	return prop;
 }

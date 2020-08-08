@@ -23,6 +23,9 @@
 #include <QMouseEvent>
 
 class Bound;
+class Controller;
+class QThread;
+class Screen;
 class SlipGL;
 class QTimer;
 class QMenu;
@@ -54,9 +57,17 @@ public:
 	{
 		_actions.push_back(act);
 	}
+	
+	Screen *clusterScreen()
+	{
+		return _screen;
+	}
 
 	void convertToViewCoords(double *x, double *y);
 	void makeMenu();
+	void startController(QThread *q, Controller *c);
+signals:
+	void runController();
 protected:
 	virtual void resizeEvent(QResizeEvent *event);
 	virtual void keyPressEvent(QKeyEvent *event);
@@ -64,14 +75,19 @@ protected:
 	virtual void mousePressEvent(QMouseEvent *e);
 	virtual void mouseReleaseEvent(QMouseEvent *e);
 	virtual void mouseMoveEvent(QMouseEvent *e);
+public slots:
+	void launchCluster4x();
 private slots:
 	void loadCSV();
 	void loadPositions();
+	void dataToCluster4x();
+	void modelToCluster4x();
 	void unrestrainedRefine();
 	void fixToSurfaceRefine();
 private:
 	void convertCoords(double *x, double *y);
 	Experiment *_experiment;
+	Screen *_screen;
 	SlipGL *_gl;
 	Qt::MouseButton _mouseButton;
 	bool _controlPressed;

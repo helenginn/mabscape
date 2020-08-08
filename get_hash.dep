@@ -1,4 +1,5 @@
 libsrc/Explorer.h
+libsrc/PDBView.h
 libsrc/Data.h
 libsrc/SlipPanel.h
 libsrc/SlipObjFile.h
@@ -11,16 +12,19 @@ libsrc/Result.h
 libsrc/Explorer.cpp
 libsrc/SlipObject.h
 libsrc/shaders/fImage.h
+libsrc/shaders/White.h
 libsrc/shaders/vImage.h
 libsrc/shaders/fWipe.h
 libsrc/Squiggle.h
 libsrc/Mesh.h
 libsrc/SlipGL.cpp
 libsrc/Mesh.cpp
+libsrc/Controller.h
 libsrc/Icosahedron.cpp
 libsrc/SlipObjFile.cpp
 libsrc/Result.cpp
 libsrc/SurfaceView.h
+libsrc/PDBView.cpp
 libsrc/SurfaceView.cpp
 libsrc/Squiggle.cpp
 libsrc/SlipObject.cpp
@@ -30,6 +34,7 @@ libsrc/main.cpp
 libsrc/PositionMap.h
 libsrc/Experiment.cpp
 libsrc/Experiment.h
+libsrc/Controller.cpp
 libsrc/Bound.h
 libsrc/Refinement.cpp
 libsrc/Bound.cpp

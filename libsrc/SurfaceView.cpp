@@ -19,17 +19,23 @@
 #define PAN_SENSITIVITY 30
 #include "Refinement.h"
 #include <iostream>
+#include <ClusterList.h>
+#include <AveCSV.h>
+#include <Screen.h>
 #include "SurfaceView.h"
 #include "SlipGL.h"
 #include "Structure.h"
 #include "Experiment.h"
+#include "Controller.h"
 #include "Bound.h"
 #include <QTimer>
 #include <QMenuBar>
 #include <QFileDialog>
+#include <QThread>
 
 SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 {
+	_screen = NULL;
 	_mouseButton = Qt::NoButton;
 	_controlPressed = false;
 	_shiftPressed = false;
@@ -46,6 +52,17 @@ SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 	setFocus();
 	setMouseTracking(true);
 	_gl->setMouseTracking(true);
+}
+
+void SurfaceView::startController(QThread *q, Controller *c)
+{
+	_experiment->makeExplorer();
+	c->setView(this);
+	c->moveToThread(q);
+	connect(this, &SurfaceView::runController, c, &Controller::run);
+	q->start();
+
+	emit runController();
 }
 
 void SurfaceView::makeMenu()
@@ -86,12 +103,22 @@ void SurfaceView::makeMenu()
 
 	QMenu *data = menuBar()->addMenu(tr("&Data"));
 	_menus.push_back(data);
-	act = data->addAction(tr("Load competition data"));
+	act = data->addAction(tr("Load competition &data"));
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::loadCSV);
-	act = data->addAction(tr("Load positions"));
+	act = data->addAction(tr("Load &positions"));
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::loadPositions);
+	act = data->addAction(tr("Launch cluster&4x"));
+	_actions.push_back(act);
+	connect(act, &QAction::triggered, this, &SurfaceView::launchCluster4x);
+
+	act = data->addAction(tr("Data to cluster4x"));
+	_actions.push_back(act);
+	connect(act, &QAction::triggered, this, &SurfaceView::dataToCluster4x);
+	act = data->addAction(tr("Model to cluster4x"));
+	_actions.push_back(act);
+	connect(act, &QAction::triggered, this, &SurfaceView::modelToCluster4x);
 
 	QMenu *binders = menuBar()->addMenu(tr("&Binders"));
 	_menus.push_back(binders);
@@ -104,19 +131,30 @@ void SurfaceView::makeMenu()
 
 	QMenu *refine = menuBar()->addMenu(tr("&Refine"));
 	_menus.push_back(refine);
-	act = refine->addAction(tr("Refine"));
+	act = refine->addAction(tr("&Refine"));
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::unrestrainedRefine);
 	act = refine->addAction(tr("Refine, axis change"));
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, _experiment, &Experiment::svdRefine);
-	act = refine->addAction(tr("Monte Carlo"));
+
+	QMenu *mc = refine->addMenu(tr("&Monte Carlo"));
+	_menus.push_back(mc);
+
+	act = mc->addAction(tr("Open results"));
+	connect(act, &QAction::triggered, _experiment, 
+	        &Experiment::openResults);
+	_actions.push_back(act);
+	act = mc->addAction(tr("Run &1000 cycles"));
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, _experiment, &Experiment::monteCarlo);
-	act = refine->addAction(tr("Clear results"));
-	connect(act, &QAction::triggered, _experiment, 
-	        &Experiment::clearMonteCarlo);
+	act = mc->addAction(tr("Start"));
 	_actions.push_back(act);
+	connect(act, &QAction::triggered, _experiment, &Experiment::mCarloStart);
+	act = mc->addAction(tr("Stop"));
+	_actions.push_back(act);
+	connect(act, &QAction::triggered, _experiment, &Experiment::mCarloStop);
+
 	act = refine->addAction(tr("Randomise positions"));
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, _experiment, &Experiment::randomise);
@@ -347,5 +385,33 @@ void SurfaceView::unrestrainedRefine()
 void SurfaceView::fixToSurfaceRefine()
 {
 	_experiment->refineModel(true);
+}
+
+
+void SurfaceView::launchCluster4x()
+{
+	if (_screen == NULL)
+	{
+		_screen = new Screen(NULL);
+	}
+
+	_screen->setWindowTitle("cluster4x - abmap");
+	ClusterList *list = _screen->getList();
+	
+	AveCSV *csv = _experiment->csv();
+	list->getFromCSV(csv);
+
+	_screen->show();
+	makeMenu();
+}
+
+void SurfaceView::modelToCluster4x()
+{
+	_experiment->somethingToCluster4x(false);
+}
+
+void SurfaceView::dataToCluster4x()
+{
+	_experiment->somethingToCluster4x(true);
 }
 

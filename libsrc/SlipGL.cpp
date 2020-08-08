@@ -66,7 +66,11 @@ void SlipGL::addObject(SlipObject *obj, bool active)
 	
 	if (active)
 	{
-		_activeObj = obj;
+		vec3 c = obj->centroid();
+		vec3_add_to_vec3(&_centre, c);
+		vec3_mult(&c, -1);
+		_translation = c;
+		std::cout << "Object centre: " << vec3_desc(c) << std::endl;
 	}
 }
 
@@ -87,7 +91,7 @@ void SlipGL::preparePanels(int n)
 
 void SlipGL::panned(double x, double y)
 {
-	zoom(x, y, 0);
+	zoom(x, -y, 0);
 }
 
 void SlipGL::zoom(float x, float y, float z)
@@ -117,7 +121,7 @@ void SlipGL::draggedLeftMouse(double x, double y)
 	y /= MOUSE_SENSITIVITY;
 
 	_camAlpha -= y;
-	_camBeta += x;
+	_camBeta -= x;
 	_camGamma -= 0;
 
 	updateCamera();
@@ -164,16 +168,14 @@ void SlipGL::paintGL()
 void SlipGL::updateCamera()
 {
 	vec3 centre = _centre;
-	centre.x = 0;
-	centre.y = 0;
 	
 	vec3 negCentre = centre;
-	vec3_mult(&centre, -1);
+	vec3_mult(&negCentre, -1);
 
 	mat4x4 change = make_mat4x4();
-	mat4x4_translate(&change, negCentre);
-	mat4x4_rotate(&change, _camAlpha, _camBeta, _camGamma);
 	mat4x4_translate(&change, centre);
+	mat4x4_rotate(&change, _camAlpha, _camBeta, _camGamma);
+	mat4x4_translate(&change, negCentre);
 
 	mat4x4 transMat = make_mat4x4();
 	_centre = vec3_add_vec3(_centre, _translation);
@@ -210,6 +212,6 @@ void SlipGL::updateProjection()
 
 	double side = 0.5;
 	float aspect = (float)height() / (float)width();
-	_proj = mat4x4_ortho(side, -side, side * aspect, -side * aspect,
+	_proj = mat4x4_ortho(-side, side, side * aspect, -side * aspect,
 	                     zNear, zFar);
 }

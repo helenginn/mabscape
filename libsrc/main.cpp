@@ -7,11 +7,16 @@
 //
 
 #include <execinfo.h>
+#include "Controller.h"
 #include <signal.h>
 #include <iostream>
+#include <Options.h>
 #include <QApplication>
+#include <QThread>
+#include <QObject>
 #include "SurfaceView.h"
 #include "Experiment.h"
+#include "commit.h"
 
 int main(int argc, char * argv[])
 {
@@ -20,24 +25,29 @@ int main(int argc, char * argv[])
 	QApplication app(argc, argv);
 	setlocale(LC_NUMERIC, "C");
 
+	std::cout << "Abmap Version: " << VAGABOND_VERSION_COMMIT_ID << std::endl;
+	const char hang[] = "--hang";
+	OptionsPtr options = OptionsPtr(new Options(1, (const char **)&hang));
+	Options::setRuntimeOptions(options);
+
 	SurfaceView s;
-	Experiment *e = s.getExperiment();
+//	Experiment *e = s.getExperiment();
 	
 	std::cout << "Argc: " << argc << std::endl;
 	if (argc > 1)
 	{
 		std::string file = argv[1];
 		std::cout << "Loading" << std::endl;
-		e->loadStructure(file);
+//		e->loadStructure(file);
 	}
 
-	if (argc > 2)
-	{
-		std::cout << "Setting bound object" << std::endl;
-		e->setBoundObj(argv[2]);
-	}
+	QThread *worker = new QThread();
+	
+	Controller *con = new Controller();
+	con->setCommandLineArgs(argc, argv);
 
 	s.show();
+	s.startController(worker, con);
 
 	int status = app.exec();
 

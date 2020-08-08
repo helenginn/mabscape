@@ -22,6 +22,7 @@
 #include "Refinement.h"
 #include <string>
 #include <vector>
+#include <mutex>
 #include <map>
 #include <QObject>
 #include "PositionMap.h"
@@ -33,6 +34,7 @@ class Structure;
 class Bound;
 class Refinement;
 class Data;
+class AveCSV;
 class QMenu;
 class Result;
 class Mesh;
@@ -44,6 +46,11 @@ class Experiment : public QObject
 Q_OBJECT
 public:
 	Experiment(SurfaceView *view);
+	
+	SurfaceView *getView()
+	{
+		return _view;
+	}
 	
 	void setGL(SlipGL *gl)
 	{
@@ -60,6 +67,9 @@ public:
 		return _data;
 	}
 	
+	AveCSV *csv();
+	void updateCSV(AveCSV *csv, bool data);
+	
 	size_t boundCount()
 	{
 		return _bounds.size();
@@ -69,12 +79,23 @@ public:
 	{
 		return _bounds[i];
 	}
+
+	Bound *bound(std::string name)
+	{
+		return _nameMap[name];
+	}
 	
 	Structure *structure()
 	{
 		return _structure;
 	}
+	
+	Explorer *getExplorer()
+	{
+		return _explorer;
+	}
 
+	void makeExplorer();
 	void loadStructure(std::string filename);
 	void loadPositions(std::string filename);
 	void hoverMouse(double x, double y);
@@ -86,11 +107,17 @@ public:
 	void fixBound();
 	void addBindersToMenu(QMenu *menu);
 	void loadCSV(std::string filename);
+	void somethingToCluster4x(bool data);
 	void refineModel(bool fixedOnly, bool svd = false);
 	
 	void setPassToResults(bool pass)
 	{
 		_passToResults = pass;
+	}
+	
+	void setMonteTarget(int target)
+	{
+		_monteTarget = target;
 	}
 signals:
 	void refine();
@@ -99,21 +126,25 @@ public slots:
 	void jiggle();
 	void randomise();
 	void svdRefine();
-	void clearMonteCarlo();
+	void openResults();
+	void fixFromPDB();
 	void recolourByCorrelation();
 	void selectFromMenu();
 	void handleResults();
 	void handleError();
-	void monteCarlo();
+	QThread *monteCarlo();
+	void mCarloStart();
+	void mCarloStop();
 	void refineMesh();
 	void removeMesh();
 	void smoothMesh();
 	void inflateMesh();
 	void triangulateMesh();
-	void meshStructure();
+	QThread *meshStructure();
 	void writeOutCSV();
 	void chooseTarget(Target t);
 private:
+	bool isRunningMonteCarlo();
 	bool prepareWorkForMesh();
 	void createBinders();
 	Bound *findBound(double x, double y);
@@ -136,9 +167,11 @@ private:
 	Bound *_selected;
 	QLabel *_label;
 	QThread *_worker;
+	std::mutex _mut;
 
 	Mesh *_mesh;
 	int _monteCount;
+	int _monteTarget;
 	Explorer *_explorer;
 	std::vector<Result *> _results;
 	

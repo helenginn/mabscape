@@ -349,7 +349,7 @@ void SlipObject::recolour(double red, double green, double blue,
 	}
 }
 
-void SlipObject::resize(double scale)
+void SlipObject::resize(double scale, bool unselected)
 {
 	vec3 centre = centroid();
 	
@@ -361,7 +361,20 @@ void SlipObject::resize(double scale)
 		vec3_add_to_vec3(&pos, centre);
 		pos_from_vec(_vertices[i].pos, pos);
 	}
-
+	
+	if (!unselected)
+	{
+		return;
+	}
+	
+	for (size_t i = 0; i < _unselectedVertices.size(); i++)
+	{
+		vec3 pos = vec_from_pos(_unselectedVertices[i].pos);
+		vec3_subtract_from_vec3(&pos, centre);
+		vec3_mult(&pos, scale);
+		vec3_add_to_vec3(&pos, centre);
+		pos_from_vec(_unselectedVertices[i].pos, pos);
+	}
 }
 
 double SlipObject::averageRadius()
@@ -658,6 +671,11 @@ vec3 SlipObject::nearestVertexNearNormal(vec3 pos, vec3 normal,
 			vClose = &_vertices[i];
 		}
 	}
+	
+	if (vClose == NULL)
+	{
+		return nearestVertex(pos);
+	}
 
 	vec3 finvec = vec_from_pos(vClose->pos);
 	return finvec;
@@ -687,7 +705,7 @@ Vertex *SlipObject::nearestVertexPtr(vec3 pos, bool useMesh)
 			continue;
 		}
 
-		double length = vec3_length(diff);
+		double length = vec3_sqlength(diff);
 		
 		if (length < closest)
 		{
@@ -699,6 +717,15 @@ Vertex *SlipObject::nearestVertexPtr(vec3 pos, bool useMesh)
 	return vClose;
 }
 
+vec3 SlipObject::randomVertex()
+{
+	size_t which = rand() % _vertices.size();
+
+	vec3 v = vec_from_pos(_vertices[which].pos);
+	
+	return v;
+}
+
 vec3 SlipObject::nearestVertex(vec3 pos, bool useMesh)
 {
 	if (useMesh && _mesh != NULL)
@@ -706,7 +733,6 @@ vec3 SlipObject::nearestVertex(vec3 pos, bool useMesh)
 		return _mesh->nearestVertex(pos, false);
 	}
 
-	double closest = FLT_MAX;
 	Vertex *vClose = nearestVertexPtr(pos, useMesh);
 
 	vec3 finvec = vec_from_pos(vClose->pos);
@@ -806,7 +832,7 @@ bool SlipObject::intersects(double x, double y, double *z)
 	return found;
 }
 
-void SlipObject::calculateNormals()
+void SlipObject::calculateNormals(bool flip)
 {
 	for (size_t i = 0; i < _vertices.size(); i++)
 	{
@@ -825,7 +851,8 @@ void SlipObject::calculateNormals()
 		vec3 diff21 = vec3_subtract_vec3(pos2, pos1);
 
 		vec3 cross = vec3_cross_vec3(diff31, diff21);
-		vec3_set_length(&cross, 1);
+		double length = flip ? -1 : 1;
+		vec3_set_length(&cross, length);
 
 		/* Normals */					
 		for (int j = 0; j < 3; j++)
@@ -900,7 +927,7 @@ void SlipObject::setSelected(bool selected)
 	_selected = selected;
 }
 
-void SlipObject::collapseCommonVertices()
+bool SlipObject::collapseCommonVertices()
 {
 	std::cout << "Collapsing common vertices..." << std::endl;
 	size_t prior = _vertices.size();
@@ -961,6 +988,8 @@ void SlipObject::collapseCommonVertices()
 	size_t post = _vertices.size();
 	
 	std::cout << "From " << prior << " to " << post << " vertices." << std::endl;
+	
+	return (post < prior);
 }
 
 void SlipObject::writeObjFile(std::string filename)
@@ -971,7 +1000,7 @@ void SlipObject::writeObjFile(std::string filename)
 	for (size_t i = 0; i < _vertices.size(); i++)
 	{
 		file << "v " << _vertices[i].pos[0] << " " <<
-		-_vertices[i].pos[1] << " " <<
+		_vertices[i].pos[1] << " " <<
 		_vertices[i].pos[2] << std::endl;
 		file << "vn " << _vertices[i].normal[0] << " " <<
 		_vertices[i].normal[1] << " " <<

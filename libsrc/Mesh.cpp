@@ -62,8 +62,8 @@ void Mesh::smoothen(std::vector<Vertex> &vcopy)
 	for (size_t i = 0; i < vcopy.size(); i++)
 	{
 		vec3 vtx = vec_from_pos(vcopy[i].pos);
-		vec3_subtract_from_vec3(&vtx, centre);
-		double length = vec3_length(vtx);
+		vec3 chk = vec3_subtract_vec3(vtx, centre);
+		double length = vec3_length(chk);
 		all += length;
 		double longest = -1;
 		vec3 target = empty_vec3();

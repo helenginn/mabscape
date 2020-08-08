@@ -51,7 +51,7 @@ void SlipObjFile::readInput()
 			}
 
 			float v1 = atof(bits[1].c_str());
-			float v2 = -atof(bits[2].c_str());
+			float v2 = atof(bits[2].c_str());
 			float v3 = atof(bits[3].c_str());
 
 			addVertex(v1, v2, v3);

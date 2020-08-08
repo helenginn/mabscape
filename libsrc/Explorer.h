@@ -21,9 +21,13 @@
 
 #include <QMainWindow>
 #include <QTreeWidget>
+#include <map>
 #include "SlipObject.h"
 
+class MtzFile;
+class QPushButton;
 class Result;
+class Screen;
 class Experiment;
 class Squiggle;
 class Bound;
@@ -40,20 +44,45 @@ public:
 	{
 		_experiment = exp;
 	}
+	
+	void setClusterScreen(Screen *screen)
+	{
+		_screen = screen;
+	}
 
 	void highlightBound(Bound *bi);
 	
 	virtual void render(SlipGL *gl);
-	void clear();
+	void writeResultsToFile(std::string filename, bool all = false);
 private slots:
 	void currentItemChanged(QTreeWidgetItem *current, 
 	                        QTreeWidgetItem *prev);
+	void clear();
 	void itemSelectionChanged();
+	void makeCluster();
+	void readResults();
+	void writeResults();
+	void cluster4xChanged();
+	void patchworkArt();
+	void undoArt();
+	void summariseBounds();
 private:
+	void makeExplorer();
+	void updateTitle();
+	std::map<MtzFile *, Result *> _connections;
 	Squiggle *_squiggle;
 
+	Screen *_screen;
 	Experiment *_experiment;
 	QTreeWidget *_widget;
+	QPushButton *_toCluster4x;
+	QPushButton *_fetchCluster;
+	QPushButton *_writeResults;
+	QPushButton *_readResults;
+	QPushButton *_clearClusters;
+	QPushButton *_patchwork;
+	QPushButton *_summarise;
+	QPushButton *_undoArt;
 };
 
 #endif

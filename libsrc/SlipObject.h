@@ -22,18 +22,11 @@
 #include <QtGui/qopengl.h>
 #include <QtGui/qopenglfunctions.h>
 
+#include <GLObject.h>
 #include <mutex>
 #include <vec3.h>
 #include <mat4x4.h>
 
-typedef struct
-{
-	GLfloat pos[3];
-	GLfloat normal[3];
-	GLfloat color[4];
-	GLfloat extra[4];
-	GLfloat tex[2];
-} Vertex;
 
 typedef struct
 {
@@ -151,12 +144,13 @@ public:
 	
 	void addToVertices(vec3 add);
 	
-	void collapseCommonVertices();
+	bool collapseCommonVertices();
 	void recolour(double red, double green, double blue,
 	              std::vector<Vertex> *vs = NULL);
 	void setAlpha(double alpha);
 	void changeProgram(std::string &v, std::string &f);
 	vec3 centroid();
+	vec3 randomVertex();
 	vec3 nearestVertex(vec3 pos, bool useMesh = false);
 	vec3 nearestVertexNearNormal(vec3 pos, vec3 normal, bool *isBehind);
 	Vertex *nearestVertexPtr(vec3 pos, bool useMesh);
@@ -200,7 +194,7 @@ public:
 
 	
 	void clearMesh();
-	
+
 	void setColour(double red, double green, double blue)
 	{
 		_red = red;
@@ -210,6 +204,7 @@ public:
 		recolour(red, green, blue, &_unselectedVertices);
 	}
 
+	void resize(double scale, bool unselected = false);
 protected:
 	bool polygonIncludes(vec3 point, GLuint *trio);
 	vec3 rayTraceToPlane(vec3 point, GLuint *trio, vec3 dir,
@@ -217,8 +212,7 @@ protected:
 	void addVertex(float v1, float v2, float v3);
 	void addIndex(GLuint i);
 	void addIndices(GLuint i1, GLuint i2, GLuint i3);
-	virtual void calculateNormals();
-	void resize(double scale);
+	virtual void calculateNormals(bool flip = false);
 	void setSelectable(bool selectable);
 	void fixCentroid(vec3 centre);
 

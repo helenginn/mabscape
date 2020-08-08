@@ -16,23 +16,32 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#ifndef __abmap__Structure__
-#define __abmap__Structure__
+#ifndef __abmap__Controller__
+#define __abmap__Controller__
 
-#include "SlipObjFile.h"
-#include <vec3.h>
+#include <vector>
+#include <string>
+#include <QObject>
 
-class Structure : public SlipObjFile
+class SurfaceView;
+class Experiment;
+
+class Controller : public QObject
 {
+Q_OBJECT
+
 public:
-	Structure(std::string filename);
-	
-	void clearExtra();
-	void markExtraAround(vec3 pos, double reach);
-	void convertExtraToColour();
-	virtual void triangulate();
+	Controller();
+
+	void setCommandLineArgs(int argc, char *argv[]);
+	void setView(SurfaceView *view);
+public slots:
+	void run();
 private:
-	int _triangulation;
+	std::vector<std::string> _args;
+	SurfaceView *_view;
+	Experiment *_exp;
 };
+
 
 #endif
