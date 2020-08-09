@@ -31,15 +31,6 @@ int main(int argc, char * argv[])
 	Options::setRuntimeOptions(options);
 
 	SurfaceView s;
-//	Experiment *e = s.getExperiment();
-	
-	std::cout << "Argc: " << argc << std::endl;
-	if (argc > 1)
-	{
-		std::string file = argv[1];
-		std::cout << "Loading" << std::endl;
-//		e->loadStructure(file);
-	}
 
 	QThread *worker = new QThread();
 	
