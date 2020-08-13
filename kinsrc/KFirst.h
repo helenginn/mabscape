@@ -16,22 +16,33 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include <iostream>
-#include <QApplication>
-#include "commit.h"
-#include "KineticView.h"
+#ifndef __abmap__KFirst__
+#define __abmap__KFirst__
 
-int main(int argc, char * argv[])
+#include "KLigOnOff.h"
+
+class KFirst : public KLigOnOff
 {
-	std::cout << "Abmap Version: " << VAGABOND_VERSION_COMMIT_ID << std::endl;
+public:
+	KFirst();
 
-	QApplication app(argc, argv);
-	setlocale(LC_NUMERIC, "C");
+	virtual void populateYs();
+	
+	void setFirstModel(KLigOnOff *l)
+	{
+		_first = l;
+	}
+	
+public slots:
+	virtual void refineCascade();
+protected:
+	void subtractOff();
+	virtual void addToStrategy(RefinementStrategyPtr str);
+	virtual void refine();
+private:
+	double _beginVal;
+	bool _hideSecond;
+	KLigOnOff *_first;
+};
 
-	KineticView k(NULL);
-	k.show();
-
-	int status = app.exec();
-
-	return status;
-}
+#endif

@@ -16,22 +16,42 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include <iostream>
-#include <QApplication>
-#include "commit.h"
-#include "KineticView.h"
+#ifndef __abmap__KExpDecay__
+#define __abmap__KExpDecay__
 
-int main(int argc, char * argv[])
+#include "KOffset.h"
+
+class KExpDecay : public KOffset
 {
-	std::cout << "Abmap Version: " << VAGABOND_VERSION_COMMIT_ID << std::endl;
+public:
+	KExpDecay();
+	virtual bool check();
+	virtual void populateYs();
+	
+	double getExponent()
+	{
+		return _exponent;
+	}
+	
+	double getStart()
+	{
+		return _start;
+	}
+	
+	double getYOffset()
+	{
+		return _yOffset;
+	}
+public slots:
+	virtual void refineCascade();
+protected:
+	virtual void refine();
+	
+	void addToStrategy(RefinementStrategyPtr str);
+private:
+	double _yOffset;
+	double _start;
+	double _exponent;
+};
 
-	QApplication app(argc, argv);
-	setlocale(LC_NUMERIC, "C");
-
-	KineticView k(NULL);
-	k.show();
-
-	int status = app.exec();
-
-	return status;
-}
+#endif

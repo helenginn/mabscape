@@ -16,22 +16,42 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include <iostream>
-#include <QApplication>
-#include "commit.h"
-#include "KineticView.h"
+#ifndef __abmap__KOffset__
+#define __abmap__KOffset__
 
-int main(int argc, char * argv[])
+#include "KModel.h"
+
+class KOffset : public KModel
 {
-	std::cout << "Abmap Version: " << VAGABOND_VERSION_COMMIT_ID << std::endl;
+public:
+	KOffset();
 
-	QApplication app(argc, argv);
-	setlocale(LC_NUMERIC, "C");
+	virtual bool check();
+	virtual void populateYs();
+public slots:
+	virtual void refineCascade();
+protected:
+	virtual void refine();
 
-	KineticView k(NULL);
-	k.show();
+	void addToStrategy(RefinementStrategyPtr str);
+	virtual double score();
+	double lateralScore();
 
-	int status = app.exec();
+	static double getLateralScore(void *object)
+	{
+		return static_cast<KOffset *>(object)->KOffset::lateralScore();
+	}
 
-	return status;
-}
+	static double getScore(void *object)
+	{
+		return static_cast<KOffset *>(object)->KOffset::score();
+	}
+
+	static double _checkTime;
+	bool _correctX;
+private:
+	double _offset;
+
+};
+
+#endif

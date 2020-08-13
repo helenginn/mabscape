@@ -16,22 +16,34 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include <iostream>
-#include <QApplication>
-#include "commit.h"
-#include "KineticView.h"
+#ifndef __abmap__KineticView__
+#define __abmap__KineticView__
 
-int main(int argc, char * argv[])
+#include <QMainWindow>
+
+class CurveView;
+class Inspector;
+class QTreeWidget;
+
+class KineticView : public QMainWindow
 {
-	std::cout << "Abmap Version: " << VAGABOND_VERSION_COMMIT_ID << std::endl;
+Q_OBJECT
+public:
+	KineticView(QWidget *parent);
 
-	QApplication app(argc, argv);
-	setlocale(LC_NUMERIC, "C");
+	void addCurve(std::string filename);
+	void makeMenu();
+public slots:
+	void grabCSV();
+	void itemSelectionChanged();
+	void transferRegions();
+protected:
+	virtual void resizeEvent(QResizeEvent *);
+private:
+	Inspector *_ins;
+	QTreeWidget *_tree;
+	CurveView *_cView;
 
-	KineticView k(NULL);
-	k.show();
+};
 
-	int status = app.exec();
-
-	return status;
-}
+#endif

@@ -65,3 +65,30 @@ executable('abmap', gen_src, moc_files,
 cpp_args: ['-std=c++11'], dependencies : [ boost_dep, dep_vag, dep_c4x, png_dep, qt5_dep, dep_ica ], 
 install_rpath: vagdir, install: true)
 
+kin_moc = qt5.preprocess(moc_headers : 
+[
+'kinsrc/Curve.h',
+'kinsrc/CurveView.h',
+'kinsrc/KineticView.h',
+'kinsrc/KModel.h',
+'kinsrc/Inspector.h',
+],
+moc_extra_arguments: ['-DMAKES_MY_MOC_HEADER_COMPILE'])
+
+
+executable('abmap.kinetics', kin_moc,
+'kinsrc/main.cpp',
+'kinsrc/Curve.cpp',
+'kinsrc/CurveView.cpp',
+'kinsrc/Inspector.cpp',
+'kinsrc/KineticView.cpp',
+'kinsrc/KModel.cpp',
+'kinsrc/KOffset.cpp',
+'kinsrc/KFirst.cpp',
+'kinsrc/KSecond.cpp',
+'kinsrc/KCorrectExp.cpp',
+'kinsrc/KExpDecay.cpp',
+'kinsrc/KLigOnOff.cpp',
+cpp_args: ['-std=c++11'], dependencies : [ boost_dep, dep_vag, dep_c4x, png_dep, qt5_dep, dep_ica ], 
+install_rpath: vagdir, install: true)
+

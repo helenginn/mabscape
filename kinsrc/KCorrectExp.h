@@ -16,22 +16,45 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include <iostream>
-#include <QApplication>
-#include "commit.h"
-#include "KineticView.h"
+#ifndef __abmap__KCorrectExp__
+#define __abmap__KCorrectExp__
 
-int main(int argc, char * argv[])
+#include "KOffset.h"
+#include "KExpDecay.h"
+
+class KCorrectExp : public KOffset
 {
-	std::cout << "Abmap Version: " << VAGABOND_VERSION_COMMIT_ID << std::endl;
+public:
+	KCorrectExp();
 
-	QApplication app(argc, argv);
-	setlocale(LC_NUMERIC, "C");
+	void setExponentialDecayModel(KExpDecay *decay)
+	{
+		_decay = decay;
+	}
+	
+	virtual bool check();
+public slots:
+	virtual void refineCascade();
+protected:
+	virtual void addToStrategy(RefinementStrategyPtr str);
+	virtual void refine();
+	virtual double score();
+	void curveChinUp();
 
-	KineticView k(NULL);
-	k.show();
+	static double getScore(void *object)
+	{
+		return static_cast<KCorrectExp *>(object)->KCorrectExp::score();
+	}
 
-	int status = app.exec();
+	double bottomEstimate()
+	{
+		return _yBottom;
+	}
+private:
+	KExpDecay *_decay;
 
-	return status;
-}
+	double _yBottom;
+
+};
+
+#endif

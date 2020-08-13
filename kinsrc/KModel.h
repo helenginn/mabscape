@@ -16,22 +16,46 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include <iostream>
-#include <QApplication>
-#include "commit.h"
-#include "KineticView.h"
+#ifndef __abmap__KModel__
+#define __abmap__KModel__
 
-int main(int argc, char * argv[])
+#include <shared_ptrs.h>
+#include "Curve.h"
+
+class KModel : public Curve
 {
-	std::cout << "Abmap Version: " << VAGABOND_VERSION_COMMIT_ID << std::endl;
+Q_OBJECT
+public:
+	KModel();
 
-	QApplication app(argc, argv);
-	setlocale(LC_NUMERIC, "C");
+	void setCurve(Curve *c);
+	virtual bool check() = 0;
+	virtual void populateYs() = 0;
 
-	KineticView k(NULL);
-	k.show();
+	Curve *curve()
+	{
+		return _parent;
+	}
+public slots:
+	virtual void refineCascade() = 0;
+	virtual void refineThenDone();
+signals:
+	void changedFit();
+	void done();
+protected:
+	virtual QPen getPen();
+	virtual void addToStrategy(RefinementStrategyPtr str) = 0;
+	virtual void refine() = 0;
+	static double getScore(void *object)
+	{
+		return static_cast<KModel *>(object)->KModel::score();
+	}
+	
+	virtual double score();
 
-	int status = app.exec();
+	std::vector<AnyPtr> _anys;
+private:
+	Curve *_parent;
+};
 
-	return status;
-}
+#endif

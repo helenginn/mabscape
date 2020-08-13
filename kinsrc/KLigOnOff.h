@@ -16,22 +16,46 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include <iostream>
-#include <QApplication>
-#include "commit.h"
-#include "KineticView.h"
+#ifndef __abmap__KLigOnOff
+#define __abmap__KLigOnOff
 
-int main(int argc, char * argv[])
+#include "KCorrectExp.h"
+
+class KLigOnOff : public KCorrectExp
 {
-	std::cout << "Abmap Version: " << VAGABOND_VERSION_COMMIT_ID << std::endl;
+public:
+	KLigOnOff();
 
-	QApplication app(argc, argv);
-	setlocale(LC_NUMERIC, "C");
+	virtual bool check();
+	virtual void populateYs();
+	
+	double getKOff()
+	{
+		return _kOff;
+	}
+	
+	double getKOn()
+	{
+		return _kOn;
+	}
+public slots:
+	virtual void refineCascade();
+protected:
+	virtual void addToStrategy(RefinementStrategyPtr str);
+	virtual void refine();
+	
+	double _kOff;
+	double _kOn;
+	bool _lockOff;
+	double _topLigand;
+	bool _onOffOnly;
+private:
+	KExpDecay *_decay;
+	
+	double _totalSubstrate;
+	double _ratio;
+	double _mult;
+	double _yCut;
+};
 
-	KineticView k(NULL);
-	k.show();
-
-	int status = app.exec();
-
-	return status;
-}
+#endif

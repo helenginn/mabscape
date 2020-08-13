@@ -16,22 +16,57 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
+#include "KModel.h"
 #include <iostream>
-#include <QApplication>
-#include "commit.h"
-#include "KineticView.h"
 
-int main(int argc, char * argv[])
+KModel::KModel() : Curve(NULL)
 {
-	std::cout << "Abmap Version: " << VAGABOND_VERSION_COMMIT_ID << std::endl;
+	_parent = NULL;
+}
 
-	QApplication app(argc, argv);
-	setlocale(LC_NUMERIC, "C");
+void KModel::setCurve(Curve *c)
+{
+	_parent = c;
+	_xs = c->xs();
+	_ys.resize(c->xs().size());
+}
 
-	KineticView k(NULL);
-	k.show();
+void KModel::refine()
+{
+	_anys.clear();
+}
 
-	int status = app.exec();
+void KModel::refineThenDone()
+{
+	refineCascade();
+	emit done();
+}
 
-	return status;
+double KModel::score()
+{
+	_mut.lock();
+	populateYs();
+	double sum = 0;
+
+	for (size_t i = 0; i < _ys.size(); i++)
+	{
+		double diff = _ys[i] - curve()->ys()[i];
+		
+		if (diff == diff)
+		{
+			sum += diff * diff;
+		}
+	}
+
+	_mut.unlock();
+//	std::unique_lock<std::mutex> lck(_mut);
+//	emit changedFit();
+//	_cv.wait(lck);
+
+	return sum;
+}
+
+QPen KModel::getPen()
+{
+	return QPen(QColor(100, 100, 255));
 }

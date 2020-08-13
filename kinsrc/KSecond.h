@@ -16,22 +16,36 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include <iostream>
-#include <QApplication>
-#include "commit.h"
-#include "KineticView.h"
+#ifndef __abmap__KSecond__
+#define __abmap__KSecond__
 
-int main(int argc, char * argv[])
+#include "KFirst.h"
+
+class KSecond : public KFirst
 {
-	std::cout << "Abmap Version: " << VAGABOND_VERSION_COMMIT_ID << std::endl;
+public:
+	KSecond();
+	
+	virtual void populateYs();
 
-	QApplication app(argc, argv);
-	setlocale(LC_NUMERIC, "C");
+	void setSecondModel(KLigOnOff *l)
+	{
+		_second = l;
+	}
+public slots:
+	virtual void refineCascade();
+protected:
+	virtual void addToStrategy(RefinementStrategyPtr str);
+	virtual void refine();
+private:
+	bool _active;
+	KLigOnOff *_second;
+	
+	double _jOn;
+	double _jOff;
+	double _jTot;
+	double _jCut;
+	double _jRatio;
+};
 
-	KineticView k(NULL);
-	k.show();
-
-	int status = app.exec();
-
-	return status;
-}
+#endif
