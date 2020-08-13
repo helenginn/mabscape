@@ -22,6 +22,7 @@
 #include <QMainWindow>
 
 class CurveView;
+class Kintroller;
 class Inspector;
 class QTreeWidget;
 
@@ -33,6 +34,20 @@ public:
 
 	void addCurve(std::string filename);
 	void makeMenu();
+	
+	void startController(Kintroller *con, QThread *q);
+	
+	CurveView *curveView()
+	{
+		return _cView;
+	}
+	
+	QTreeWidget *tree()
+	{
+		return _tree;
+	}
+signals:
+	void runController();
 public slots:
 	void grabCSV();
 	void itemSelectionChanged();

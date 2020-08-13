@@ -27,7 +27,7 @@ double KOffset::_checkTime = 3;
 KOffset::KOffset()
 {
 	_offset = 0;
-
+	_correctX = NULL;
 }
 
 void KOffset::refineCascade()
@@ -47,6 +47,7 @@ void KOffset::refine()
 	AnyPtr any = AnyPtr(new Any(boundary));
 
 	NelderMeadPtr mead = NelderMeadPtr(new RefinementNelderMead());
+	mead->setSilent(true);
 	mead->addParameter(&*any, Any::get, Any::set, 3.0, 0.001);
 	mead->setEvaluationFunction(KOffset::getLateralScore, this);
 	mead->setCycles(20);
@@ -62,6 +63,7 @@ void KOffset::refine()
 	}
 
 	mead = NelderMeadPtr(new RefinementNelderMead());
+	mead->setSilent(true);
 	KOffset::addToStrategy(mead);
 	mead->setEvaluationFunction(KOffset::getScore, this);
 	mead->setCycles(50);

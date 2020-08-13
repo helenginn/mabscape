@@ -51,6 +51,16 @@ public:
 	{
 		_filename = fn;
 	}
+	
+	void setNickname(std::string n)
+	{
+		_nickname = n;
+	}
+	
+	std::string nickname()
+	{
+		return _nickname;
+	}
 
 	void loadData();
 	
@@ -58,7 +68,6 @@ public:
 	void setType(CurveType type)
 	{
 		_type = type;
-		std::cout << this << " " << _type << std::endl;
 	}
 	
 	bool isRegionSet(int r)
@@ -122,6 +131,11 @@ public:
 	{
 		_secondAb = ab;
 	}
+	
+	void setCurveView(CurveView *v)
+	{
+		_lastView = v;
+	}
 public slots:
 	void handleRefine();
 signals:
@@ -140,6 +154,7 @@ private:
 	CurveView *_lastView;
 	KModel *_model;
 	std::string _filename;
+	std::string _nickname;
 	Curve *_buffer;
 	Curve *_firstAb;
 	Curve *_secondAb;

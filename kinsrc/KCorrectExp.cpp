@@ -97,6 +97,7 @@ void KCorrectExp::refine()
 	_ys = curve()->ys();
 
 	NelderMeadPtr mead = NelderMeadPtr(new RefinementNelderMead());
+	mead->setSilent(true);
 	KCorrectExp::addToStrategy(mead);
 	mead->setEvaluationFunction(KCorrectExp::getScore, this);
 	mead->setCycles(50);

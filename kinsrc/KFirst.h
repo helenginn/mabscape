@@ -39,10 +39,10 @@ protected:
 	void subtractOff();
 	virtual void addToStrategy(RefinementStrategyPtr str);
 	virtual void refine();
+	KLigOnOff *_first;
 private:
 	double _beginVal;
 	bool _hideSecond;
-	KLigOnOff *_first;
 };
 
 #endif

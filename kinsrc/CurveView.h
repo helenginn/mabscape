@@ -72,6 +72,8 @@ public:
 		return _mode;
 	}
 	
+	void startTimer();
+
 	void getRegion(double *x, double *y);
 	void hookModel(KModel *model);
 	void unhookModel(KModel *model);

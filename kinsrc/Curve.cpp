@@ -48,6 +48,12 @@ void Curve::loadData()
 {
 	std::string simple = getFilename(_filename);
 	setText(0, simple.c_str());
+	
+	if (_nickname.length())
+	{
+		std::string title = _nickname + " (" + simple + ")";
+		setText(0, title.c_str());
+	}
 
 	std::string contents = get_file_contents(_filename);
 	std::vector<std::string> lines = split(contents, '\n');
@@ -70,7 +76,8 @@ void Curve::loadData()
 		{
 			if (i == 0)
 			{
-				std::cout << "First line appears to be header." << std::endl;
+				std::cout << "First line of " << _filename << 
+				" appears to be header." << std::endl;
 			}
 			else
 			{
@@ -215,23 +222,31 @@ void Curve::calculate()
 
 		}
 
-		
 		if (!_model)
 		{
 			return;
 		}
-
-		_model->setCurve(this);
-		_model->moveToThread(_worker);
-		
-		connect(this, &Curve::refineModel, _model, &KModel::refineCascade);
-		connect(_model, &KModel::done, this, &Curve::handleRefine);
 	}
-	
-	_lastView->hookModel(_model);
-	_worker->start();
-	
-	emit refineModel();
+
+	_model->setNickname(_nickname);
+	_model->setCurve(this);
+
+	QString me = QThread::currentThread()->objectName();
+
+	if (me == "kintroller")
+	{
+		/* already background thread */
+		_model->refineCascade();
+	}
+	else
+	{
+		_model->moveToThread(_worker);
+		_lastView->hookModel(_model);
+		connect(this, &Curve::refineModel, _model, &KModel::refineThenDone);
+		connect(_model, &KModel::done, this, &Curve::handleRefine);
+		_worker->start();
+		emit refineModel();
+	}
 }
 
 void Curve::handleRefine()

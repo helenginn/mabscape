@@ -58,7 +58,7 @@ void KExpDecay::refine()
 	}
 
 	_yOffset = 0.;
-	for (size_t i = _ys.size() - 1; i > 0; i++)
+	for (size_t i = _ys.size() - 1; i > 0; i--)
 	{
 		if (_xs[i] < max[1])
 		{
@@ -70,6 +70,7 @@ void KExpDecay::refine()
 	_exponent = log(2) / (max[1] - min[0]);
 
 	NelderMeadPtr mead = NelderMeadPtr(new RefinementNelderMead());
+	mead->setSilent(true);
 	KExpDecay::addToStrategy(mead);
 	mead->setEvaluationFunction(KModel::getScore, this);
 	mead->setCycles(50);

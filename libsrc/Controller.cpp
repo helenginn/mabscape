@@ -113,7 +113,5 @@ void Controller::run()
 		{
 			QApplication::quit();
 		}
-
 	}
-
 }

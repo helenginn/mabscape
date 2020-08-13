@@ -38,6 +38,11 @@ public:
 	{
 		return _kOn;
 	}
+	
+	double getKTotal()
+	{
+		return _totalSubstrate;
+	}
 public slots:
 	virtual void refineCascade();
 protected:

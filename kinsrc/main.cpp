@@ -18,8 +18,10 @@
 
 #include <iostream>
 #include <QApplication>
+#include <QThread>
 #include "commit.h"
 #include "KineticView.h"
+#include "Kintroller.h"
 
 int main(int argc, char * argv[])
 {
@@ -29,7 +31,14 @@ int main(int argc, char * argv[])
 	setlocale(LC_NUMERIC, "C");
 
 	KineticView k(NULL);
+
+	QThread *worker = new QThread();
+	
+	Kintroller *con = new Kintroller();
+	con->setCommandLineArgs(argc, argv);
+
 	k.show();
+	k.startController(con, worker);
 
 	int status = app.exec();
 

@@ -40,8 +40,8 @@ CurveView::CurveView(QWidget *parent) : QGraphicsView(parent)
 
 	_mode = ModeNormal;
 
-	_xmin = -1; _ymin = -0.1;
-	_xmax = 700; _ymax = 1;
+	_xmin = -100; _ymin = -0.1;
+	_xmax = 1800; _ymax = 2.2;
 
 	_xclick = -1;
 	_yclick = -1;
@@ -49,7 +49,7 @@ CurveView::CurveView(QWidget *parent) : QGraphicsView(parent)
 	_regionEnd = -1;
 
 	_timer = new QTimer();
-	_timer->setInterval(20);
+	_timer->setInterval(200);
 	_timer->setSingleShot(false);
 	connect(_timer, &QTimer::timeout, this, &CurveView::redraw);
 
@@ -333,6 +333,11 @@ void CurveView::mouseMoveEvent(QMouseEvent *e)
 }
 
 void CurveView::hookModel(KModel *model)
+{
+	_timer->start();
+}
+
+void CurveView::startTimer()
 {
 	_timer->start();
 }

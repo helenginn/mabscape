@@ -17,7 +17,9 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #include "KSecond.h"
+#include "Kintroller.h"
 #include <RefinementNelderMead.h>
+#include <FileReader.h>
 #include <Any.h>
 
 KSecond::KSecond()
@@ -79,14 +81,6 @@ void KSecond::addToStrategy(RefinementStrategyPtr str)
 {
 	AnyPtr any;
 
-	any = AnyPtr(new Any(&_jOff));
-	_anys.push_back(any);
-	str->addParameter(&*any, Any::get, Any::set, 0.0002, 0.000001);
-
-	any = AnyPtr(new Any(&_jOn));
-	_anys.push_back(any);
-	str->addParameter(&*any, Any::get, Any::set, 0.0005, 0.00001);
-
 	any = AnyPtr(new Any(&_jRatio));
 	_anys.push_back(any);
 	str->addParameter(&*any, Any::get, Any::set, 0.1, 0.0001);
@@ -95,6 +89,14 @@ void KSecond::addToStrategy(RefinementStrategyPtr str)
 	{
 		return;
 	}
+
+	any = AnyPtr(new Any(&_jOff));
+	_anys.push_back(any);
+	str->addParameter(&*any, Any::get, Any::set, 0.0002, 0.000001);
+
+	any = AnyPtr(new Any(&_jOn));
+	_anys.push_back(any);
+	str->addParameter(&*any, Any::get, Any::set, 0.0005, 0.00001);
 
 	any = AnyPtr(new Any(&_jCut));
 	_anys.push_back(any);
@@ -120,15 +122,19 @@ void KSecond::refine()
 	_active = true;
 
 	NelderMeadPtr mead = NelderMeadPtr(new RefinementNelderMead());
+	mead->setSilent();
 	KSecond::addToStrategy(mead);
 	mead->setEvaluationFunction(KModel::getScore, this);
 	mead->setCycles(80);
 	mead->refine();
 	mead->setCycles(80);
 	mead->refine();
+	mead->setCycles(150);
+	mead->refine();
 
 	_onOffOnly = false;
 	mead = NelderMeadPtr(new RefinementNelderMead());
+	mead->setSilent();
 	KSecond::addToStrategy(mead);
 	mead->setEvaluationFunction(KModel::getScore, this);
 	mead->setCycles(80);
@@ -139,6 +145,7 @@ void KSecond::refine()
 	while (mead->changedSignificantly())
 	{
 		mead = NelderMeadPtr(new RefinementNelderMead());
+		mead->setSilent(true);
 		KLigOnOff::addToStrategy(mead);
 		mead->setEvaluationFunction(KModel::getScore, this);
 		mead->setCycles(500);
@@ -156,4 +163,20 @@ void KSecond::refine()
 	std::cout << "K_on: " << _jOn << " inverse time units." << std::endl;
 	std::cout << "K_off: " << _jOff << " inverse time units." << std::endl;
 	std::cout << std::endl;
+	
+	std::cout << "ks for now: " << _jOn * _jTot << std::endl;
+	double kTot = _second->getKTotal();
+	double kOn  = _second->getKOn();
+
+	std::cout << "ks for then: " << kOn * kTot << std::endl;
+	double ratio = _jTot / kTot;
+	std::cout << "ratio: " << ratio << std::endl;
+	std::cout << " comp: " << 1 - ratio << std::endl;
+
+	std::string str = _first->nickname() + "," + _second->nickname()
+	+ "," + f_to_str(1 - ratio, 3);
+
+	std::cout << str << std::endl;
+
+	Kintroller::theKintroller()->collectResult(str);
 }

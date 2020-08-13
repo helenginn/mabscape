@@ -17,12 +17,14 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #include "KineticView.h"
+#include "Kintroller.h"
 #include "Inspector.h"
 #include "CurveView.h"
 #include "Curve.h"
 #include <QTreeWidget>
 #include <QFileDialog>
 #include <QMenuBar>
+#include <QThread>
 
 KineticView::KineticView(QWidget *parent) : QMainWindow(parent)
 {
@@ -123,4 +125,17 @@ void KineticView::transferRegions()
 
 		c->copyRegions(parent);
 	}
+}
+
+void KineticView::startController(Kintroller *c, QThread *q)
+{
+	c->setView(this);
+	q->setObjectName("kintroller");
+	c->moveToThread(q);
+	connect(this, &KineticView::runController, c, &Kintroller::run);
+	q->start();
+	_cView->startTimer();
+
+	emit runController();
+
 }

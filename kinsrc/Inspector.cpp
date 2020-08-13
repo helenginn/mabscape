@@ -86,18 +86,6 @@ void Inspector::comboChanged(int idx)
 	CurveType t = (CurveType)ui;
 	_c->setType(t);
 	
-	if ((t == CurveBuffer || t == CurveOnOff) && !_c->isRegionSet(0))
-	{
-		_c->setRegion(0, 429.8, 829.8);
-		_c->setRegion(1, 829.8, 1029.8);
-	}
-	
-	if ((t == CurveCompetition) && !_c->isRegionSet(0))
-	{
-		_c->setRegion(0, 649.8, 1319.8);
-		_c->setRegion(1, 1379.8, 1665.0);
-	}
-	
 	triageButtons();
 }
 
@@ -236,7 +224,6 @@ void Inspector::choiceChanged(int index)
 		Curve *chosen = _curveMap[str];
 
 		_c->setBuffer(chosen);
-		std::cout << "yeah" << std::endl;
 	}
 	else if (val.toStdString() == "first Ab")
 	{
@@ -327,6 +314,7 @@ void Inspector::finishRegion()
 	double start, end;
 	_cView->getRegion(&start, &end);
 	_c->setRegion(_region, start, end);
+	std::cout << "Region: " << start << " " << end << std::endl;
 	_region = -1;
 	_cView->setMode(ModeNormal);
 	_cView->redraw();

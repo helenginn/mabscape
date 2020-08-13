@@ -137,6 +137,7 @@ void KLigOnOff::refine()
 	_onOffOnly = true;
 
 	NelderMeadPtr mead = NelderMeadPtr(new RefinementNelderMead());
+	mead->setSilent();
 	KLigOnOff::addToStrategy(mead);
 	mead->setEvaluationFunction(KModel::getScore, this);
 	mead->setCycles(80);
@@ -147,6 +148,7 @@ void KLigOnOff::refine()
 
 	_onOffOnly = false;
 	mead = NelderMeadPtr(new RefinementNelderMead());
+	mead->setSilent();
 	KLigOnOff::addToStrategy(mead);
 	mead->setEvaluationFunction(KModel::getScore, this);
 	mead->setCycles(80);
@@ -158,6 +160,7 @@ void KLigOnOff::refine()
 	while (mead->changedSignificantly())
 	{
 		mead = NelderMeadPtr(new RefinementNelderMead());
+		mead->setSilent();
 		KLigOnOff::addToStrategy(mead);
 		mead->setEvaluationFunction(KModel::getScore, this);
 		mead->setCycles(500);
@@ -165,7 +168,7 @@ void KLigOnOff::refine()
 		_mult *= 0.9;
 	}
 	
-	std::cout << "Final results: " << std::endl;
+	std::cout << "Final results for " << nickname() << ": " << std::endl;
 	_totalSubstrate /= _ratio;
 	_kOn *= _ratio;
 	_kOff *= _ratio;
