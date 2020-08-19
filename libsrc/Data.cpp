@@ -105,7 +105,7 @@ void Data::load()
 	for (std::map<std::string, int>::iterator it = _idCounts.begin(); 
 	     it != _idCounts.end(); it++)
 	{
-		if (std::find(_ids.begin(), _ids.end(), it->first) != _ids.end())
+		if (std::find(_ids.begin(), _ids.end(), it->first) == _ids.end())
 		{
 			_ids.push_back(it->first);
 		}
