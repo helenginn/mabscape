@@ -26,6 +26,7 @@ KFirst::KFirst()
 	_hideSecond = true;
 	_correctX = false;
 	_beginVal = -FLT_MAX;
+	_secondMult = 1.;
 }
 
 void KFirst::refineCascade()
@@ -52,11 +53,14 @@ void KFirst::subtractOff()
 	std::vector<double> ys = curve()->ys();
 	std::vector<double> backupys = _ys;
 	
+	double correct = _secondMult;
+	correct *= (getKTotal() / _first->getKTotal());
+	
 	for (size_t i = 0; i < ys.size(); i++)
 	{
 		if (_xs[i] > min[1] && _xs[i] < max[1])
 		{
-			ys[i] = _topLigand + ys[i] - _ys[i];
+			ys[i] = _topLigand + (ys[i] - _ys[i]) / correct;
 		}
 	}
 	

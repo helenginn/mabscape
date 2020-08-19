@@ -1,4 +1,4 @@
-// Spikey thing
+// abmap
 // Copyright (C) 2019 Helen Ginn
 // 
 // This program is free software: you can redistribute it and/or modify
@@ -16,94 +16,60 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#ifndef __abmap__SurfaceView__
-#define __abmap__SurfaceView__
+#ifndef __abmap__PatchView__
+#define __abmap__PatchView__
 
-#include <QMainWindow>
 #include <QMouseEvent>
+#include <QMainWindow>
+#include <vec3.h>
 
-class Bound;
-class Controller;
-class QThread;
-class Screen;
 class SlipGL;
-class QTimer;
-class QMenu;
-class QAction;
+class Patch;
 class Experiment;
 
-class SurfaceView : public QMainWindow
+class PatchView : public QMainWindow
 {
 Q_OBJECT
 public:
-	SurfaceView(QWidget *p = NULL);
-	
-	Experiment *getExperiment()
+	PatchView();
+
+	void setExperiment(Experiment *exp)
 	{
-		return _experiment;
+		_experiment = exp;
 	}
 
-	~SurfaceView()
+	void setCentre(vec3 v)
 	{
+		_centre = v;
+	}
+	
+	void setTitle(std::string title)
+	{
+		_title = title;
+	}
+	
+public slots:
+	void project();
 
-	}
-	
-	SlipGL *getGL()
-	{
-		return _gl;
-	}
-	
-	void addMenu(QMenu *men)
-	{
-		_menus.push_back(men);
-	}
-	
-	void addAction(QAction *act)
-	{
-		_actions.push_back(act);
-	}
-	
-	Screen *clusterScreen()
-	{
-		return _screen;
-	}
-
-	void convertToViewCoords(double *x, double *y);
-	void makeMenu();
-	void startController(QThread *q, Controller *c);
-signals:
-	void runController();
 protected:
 	virtual void resizeEvent(QResizeEvent *event);
-	virtual void keyPressEvent(QKeyEvent *event);
-	virtual void keyReleaseEvent(QKeyEvent *event);
 	virtual void mousePressEvent(QMouseEvent *e);
 	virtual void mouseReleaseEvent(QMouseEvent *e);
 	virtual void mouseMoveEvent(QMouseEvent *e);
-public slots:
-	void launchCluster4x();
-	void loadSurface();
-	void loadCoords();
-private slots:
-	void loadCSV();
-	void loadPositions();
-	void dataToCluster4x();
-	void modelToCluster4x();
-	void unrestrainedRefine();
-	void fixToSurfaceRefine();
+	virtual void keyPressEvent(QKeyEvent *event);
+	virtual void keyReleaseEvent(QKeyEvent *event);
 private:
-	void convertCoords(double *x, double *y);
 	Experiment *_experiment;
-	Screen *_screen;
 	SlipGL *_gl;
+	Patch *_patch;
 	Qt::MouseButton _mouseButton;
 	bool _controlPressed;
 	bool _shiftPressed;
 	double _lastX; double _lastY;
 	bool _moving;
 
-	std::vector<QMenu *> _menus;
-	std::vector<QAction *> _actions;
+	vec3 _centre;
+	std::string _title;
 };
 
 #endif

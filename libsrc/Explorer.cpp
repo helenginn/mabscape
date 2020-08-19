@@ -24,6 +24,7 @@
 #include "Result.h"
 #include "Bound.h"
 #include "Squiggle.h"
+#include "Dialogue.h"
 #include <iostream>
 #include <fstream>
 #include <MtzFFT.h>
@@ -34,7 +35,6 @@
 #include <Screen.h>
 #include <ClusterList.h>
 #include <QPushButton>
-#include <QFileDialog>
 
 Explorer::Explorer(QWidget *parent) : QMainWindow(parent)
 {
@@ -92,14 +92,6 @@ Explorer::Explorer(QWidget *parent) : QMainWindow(parent)
 
 	connect(_clearClusters, &QPushButton::clicked,
 	        this, &Explorer::clear);
-
-	_patchwork = new QPushButton("Patchwork graphic", this);
-	_patchwork->setGeometry(250, top, 200, 40);
-	_patchwork->show();
-	top += 40;
-
-	connect(_patchwork, &QPushButton::clicked,
-	        this, &Explorer::patchworkArt);
 
 	_summarise = new QPushButton("Average/RMSD bounds", this);
 	_summarise->setGeometry(250, top, 200, 40);
@@ -352,27 +344,9 @@ void Explorer::writeResults()
 
 void Explorer::readResults()
 {
-	QFileDialog *f = new QFileDialog(this, "Choose stream file", 
-	                                 "");
-	f->setFileMode(QFileDialog::AnyFile);
-	f->setOptions(QFileDialog::DontUseNativeDialog);
-	f->show();
+	std::string filename = openDialogue(this, "Choose stream file", 
+	                                    "");
 
-    QStringList fileNames;
-
-    if (f->exec())
-    {
-        fileNames = f->selectedFiles();
-    }
-    
-    if (fileNames.size() < 1)
-    {
-		return;
-    }
-
-	f->deleteLater();
-	std::string filename = fileNames[0].toStdString();
-	
 	std::string contents = get_file_contents(filename);
 
 	size_t firstpos = 0;
@@ -396,7 +370,7 @@ void Explorer::patchworkArt()
 {
 	undoArt();
 	Structure *s = _experiment->structure();
-	s->triangulate();
+//	s->triangulate();
 
 	QList<QTreeWidgetItem *> list = _widget->selectedItems();
 	
@@ -485,10 +459,6 @@ void Explorer::summariseBounds()
 		b->snapToObject(NULL);
 		b->updatePositionToReal();
 		
-		double rad = b->averageRadius();
-		double resize = rmsd / rad;
-		b->resize(resize, true);
-		
 		sqSum += rmsd * rmsd;
 		_map[b] = rmsd;
 		count++;
@@ -506,9 +476,15 @@ void Explorer::summariseBounds()
 		}
 		double rmsd = _map[b];
 		rmsd /= stdev * 2;
-		rmsd = 1 - rmsd;
+		double inverse = 1 - rmsd;
+
+		double rad = b->averageRadius();
+		double resize = rmsd * 5;
+		b->resize(resize, true);
 		
-		b->setAlpha(rmsd);
+		b->setAlpha(inverse);
 	}
+	
+//	_experiment->reorderBoundByAlpha();
 }
 

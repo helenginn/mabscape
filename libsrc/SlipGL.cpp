@@ -74,6 +74,18 @@ void SlipGL::addObject(SlipObject *obj, bool active)
 	}
 }
 
+void SlipGL::removeObject(SlipObject *obj)
+{
+	std::vector<SlipObject *>::iterator it;
+	
+	it = std::find(_objects.begin(), _objects.end(), obj);
+	
+	if (it != _objects.end())
+	{
+		_objects.erase(it);
+	}
+}
+
 void SlipGL::addPanel()
 {
 	vec3 x1 = make_vec3(-1.04, -0.04, -69.6);
@@ -91,7 +103,7 @@ void SlipGL::preparePanels(int n)
 
 void SlipGL::panned(double x, double y)
 {
-	zoom(x, -y, 0);
+	zoom(-x, y, 0);
 }
 
 void SlipGL::zoom(float x, float y, float z)
@@ -205,12 +217,11 @@ void SlipGL::setupCamera()
 }
 
 
-void SlipGL::updateProjection()
+void SlipGL::updateProjection(double side)
 {
 	zNear = 4;
 	zFar = 100;
 
-	double side = 0.5;
 	float aspect = (float)height() / (float)width();
 	_proj = mat4x4_ortho(-side, side, side * aspect, -side * aspect,
 	                     zNear, zFar);

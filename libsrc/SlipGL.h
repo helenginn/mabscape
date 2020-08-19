@@ -63,6 +63,8 @@ public:
 	}
 	
 	void addObject(SlipObject *obj, bool active);
+	void updateProjection(double side = 0.5);
+	void removeObject(SlipObject *obj);
 public slots:
 	
 protected:
@@ -74,7 +76,6 @@ private:
 	void zoom(float x, float y, float z);
 	void updateCamera();
 	void setupCamera();
-	void updateProjection();
 	void time();
 
 	SlipObject *activeObject()

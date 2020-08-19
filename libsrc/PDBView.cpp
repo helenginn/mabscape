@@ -98,7 +98,7 @@ void PDBView::loadInfo()
 		MoleculePtr mol = _crystal->molecule(i);
 		if (!mol->isPolymer())
 		{
-			continue;
+//			continue;
 		}
 
 		PolymerPtr pol = ToPolymerPtr(mol);

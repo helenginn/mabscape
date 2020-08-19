@@ -16,6 +16,7 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
+#include "PatchView.h"
 #include "Experiment.h"
 #include "PDBView.h"
 #include "Explorer.h"
@@ -30,6 +31,7 @@
 #include "FileReader.h"
 #include <iomanip>
 #include <fstream>
+#include <algorithm>
 #include <AveCSV.h>
 #include <Group.h>
 #include <ClusterList.h>
@@ -55,6 +57,7 @@ Experiment::Experiment(SurfaceView *view)
 	_dragging = false;
 	_refinement = NULL;
 	_view = view;
+	_patchView = NULL;
 	_gl = NULL;
 	_structure = NULL;
 	_label = new QLabel("", _view);
@@ -73,11 +76,34 @@ void Experiment::loadStructure(std::string filename)
 	{
 		std::cout << "Got structure already, not loading new one." 
 		<< std::endl;
-		exit(1);
+		return;
 	}
+
 	Structure *str = new Structure(filename);
 	_gl->addObject(str, true);
 	_structure = str;
+}
+
+void Experiment::loadStructureCoords(std::string filename)
+{
+	if (_structure == NULL)
+	{
+		std::cout << "No structure." << std::endl;
+		return;
+	}
+
+	_structure->addPDB(filename);
+}
+
+void Experiment::triangulateStructure()
+{
+	if (_structure == NULL)
+	{
+		std::cout << "No structure." << std::endl;
+		return;
+	}
+
+	_structure->triangulate();
 }
 
 void Experiment::recolourByCorrelation()
@@ -207,6 +233,9 @@ Bound *Experiment::loadBound(std::string filename)
 		bnd->snapToObject(_structure);
 		bnd->setStructure(_structure);
 	}
+
+	_gl->removeObject(_explorer);
+	_gl->addObject(_explorer, false);
 
 	_bounds.push_back(bnd);
 	return bnd;
@@ -430,6 +459,11 @@ void Experiment::addBindersToMenu(QMenu *binders)
 			connect(act, &QAction::triggered, 
 			        this, &Experiment::fixFromPDB);
 			_view->addAction(act);
+
+			act = mb->addAction("Patchwork from position");
+			connect(act, &QAction::triggered, this,
+			        [=](){ abPatchwork(name); });
+			_view->addAction(act);
 		}
 	}
 }
@@ -486,6 +520,27 @@ void Experiment::refineModel(bool fixedOnly, bool svd)
 	emit refine();
 }
 
+bool boundDiffuserThanBound(Bound *a, Bound *b)
+{
+	return (a->vertex(0).color[3] < b->vertex(0).color[3]);
+}
+
+void Experiment::reorderBoundByAlpha()
+{
+	std::sort(_bounds.begin(), _bounds.end(),
+	          boundDiffuserThanBound);
+	
+	for (size_t i = 0; i < _bounds.size(); i++)
+	{
+		_gl->removeObject(_bounds[i]);
+	}
+	
+	for (size_t i = 0; i < _bounds.size(); i++)
+	{
+		_gl->addObject(_bounds[i], false);
+	}
+}
+
 bool Experiment::isRunningMonteCarlo()
 {
 	int count = 0;
@@ -507,7 +562,6 @@ void Experiment::handleResults()
 	disconnect(obj, SIGNAL(failed()), this, SLOT(handleError()));
 
 	bool finished = !isRunningMonteCarlo();
-	std::cout << "Finished: " << finished << std::endl;
 
 	double newest = Refinement::getScore(obj);
 
@@ -824,4 +878,33 @@ void Experiment::fixFromPDB()
 	{
 		view->setExperiment(this);
 	}
+}
+
+
+void Experiment::abPatchwork(std::string id)
+{
+	Bound *b = bound(id);
+	vec3 p = b->getWorkingPosition();
+	_structure->removeColouring();
+	_structure->markExtraAround(p, 10., true);
+	
+	_patchView = new PatchView();
+	_patchView->setExperiment(this);
+	_patchView->setCentre(p);
+	_patchView->setTitle(id);
+	_patchView->project();
+	_patchView->show();
+}
+
+void Experiment::fixLabel()
+{
+	QLabel *l = new QLabel(_label->text(), _view);
+	l->setGeometry(_label->geometry());
+	l->setObjectName("templabel");
+	l->setStyleSheet(_label->styleSheet());
+	QFont font = QFont("Helvetica", 16);
+	l->setFont(font);
+	l->setAlignment(Qt::AlignVCenter);
+	l->setAlignment(Qt::AlignHCenter);
+	l->show();
 }

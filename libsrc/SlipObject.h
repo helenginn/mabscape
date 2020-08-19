@@ -84,6 +84,8 @@ public:
 	{
 		return sizeof(Vertex) * _vertices.size();
 	}
+	
+	void copyFrom(SlipObject *s);
 
 	GLuint *iPointer()
 	{
@@ -144,7 +146,8 @@ public:
 	
 	void addToVertices(vec3 add);
 	
-	bool collapseCommonVertices();
+	bool collapseCommonVertices(bool quick = false);
+	void removeUnusedVertices();
 	void recolour(double red, double green, double blue,
 	              std::vector<Vertex> *vs = NULL);
 	void setAlpha(double alpha);
@@ -181,6 +184,7 @@ public:
 	void changeToLines();
 	void changeToTriangles();
 	virtual void triangulate();
+	void cacheTriangulate();
 	
 	void remove()
 	{
@@ -209,12 +213,17 @@ protected:
 	bool polygonIncludes(vec3 point, GLuint *trio);
 	vec3 rayTraceToPlane(vec3 point, GLuint *trio, vec3 dir,
 	                     bool *backwards);
-	void addVertex(float v1, float v2, float v3);
+	void addVertex(float v1, float v2, float v3,
+	               std::vector<Vertex> *vec = NULL);
+	void addVertex(vec3 v, std::vector<Vertex> *vec);
 	void addIndex(GLuint i);
 	void addIndices(GLuint i1, GLuint i2, GLuint i3);
 	virtual void calculateNormals(bool flip = false);
+	void calculateNormalsAndCheck();
 	void setSelectable(bool selectable);
 	void fixCentroid(vec3 centre);
+	
+	virtual void extraUniforms() {};
 
 	std::vector<Vertex> _vertices;
 	std::vector<GLuint> _indices;
@@ -228,6 +237,9 @@ protected:
 	GLuint _renderType;
 	std::string _vString;
 	std::string _fString;
+	GLuint _program;
+	mat4x4 _model;
+	mat4x4 _proj;
 private:
 	GLuint addShaderFromString(GLuint program, GLenum type, std::string str);
 	void checkErrors();
@@ -240,7 +252,6 @@ private:
 	static bool index_in_front_of_index(IndexTrio one, IndexTrio two);
 
 	std::string _random;
-	GLuint _program;
 	GLuint _bufferID;
 	GLuint _vbo;
 	GLuint _uModel;
@@ -249,8 +260,6 @@ private:
 	std::vector<GLuint> _textures;
 	std::vector<IndexTrio> _temp; // stores with model mat
 	std::string _name;
-	mat4x4 _model;
-	mat4x4 _proj;
 	Mesh *_mesh;
 	std::mutex _mut;
 	

@@ -24,14 +24,15 @@
 #include <Screen.h>
 #include "SurfaceView.h"
 #include "SlipGL.h"
+#include "Dialogue.h"
 #include "Structure.h"
 #include "Experiment.h"
 #include "Controller.h"
 #include "Bound.h"
 #include <QTimer>
 #include <QMenuBar>
-#include <QFileDialog>
 #include <QThread>
+#include <QLabel>
 
 SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 {
@@ -83,7 +84,19 @@ void SurfaceView::makeMenu()
 
 	QMenu *structure = menuBar()->addMenu(tr("&Structure"));
 	_menus.push_back(structure);
-	QAction *act = structure->addAction(tr("Make collision mesh"));
+	QAction *act = structure->addAction(tr("Load structure surface"));
+	connect(act, &QAction::triggered, this, &SurfaceView::loadSurface);
+	_actions.push_back(act);
+	act = structure->addAction(tr("Load structure coordinates"));
+	connect(act, &QAction::triggered, this, &SurfaceView::loadCoords);
+	_actions.push_back(act);
+	act = structure->addAction(tr("Triangulate structure"));
+	connect(act, &QAction::triggered, _experiment, 
+	        &Experiment::triangulateStructure);
+	_actions.push_back(act);
+
+	structure->addSeparator();
+	act = structure->addAction(tr("Make collision mesh"));
 	connect(act, &QAction::triggered, _experiment, &Experiment::meshStructure);
 	_actions.push_back(act);
 	act = structure->addAction(tr("Refine mesh"));
@@ -224,6 +237,10 @@ void SurfaceView::keyPressEvent(QKeyEvent *event)
 	{
 		_experiment->fixBound();
 	}
+	else if (event->key() == Qt::Key_L)
+	{
+		_experiment->fixLabel();
+	}
 }
 
 void SurfaceView::keyReleaseEvent(QKeyEvent *event)
@@ -301,6 +318,14 @@ void SurfaceView::mouseMoveEvent(QMouseEvent *e)
 		_gl->draggedRightMouse(xDiff * PAN_SENSITIVITY,
 		                       yDiff * PAN_SENSITIVITY);
 	}
+	
+	QList<QLabel *> ls = findChildren<QLabel *>("templabel");
+	
+	for (int i = 0; i < ls.size(); i++)
+	{
+		ls[i]->hide();
+		ls[i]->deleteLater();
+	}
 }
 
 void SurfaceView::mouseReleaseEvent(QMouseEvent *e)
@@ -323,27 +348,8 @@ void SurfaceView::mouseReleaseEvent(QMouseEvent *e)
 
 void SurfaceView::loadPositions()
 {
-	QFileDialog *f = new QFileDialog(this, "Choose position CSV", 
-	                                 "Comma-separated values (*.csv)");
-	f->setFileMode(QFileDialog::AnyFile);
-	f->setOptions(QFileDialog::DontUseNativeDialog);
-	f->show();
-
-    QStringList fileNames;
-
-    if (f->exec())
-    {
-        fileNames = f->selectedFiles();
-    }
-    
-    if (fileNames.size() < 1)
-    {
-		return;
-    }
-
-	f->deleteLater();
-	std::string filename = fileNames[0].toStdString();
-	
+	std::string filename = openDialogue(this, "Choose position CSV", 
+	                                    "Comma-separated values (*.csv)");
 	_experiment->loadPositions(filename);
 	
 	makeMenu();
@@ -351,30 +357,25 @@ void SurfaceView::loadPositions()
 
 void SurfaceView::loadCSV()
 {
-	QFileDialog *f = new QFileDialog(this, "Choose competition data CSV", 
-	                                 "Comma-separated values (*.csv)");
-	f->setFileMode(QFileDialog::AnyFile);
-	f->setOptions(QFileDialog::DontUseNativeDialog);
-	f->show();
-
-    QStringList fileNames;
-
-    if (f->exec())
-    {
-        fileNames = f->selectedFiles();
-    }
-    
-    if (fileNames.size() < 1)
-    {
-		return;
-    }
-
-	f->deleteLater();
-	std::string filename = fileNames[0].toStdString();
-	
+	std::string filename = openDialogue(this, "Choose competition data CSV", 
+	                                    "Comma-separated values (*.csv)");
 	_experiment->loadCSV(filename);
 	
 	makeMenu();
+}
+
+void SurfaceView::loadSurface()
+{
+	std::string filename = openDialogue(this, "Load surface file", 
+	                                    "Wavefront object file (*.obj)");
+	_experiment->loadStructure(filename);
+}
+
+void SurfaceView::loadCoords()
+{
+	std::string filename = openDialogue(this, "Load structure coordinates", 
+	                                    "Protein data bank file (*.pdb)");
+	_experiment->loadStructureCoords(filename);
 }
 
 void SurfaceView::unrestrainedRefine()

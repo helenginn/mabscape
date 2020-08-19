@@ -78,6 +78,11 @@ void Controller::run()
 			std::string fn = last;
 			_exp->loadStructure(fn);
 		}
+		if (first == "load-structure-coords")
+		{
+			std::string fn = last;
+			_exp->loadStructureCoords(fn);
+		}
 		else if (first == "refine-mesh")
 		{
 			QThread *w = _exp->meshStructure();
@@ -86,6 +91,10 @@ void Controller::run()
 		else if (first == "triangulate-mesh")
 		{
 			_exp->triangulateMesh();
+		}
+		else if (first == "triangulate-structure")
+		{
+			_exp->triangulateStructure();
 		}
 		else if (first == "load-data")
 		{
@@ -108,6 +117,16 @@ void Controller::run()
 		{
 			std::string fn = last;
 			_exp->getExplorer()->writeResultsToFile(fn, true);
+		}
+		else if (first == "patchwork")
+		{
+			std::string ab = last;
+
+			connect(this, &Controller::startPatch, _exp,
+			        [=]() {_exp->abPatchwork(ab);},
+			        Qt::QueuedConnection);
+			
+			emit startPatch();
 		}
 		else if (first == "quit")
 		{

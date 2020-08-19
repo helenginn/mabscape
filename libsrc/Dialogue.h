@@ -16,34 +16,35 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#ifndef __abmap__KFirst__
-#define __abmap__KFirst__
+#ifndef __abmap__Dialogue__
+#define __abmap__Dialogue__
 
-#include "KLigOnOff.h"
+#include <QFileDialog>
 
-class KFirst : public KLigOnOff
+inline std::string openDialogue(QWidget *w, QString title, QString pattern)
 {
-public:
-	KFirst();
+	QFileDialog *f = new QFileDialog(w, title, pattern);
+	                                 
+	f->setFileMode(QFileDialog::AnyFile);
+	f->setOptions(QFileDialog::DontUseNativeDialog);
+	f->show();
 
-	virtual void populateYs();
-	
-	void setFirstModel(KLigOnOff *l)
-	{
-		_first = l;
-	}
-	
-public slots:
-	virtual void refineCascade();
-protected:
-	void subtractOff();
-	virtual void addToStrategy(RefinementStrategyPtr str);
-	virtual void refine();
-	KLigOnOff *_first;
-private:
-	double _secondMult;
-	double _beginVal;
-	bool _hideSecond;
-};
+    QStringList fileNames;
+
+    if (f->exec())
+    {
+        fileNames = f->selectedFiles();
+    }
+    
+    if (fileNames.size() < 1)
+    {
+		return "";
+    }
+
+	f->deleteLater();
+	std::string filename = fileNames[0].toStdString();
+
+	return filename;
+}
 
 #endif

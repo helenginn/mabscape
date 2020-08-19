@@ -21,6 +21,10 @@
 
 #include "SlipObjFile.h"
 #include <vec3.h>
+#include <shared_ptrs.h>
+
+typedef std::map<int, std::vector<Vertex *>> AtomMap;
+typedef std::map<Vertex *, int> AtomSingleMap;
 
 class Structure : public SlipObjFile
 {
@@ -28,11 +32,44 @@ public:
 	Structure(std::string filename);
 	
 	void clearExtra();
-	void markExtraAround(vec3 pos, double reach);
+	void markExtraAround(vec3 pos, double reach, bool fillout = false);
+	void markExtraResidue(int i);
 	void convertExtraToColour();
+	void removeColouring();
 	virtual void triangulate();
+
+	void addPDB(std::string filename);
+	void turtleShell();
+	
+	size_t litResidueCount()
+	{
+		return _resiList.size();
+	}
+	
+	int litResidue(int i)
+	{
+		return _resiList[i];
+	}
+	
+	std::string residueName(int res)
+	{
+		return _resNames[res];
+	}
+	
+	vec3 residuePos(int res)
+	{
+		return _resPos[res];
+	}
+
 private:
+	CrystalPtr _crystal;
 	int _triangulation;
+
+	std::map<int, std::string> _resNames;
+	std::map<int, vec3> _resPos;
+	AtomMap _atomMap;
+	AtomSingleMap _singleMap;
+	std::vector<int> _resiList;
 };
 
 #endif

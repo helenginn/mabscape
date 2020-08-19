@@ -68,6 +68,11 @@ void KLigOnOff::addToStrategy(RefinementStrategyPtr str)
 		_anys.push_back(any);
 		str->addParameter(&*any, Any::get, Any::set, 
 		                  0.1 * _mult, 0.0001);
+
+		any = AnyPtr(new Any(&_kOn));
+		_anys.push_back(any);
+		str->addParameter(&*any, Any::get, Any::set,
+		                  0.0005 * _mult, 0.00001);
 		
 		return;
 	}
@@ -157,7 +162,8 @@ void KLigOnOff::refine()
 	mead->refine();
 	_mult *= 0.9;
 	
-	while (mead->changedSignificantly())
+	int count = 0;
+	while (mead->changedSignificantly() && count < 20)
 	{
 		mead = NelderMeadPtr(new RefinementNelderMead());
 		mead->setSilent();

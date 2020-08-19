@@ -61,6 +61,10 @@ void Refinement::recolourByScore()
 			}
 
 			double val = _data->valueFor(bi->name(), bj->name());
+			
+			val = std::max(0., val);
+			val = std::min(1., val);
+
 			double raw = bi->scoreWithOther(bj);
 			double diff = (raw - val) * (raw - val);
 
@@ -106,16 +110,21 @@ double Refinement::partialScore(Bound *bi)
 	{
 		Bound *bj = _experiment->bound(j);
 
+		if (_fixedOnly && !bi->isFixed() && !bj->isFixed())
+		{
+			continue;
+		}
+		
+		if (bi->isFixed() && bj->isFixed())
+		{
+			continue;
+		}
+
 		double val = _data->valueFor(bi->name(), bj->name());
 		double raw = bi->scoreWithOther(bj);
 		double diff = (raw - val) * (raw - val);
 
 		if (diff != diff)
-		{
-			continue;
-		}
-
-		if (_fixedOnly && !bi->isFixed() && !bj->isFixed())
 		{
 			continue;
 		}

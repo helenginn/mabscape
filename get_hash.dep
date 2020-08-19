@@ -8,6 +8,7 @@ libsrc/Refinement.h
 libsrc/SlipGL.h
 libsrc/Data.cpp
 libsrc/SlipPanel.cpp
+libsrc/PatchView.h
 libsrc/Result.h
 libsrc/Explorer.cpp
 libsrc/SlipObject.h
@@ -15,6 +16,7 @@ libsrc/shaders/fImage.h
 libsrc/shaders/White.h
 libsrc/shaders/vImage.h
 libsrc/shaders/fWipe.h
+libsrc/shaders/vProj.h
 libsrc/Squiggle.h
 libsrc/Mesh.h
 libsrc/SlipGL.cpp
@@ -29,12 +31,15 @@ libsrc/SurfaceView.cpp
 libsrc/Squiggle.cpp
 libsrc/SlipObject.cpp
 libsrc/Structure.h
+libsrc/Patch.h
 libsrc/Structure.cpp
+libsrc/PatchView.cpp
 libsrc/main.cpp
 libsrc/PositionMap.h
 libsrc/Experiment.cpp
 libsrc/Experiment.h
 libsrc/Controller.cpp
+libsrc/Patch.cpp
 libsrc/Bound.h
 libsrc/Refinement.cpp
 libsrc/Bound.cpp

@@ -35,6 +35,8 @@ public:
 
 	void setCommandLineArgs(int argc, char *argv[]);
 	void setView(SurfaceView *view);
+signals:
+	void startPatch();
 public slots:
 	void run();
 private:

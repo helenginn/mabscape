@@ -102,8 +102,8 @@ void Mesh::smoothen(std::vector<Vertex> &vcopy)
 		vec3_mult(&local_ctr, 1 / count);
 
 		vec3 booster = vec3_subtract_vec3(local_ctr, vtx);
-		vec3_mult(&booster, _speed * 1.3);
-		vec3_set_length(&norm, _speed * 1.3);
+		vec3_mult(&booster, _speed * 1.25);
+		vec3_set_length(&norm, _speed * 1.25);
 
 		vec3_add_to_vec3(&vtx, booster);
 		vec3_add_to_vec3(&vtx, norm);
@@ -125,6 +125,7 @@ void Mesh::shrinkWrap()
 		
 		lockMutex();
 		_vertices = vcopy;
+		calculateNormals();
 		unlockMutex();
 	}
 	

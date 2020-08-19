@@ -81,9 +81,9 @@ void KSecond::addToStrategy(RefinementStrategyPtr str)
 {
 	AnyPtr any;
 
-	any = AnyPtr(new Any(&_jRatio));
+	any = AnyPtr(new Any(&_jTot));
 	_anys.push_back(any);
-	str->addParameter(&*any, Any::get, Any::set, 0.1, 0.0001);
+	str->addParameter(&*any, Any::get, Any::set, 0.2, 0.000001);
 
 	if (_onOffOnly)
 	{
@@ -98,14 +98,22 @@ void KSecond::addToStrategy(RefinementStrategyPtr str)
 	_anys.push_back(any);
 	str->addParameter(&*any, Any::get, Any::set, 0.0005, 0.00001);
 
+	/*
 	any = AnyPtr(new Any(&_jCut));
 	_anys.push_back(any);
 	str->addParameter(&*any, Any::get, Any::set, 0.1, 0.0001);
+	*/
 
+	any = AnyPtr(new Any(&_jRatio));
+	_anys.push_back(any);
+	str->addParameter(&*any, Any::get, Any::set, 0.1, 0.0001);
+
+	/*
 	double *boundary = curve()->regionPtr(1, true);
 	any = AnyPtr(new Any(boundary));
 	_anys.push_back(any);
 	str->addParameter(&*any, Any::get, Any::set, 2.0, 0.0001);
+	*/
 }
 
 void KSecond::refine()
@@ -116,7 +124,7 @@ void KSecond::refine()
 	
 	_jOn = _second->getKOn();
 	_jOff = _second->getKOff();
-	_jTot = 1.;
+	_jTot = _second->getKTotal();
 
 	_onOffOnly = true;
 	_active = true;
@@ -150,6 +158,7 @@ void KSecond::refine()
 		mead->setEvaluationFunction(KModel::getScore, this);
 		mead->setCycles(500);
 		mead->refine();
+		std::cout << "refined..." << std::endl;
 	}
 
 	std::cout << "Final results: " << std::endl;

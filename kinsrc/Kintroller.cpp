@@ -187,8 +187,17 @@ bool Kintroller::makeCompetition(std::string line)
 	Curve *b = _curves[buffer];
 	c->setBuffer(b);
 	Curve *ab1 = _curves[onoff1];
+	if (!ab1->hasModel())
+	{
+		processCurve(ab1);
+	}
+
 	c->setFirstAb(ab1);
 	Curve *ab2 = _curves[onoff2];
+	if (!ab2->hasModel())
+	{
+		processCurve(ab2);
+	}
 	c->setSecondAb(ab2);
 
 	return processCurve(c);
@@ -238,7 +247,7 @@ bool Kintroller::makeOnOff(std::string line)
 	Curve *b = _curves[buffer];
 	c->setBuffer(b);
 
-	return processCurve(c);
+	return true;
 }
 
 bool Kintroller::makeBuffer(std::string line)

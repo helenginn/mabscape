@@ -40,6 +40,7 @@ class Result;
 class Mesh;
 class QLabel;
 class QThread;
+class PatchView;
 
 class Experiment : public QObject
 {
@@ -97,6 +98,8 @@ public:
 
 	void makeExplorer();
 	void loadStructure(std::string filename);
+	void loadStructureCoords(std::string filename);
+	void triangulateStructure();
 	void loadPositions(std::string filename);
 	void hoverMouse(double x, double y);
 	void clickMouse(double x, double y);
@@ -105,6 +108,8 @@ public:
 	void drag(double x, double y);
 	void hideLabel();
 	void fixBound();
+	void fixLabel();
+	void reorderBoundByAlpha();
 	void addBindersToMenu(QMenu *menu);
 	void loadCSV(std::string filename);
 	void somethingToCluster4x(bool data);
@@ -123,6 +128,7 @@ signals:
 	void refine();
 public slots:
 	void handleMesh();
+	void abPatchwork(std::string id);
 	void jiggle();
 	void randomise();
 	void svdRefine();
@@ -156,7 +162,9 @@ private:
 	void deselectAll();
 	void dehighlightAll();
 	bool _dragging;
+
 	SurfaceView *_view;
+	PatchView *_patchView;
 	SlipGL *_gl;
 	Data *_data;
 	Refinement *_refinement;

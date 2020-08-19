@@ -54,6 +54,7 @@ public:
 	
 	virtual void render(SlipGL *gl);
 	void writeResultsToFile(std::string filename, bool all = false);
+	void abPatchwork(std::string id);
 private slots:
 	void currentItemChanged(QTreeWidgetItem *current, 
 	                        QTreeWidgetItem *prev);

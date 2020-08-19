@@ -105,7 +105,10 @@ void Data::load()
 	for (std::map<std::string, int>::iterator it = _idCounts.begin(); 
 	     it != _idCounts.end(); it++)
 	{
-		_ids.push_back(it->first);
+		if (std::find(_ids.begin(), _ids.end(), it->first) != _ids.end())
+		{
+			_ids.push_back(it->first);
+		}
 	}
 	
 	std::cout << "Loaded " << _ids.size() << " binders." << std::endl;

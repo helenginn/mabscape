@@ -49,7 +49,7 @@ CurveView::CurveView(QWidget *parent) : QGraphicsView(parent)
 	_regionEnd = -1;
 
 	_timer = new QTimer();
-	_timer->setInterval(200);
+	_timer->setInterval(1000);
 	_timer->setSingleShot(false);
 	connect(_timer, &QTimer::timeout, this, &CurveView::redraw);
 

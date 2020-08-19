@@ -161,6 +161,14 @@ void SlipObject::initialisePrograms(std::string *v, std::string *f)
 	{
 		std::cout << "sceneInit(): Program linking failed." << std::endl;
 
+		GLint length;
+		char *log = (char *)malloc(length);
+		/* get the shader info log */
+		glGetProgramInfoLog(_program, GL_INFO_LOG_LENGTH, &length, log);
+
+
+		/* print an error message and the info log */
+		std::cout << log << std::endl;
 		/* delete the program */
 		glDeleteProgram(_program);
 		_program = 0;
@@ -307,6 +315,8 @@ void SlipObject::render(SlipGL *sender)
 	uniform_name = "time";
 	_uTime = glGetUniformLocation(_program, uniform_name);
 	glUniform1f(_uTime, time);
+	
+	extraUniforms();
 
 	if (_textures.size())
 	{
@@ -451,7 +461,13 @@ vec3 SlipObject::centroid()
 	return sum;
 }
 
-void SlipObject::addVertex(float v1, float v2, float v3)
+void SlipObject::addVertex(vec3 v, std::vector<Vertex> *vec)
+{
+	addVertex(v.x, v.y, v.z, vec);
+}
+
+void SlipObject::addVertex(float v1, float v2, float v3,
+                           std::vector<Vertex> *vec)
 {
 	Vertex v;
 	memset(v.pos, 0, sizeof(Vertex));
@@ -461,8 +477,15 @@ void SlipObject::addVertex(float v1, float v2, float v3)
 	v.pos[0] = v1;
 	v.pos[1] = v2;
 	v.pos[2] = v3;
-	_vertices.push_back(v);
 
+	if (vec == NULL)
+	{
+		_vertices.push_back(v);
+	}
+	else
+	{
+		vec->push_back(v);
+	}
 }
 
 void SlipObject::addIndices(GLuint i1, GLuint i2, GLuint i3)
@@ -648,12 +671,6 @@ vec3 SlipObject::nearestVertexNearNormal(vec3 pos, vec3 normal,
 		                      pos.y - v.pos[1],
 		                      pos.z - v.pos[2]);
 
-		if (abs(diff.x) > closest || abs(diff.y) > closest 
-		    || abs(diff.z) > closest)
-		{
-			continue;
-		}
-
 		double length = vec3_length(diff);
 		vec3_mult(&diff, 1 / length);
 		
@@ -832,6 +849,36 @@ bool SlipObject::intersects(double x, double y, double *z)
 	return found;
 }
 
+void SlipObject::calculateNormalsAndCheck()
+{
+	std::cout << "Checking normals ... " << std::endl;
+	int flipped = 0;
+
+	for (size_t i = 0; i < _indices.size(); i += 3)
+	{
+		vec3 pos1 = vec_from_pos(_vertices[_indices[i+0]].pos);
+		vec3 pos2 = vec_from_pos(_vertices[_indices[i+1]].pos);
+		vec3 pos3 = vec_from_pos(_vertices[_indices[i+2]].pos);
+		
+		vec3 diff31 = vec3_subtract_vec3(pos3, pos1);
+		vec3 diff21 = vec3_subtract_vec3(pos2, pos1);
+
+		vec3 cross = vec3_cross_vec3(diff31, diff21);
+		vec3_add_to_vec3(&pos1, cross);
+
+		if (!pointInside(pos1))
+		{
+			GLuint tmp = _indices[i+0];
+			_indices[i+0] = _indices[i+1];
+			_indices[i+1] = tmp;
+			flipped++;
+		}
+	}
+
+	std::cout << "Flipped " << flipped << std::endl;
+	calculateNormals();
+}
+
 void SlipObject::calculateNormals(bool flip)
 {
 	for (size_t i = 0; i < _vertices.size(); i++)
@@ -851,9 +898,8 @@ void SlipObject::calculateNormals(bool flip)
 		vec3 diff21 = vec3_subtract_vec3(pos2, pos1);
 
 		vec3 cross = vec3_cross_vec3(diff31, diff21);
-		double length = flip ? -1 : 1;
-		vec3_set_length(&cross, length);
-
+		vec3_set_length(&cross, 1);
+		
 		/* Normals */					
 		for (int j = 0; j < 3; j++)
 		{
@@ -927,24 +973,25 @@ void SlipObject::setSelected(bool selected)
 	_selected = selected;
 }
 
-bool SlipObject::collapseCommonVertices()
+bool SlipObject::collapseCommonVertices(bool quick)
 {
 	std::cout << "Collapsing common vertices..." << std::endl;
 	size_t prior = _vertices.size();
 
 	for (size_t i = 0; i < _vertices.size(); i++)
 	{
-		for (size_t j = i + 1; j < _vertices.size(); j++)
+		size_t target = (quick ? i + 1000 : _vertices.size());
+		for (size_t j = i + 1; j < target && j < _vertices.size(); j++)
 		{
-			if (fabs(_vertices[i].pos[0] - _vertices[j].pos[0]) > 1e-3)
+			if (fabs(_vertices[i].pos[0] - _vertices[j].pos[0]) > 1e-6)
 			{
 				continue;
 			}
-			if (fabs(_vertices[i].pos[1] - _vertices[j].pos[1]) > 1e-3)
+			if (fabs(_vertices[i].pos[1] - _vertices[j].pos[1]) > 1e-6)
 			{
 				continue;
 			}
-			if (fabs(_vertices[i].pos[2] - _vertices[j].pos[2]) > 1e-3)
+			if (fabs(_vertices[i].pos[2] - _vertices[j].pos[2]) > 1e-6)
 			{
 				continue;
 			}
@@ -957,37 +1004,40 @@ bool SlipObject::collapseCommonVertices()
 					_indices[k] = i;
 				}
 			}
-
-			/* mark to delete later */
-			_vertices[j].pos[0] = nan(" ");
 		}
 	}
+	
+	removeUnusedVertices();
+
+	/*
+	std::vector<Vertex> tmps;
 
 	for (size_t i = 0; i < _vertices.size(); i++)
 	{
 		if (_vertices[i].pos[0] == _vertices[i].pos[0])
 		{
-			/* this vertex is already in use */
+			tmps.push_back(_vertices[i]);
 			continue;
 		}
 		
-		_vertices.erase(_vertices.begin() + i);
-
 		for (size_t k = 0; k < _indices.size(); k++)
 		{
-			/* i itself should not be in this list anymore */
-			if (_indices[k] > i)
+			if (_indices[k] > tmps.size() - 1)
 			{
 				_indices[k]--;
 			}
 		}
-		
-		i--;
 	}
+	
+	_vertices = tmps;
+	*/
 
 	size_t post = _vertices.size();
 	
 	std::cout << "From " << prior << " to " << post << " vertices." << std::endl;
+	std::cout << _indices.size() / 3 << " faces." << std::endl;
+	
+	calculateNormals();
 	
 	return (post < prior);
 }
@@ -999,7 +1049,8 @@ void SlipObject::writeObjFile(std::string filename)
 
 	for (size_t i = 0; i < _vertices.size(); i++)
 	{
-		file << "v " << _vertices[i].pos[0] << " " <<
+		file << "v " << std::setprecision(10) << 
+		_vertices[i].pos[0] << " " <<
 		_vertices[i].pos[1] << " " <<
 		_vertices[i].pos[2] << std::endl;
 		file << "vn " << _vertices[i].normal[0] << " " <<
@@ -1021,12 +1072,164 @@ void SlipObject::writeObjFile(std::string filename)
 	file.close();
 }
 
+void SlipObject::cacheTriangulate()
+{
+	std::map<std::pair<GLuint, GLuint>, GLuint> lines;
+	std::map<std::pair<GLuint, GLuint>, GLuint>::iterator linesit;
+
+	std::map<std::pair<GLuint, GLuint>, GLuint> done_pairs;
+	std::map<GLuint, GLuint> done;
+
+	std::map<GLuint, std::map<GLuint, GLuint> > newVs;
+	std::vector<Vertex> vs;
+	
+	std::cout << "Triangulating..." << std::endl;
+
+	/* lookup for all your trios */
+	for (size_t i = 0; i < _indices.size(); i += 3)
+	{
+		std::pair<GLuint, GLuint> pair = std::make_pair(_indices[i], 
+		                                                _indices[i+1]);
+		lines[pair] = _indices[i+2];
+	}
+	
+	_indices.clear();
+
+	/* iterate through all your trios */
+	for (linesit = lines.begin(); linesit != lines.end(); linesit++)
+	{
+		GLuint add = 6;
+		std::pair<GLuint, GLuint> pair = linesit->first;
+		GLuint i1 = pair.first;
+		GLuint i2 = pair.second;
+		GLuint i3 = linesit->second;
+		
+		vec3 v1 = vec_from_pos(_vertices[i1].pos);
+		vec3 v2 = vec_from_pos(_vertices[i2].pos);
+		vec3 v3 = vec_from_pos(_vertices[i3].pos);
+		
+		int c0, c1, c2;
+		int c3, c4, c5;
+		
+		vec3 v12 = vec3_add_vec3(v1, v2);
+		vec3_mult(&v12, 0.5);
+		vec3 v23 = vec3_add_vec3(v2, v3);
+		vec3_mult(&v23, 0.5);
+		vec3 v31 = vec3_add_vec3(v3, v1);
+		vec3_mult(&v31, 0.5);
+
+		if (done.count(i1))
+		{
+			c0 = done[i1];
+			add--;
+		}
+		else
+		{
+			addVertex(v1, &vs);
+			c0 = vs.size() - 1;
+		}
+
+		if (done.count(i2))
+		{
+			c1 = done[i2];
+			add--;
+		}
+		else
+		{
+			addVertex(v2, &vs);
+			c1 = vs.size() - 1;
+		}
+
+		if (done.count(i3))
+		{
+			c2 = done[i3];
+			add--;
+		}
+		else
+		{
+			addVertex(v3, &vs);
+			c2 = vs.size() - 1;
+		}
+		
+		std::pair<GLuint, GLuint> fb, bo, of;
+		fb = std::make_pair(i1, i2);
+		bo = std::make_pair(i2, i3);
+		of = std::make_pair(i3, i1);
+
+		if (done_pairs.count(fb))
+		{
+			c3 = done_pairs[fb];
+			add--;
+		}
+		else
+		{
+			addVertex(v12, &vs);
+			c3 = vs.size() - 1;
+		}
+
+		if (done_pairs.count(bo))
+		{
+			c4 = done_pairs[bo];
+			add--;
+		}
+		else
+		{
+			addVertex(v23, &vs);
+			c4 = vs.size() - 1;
+		}
+
+		if (done_pairs.count(of))
+		{
+			c5 = done_pairs[of];
+			add--;
+		}
+		else
+		{
+			addVertex(v31, &vs);
+			c5 = vs.size() - 1;
+		}
+		
+		done[i1] = c0;
+		done[i2] = c1;
+		done[i3] = c2;
+		done_pairs[std::make_pair(i1, i2)] = c3;
+		done_pairs[std::make_pair(i2, i1)] = c3;
+		done_pairs[std::make_pair(i2, i3)] = c4;
+		done_pairs[std::make_pair(i3, i2)] = c4;
+		done_pairs[std::make_pair(i3, i1)] = c5;
+		done_pairs[std::make_pair(i1, i3)] = c5;
+		
+		for (size_t i = vs.size() - add; i < vs.size(); i++)
+		{
+			vs[i].color[0] = _vertices[i1].color[0];
+			vs[i].color[1] = _vertices[i1].color[1];
+			vs[i].color[2] = _vertices[i1].color[2];
+		}
+
+		addIndices(c0, c3, c5);
+		addIndices(c5, c3, c4);
+		addIndices(c5, c4, c2);
+		addIndices(c4, c3, c1);
+	}
+	
+	_vertices = vs;
+	std::cout << "Vertices: " << _vertices.size() << std::endl;
+	std::cout << _indices.size() / 3 << " faces." << std::endl;
+	
+	calculateNormals();
+}
+
 void SlipObject::triangulate()
 {
 	if (_renderType == GL_LINES)
 	{
 		return;
 	}
+	
+	/*
+	cacheTriangulate();
+	return;
+	*/
 
 	std::map<std::pair<GLuint, GLuint>, GLuint> lines;
 	std::map<std::pair<GLuint, GLuint>, GLuint>::iterator linesit;
@@ -1082,10 +1285,12 @@ void SlipObject::triangulate()
 		_indices[i+1] = i12;
 		_indices[i+2] = i13;
 		
-		addIndices(i12, i13, i23);
+		addIndices(i13, i12, i23);
 		addIndices(i13, i23, i3);
-		addIndices(i12, i23, i2);
+		addIndices(i23, i12, i2);
 	}
+	
+	calculateNormals();
 }
 
 void SlipObject::changeToLines()
@@ -1154,4 +1359,59 @@ void SlipObject::clearMesh()
 {
 	_mesh->remove();
 	_mesh = NULL;
+}
+
+void SlipObject::copyFrom(SlipObject *s)
+{
+	_vertices = s->_vertices;
+	_indices = s->_indices;
+	_unselectedVertices = s->_unselectedVertices;
+}
+
+void SlipObject::removeUnusedVertices()
+{
+	std::vector<bool> flags = std::vector<bool>(_vertices.size(), false);
+	std::vector<int> offsets = std::vector<int>(_vertices.size(), 0);
+
+	for (size_t i = 0; i < _indices.size(); i++)
+	{
+		if (_indices[i] >= flags.size())
+		{
+			std::cout << "Flag " << i << " out of bounds!" << std::endl;
+		}
+		if (flags[_indices[i]] == false)
+		{
+			flags[_indices[i]] = true;
+		}
+	}
+
+	for (size_t i = 1; i < flags.size(); i++)
+	{
+		offsets[i] = offsets[i-1] + 1;
+
+		if (flags[i] == false)
+		{
+			offsets[i] = offsets[i-1];
+		}
+	}
+	
+	std::cout << "Final offset: " << offsets.back() << std::endl;
+
+	for (size_t i = 0; i < _indices.size(); i++)
+	{
+		int offset = offsets[_indices[i]];
+		_indices[i] = offset;
+	}
+
+	std::vector<Vertex> vs;
+	for (size_t i = 0; i < _vertices.size(); i++)
+	{
+		if (flags[i])
+		{
+			vs.push_back(_vertices[i]);
+		}
+	}
+	
+	_vertices = vs;
+	std::cout << "Vertex count now " << vertexCount() << std::endl;
 }
