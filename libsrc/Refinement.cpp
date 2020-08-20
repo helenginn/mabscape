@@ -109,6 +109,12 @@ double Refinement::partialScore(Bound *bi)
 	for (size_t j = 0; j < _experiment->boundCount(); j++)
 	{
 		Bound *bj = _experiment->bound(j);
+		double val = _data->valueFor(bi->name(), bj->name());
+		
+		if (val != val)
+		{
+			continue;
+		}
 
 		if (_fixedOnly && !bi->isFixed() && !bj->isFixed())
 		{
@@ -120,7 +126,6 @@ double Refinement::partialScore(Bound *bi)
 			continue;
 		}
 
-		double val = _data->valueFor(bi->name(), bj->name());
 		double raw = bi->scoreWithOther(bj);
 		double diff = (raw - val) * (raw - val);
 
@@ -172,6 +177,12 @@ double Refinement::score()
 			Bound *bj = _experiment->bound(j);
 			
 			double val = _data->valueFor(bi->name(), bj->name());
+
+			if (val != val)
+			{
+				continue;
+			}
+
 			double raw = bi->scoreWithOther(bj);
 			double diff = (raw - val) * (raw - val);
 			
