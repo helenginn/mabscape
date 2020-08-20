@@ -54,6 +54,7 @@ public:
 	
 	virtual void render(SlipGL *gl);
 	void writeResultsToFile(std::string filename, bool all = false);
+	void readResults(std::string filename);
 	void abPatchwork(std::string id);
 private slots:
 	void currentItemChanged(QTreeWidgetItem *current, 
@@ -61,7 +62,7 @@ private slots:
 	void clear();
 	void itemSelectionChanged();
 	void makeCluster();
-	void readResults();
+	void chooseAndReadResults();
 	void writeResults();
 	void cluster4xChanged();
 	void patchworkArt();

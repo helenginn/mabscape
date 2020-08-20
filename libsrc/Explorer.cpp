@@ -83,7 +83,7 @@ Explorer::Explorer(QWidget *parent) : QMainWindow(parent)
 	top += 40;
 
 	connect(_readResults, &QPushButton::clicked,
-	        this, &Explorer::readResults);
+	        this, &Explorer::chooseAndReadResults);
 
 	_clearClusters = new QPushButton("Clear all results", this);
 	_clearClusters->setGeometry(250, top, 200, 40);
@@ -342,11 +342,8 @@ void Explorer::writeResults()
 	writeResultsToFile(filename);
 }
 
-void Explorer::readResults()
+void Explorer::readResults(std::string filename)
 {
-	std::string filename = openDialogue(this, "Choose stream file", 
-	                                    "");
-
 	std::string contents = get_file_contents(filename);
 
 	size_t firstpos = 0;
@@ -364,6 +361,13 @@ void Explorer::readResults()
 
 	_widget->sortItems(0, Qt::AscendingOrder);
 	updateTitle();
+}
+
+void Explorer::chooseAndReadResults()
+{
+	std::string filename = openDialogue(this, "Choose stream file", 
+	                                    "");
+	readResults(filename);
 }
 
 void Explorer::patchworkArt()

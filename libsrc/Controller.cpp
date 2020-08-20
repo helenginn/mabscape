@@ -118,6 +118,11 @@ void Controller::run()
 			std::string fn = last;
 			_exp->getExplorer()->writeResultsToFile(fn, true);
 		}
+		else if (first == "read-results")
+		{
+			std::string fn = last;
+			_exp->getExplorer()->readResults(fn);
+		}
 		else if (first == "patchwork")
 		{
 			std::string ab = last;
