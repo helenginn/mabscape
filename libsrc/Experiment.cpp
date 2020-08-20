@@ -901,6 +901,7 @@ void Experiment::fixLabel()
 	QLabel *l = new QLabel(_label->text(), _view);
 	l->setGeometry(_label->geometry());
 	l->setFocusProxy(_view);
+	l->setMouseTracking(true);
 	l->setObjectName("templabel");
 	l->setStyleSheet(_label->styleSheet());
 	QFont font = QFont("Helvetica", 16);
