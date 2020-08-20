@@ -476,17 +476,21 @@ void Explorer::summariseBounds()
 		
 		if (b->isFixed())
 		{
+			b->resize(0.5, true);
 			continue;
 		}
 		double rmsd = _map[b];
 		rmsd /= stdev * 2;
 		double inverse = 1 - rmsd;
 
-		double rad = b->averageRadius();
+//		double rad = b->averageRadius();
 		double resize = rmsd * 5;
-		b->resize(resize, true);
 		
-		b->setAlpha(inverse);
+
+//		b->resize(resize, true);
+		
+		b->recolourBoth(inverse, inverse, inverse);
+//		b->setAlpha(inverse);
 	}
 	
 //	_experiment->reorderBoundByAlpha();
