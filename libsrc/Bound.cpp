@@ -23,7 +23,7 @@
 #include <Fibonacci.h>
 #include "Data.h"
 
-double Bound::_radius = 14.;
+double Bound::_radius = 15.;
 bool Bound::_updateOnRender = false;
 
 vec3 random_vec3(bool absolute = false)
