@@ -119,8 +119,6 @@ double Data::valueFor(std::string i, std::string j)
 	double val1 = _relationships[i][j];
 	double val2 = _relationships[j][i];
 	
-	double finval = nan(" ");
-	
 	if (val1 != val1 && val2 != val2)
 	{
 		return nan(" ");
@@ -131,23 +129,18 @@ double Data::valueFor(std::string i, std::string j)
 		return nan(" ");
 	}
 	
-	if (val1 != val1)
+	if (fabs(val1) < 1e-6)
 	{
-		finval = val2;
-	}
-	else if (val2 != val2)
-	{
-		finval = val1;
-	}
-	else
-	{
-		finval = (val2 + val1) / 2;
+		return val2;
 	}
 	
-	finval = std::max(finval, 0.);
-	finval = std::min(finval, 1.);
+	if (fabs(val2) < 1e-6)
+	{
+		return val1;
+	}
 	
-	return finval;
+	return (val2 + val1) / 2;
+	return std::min(val2, val1);
 }
 
 void Data::updateCSV(AveCSV *csv)
