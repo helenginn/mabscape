@@ -148,6 +148,7 @@ public:
 	
 	bool collapseCommonVertices(bool quick = false);
 	void removeUnusedVertices();
+	void recolourBoth(double red, double green, double blue);
 	void recolour(double red, double green, double blue,
 	              std::vector<Vertex> *vs = NULL);
 	void setAlpha(double alpha);

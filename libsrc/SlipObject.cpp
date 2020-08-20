@@ -343,6 +343,12 @@ void SlipObject::setAlpha(double alpha)
 	}
 }
 
+void SlipObject::recolourBoth(double red, double green, double blue)
+{
+	recolour(red, green, blue);
+	recolour(red, green, blue, &_unselectedVertices);
+}
+
 void SlipObject::recolour(double red, double green, double blue,
                           std::vector<Vertex> *vs)
 {
