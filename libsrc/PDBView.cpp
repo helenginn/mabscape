@@ -312,7 +312,7 @@ void PDBView::findIntersectingAtoms(std::vector<PolymerPtr> antigens,
 		antibody->addAtomsFrom(antibodies[i]);
 	}
 	
-	const double close = 10.;
+	const double close = 20.;
 	
 	for (size_t i = 0; i < antigen->atomCount(); i++)
 	{

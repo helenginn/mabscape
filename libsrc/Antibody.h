@@ -1,4 +1,4 @@
-// Slip n Slide
+// abmap
 // Copyright (C) 2019 Helen Ginn
 // 
 // This program is free software: you can redistribute it and/or modify
@@ -16,45 +16,37 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include <iostream>
-#include "SlipPanel.h"
-#include "SlipObject.h"
+#ifndef __abmap__antibody__
+#define __abmap__antibody__
 
+#include <vector>
+#include <string>
 
-SlipPanel::SlipPanel(vec3 x1, vec3 x2, vec3 x3) : SlipObject()
+class Antibody
 {
-	/* local panel copy */
-	setupVertices(x1, x2, x3);
-}
+public:
+	Antibody(std::string name, std::string hv, std::string hj,
+	         std::string hd, std::string lv, std::string lj);
 
-void SlipPanel::setupVertices(vec3 x1, vec3 x2, vec3 x3)
-{
-	_vertices.clear();
-	_indices.clear();
+	double compareWithAntibody(Antibody *other);
 	
-	_indices.push_back(0);
-	_indices.push_back(1);
-	_indices.push_back(2);
-	
-	Vertex v;
-	memset(v.pos, 0, sizeof(Vertex));
+	std::string name()
+	{
+		return _ab;
+	}
+protected:
+	double compareGeneSet(std::vector<std::string> &group1,
+	                      std::vector<std::string> &group2,
+	                      int maxDrills);
+private:
+	std::string _ab;
+	std::vector<std::string> _hv;
+	std::vector<std::string> _hj;
+	std::vector<std::string> _hd;
+	std::vector<std::string> _lv;
+	std::vector<std::string> _lj;
 
-	v.color[3] = 1;
-	v.pos[0] = x1.x;
-	v.pos[1] = x1.y;
-	v.pos[2] = x1.z;
-	_vertices.push_back(v);
-	
-	v.pos[0] = x2.x;
-	v.pos[1] = x2.y;
-	v.pos[2] = x2.z;
-	_vertices.push_back(v);
+};
 
-	v.pos[0] = x3.x;
-	v.pos[1] = x3.y;
-	v.pos[2] = x3.z;
-	_vertices.push_back(v);
-	
-	std::cout << "Yes" << std::endl;
-}
 
+#endif

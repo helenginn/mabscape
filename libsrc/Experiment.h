@@ -58,6 +58,11 @@ public:
 		_gl = gl;
 	}
 	
+	Refinement *refinement()
+	{
+		return _refinement;
+	}
+	
 	void setBoundObj(std::string filename)
 	{
 		_boundObj = filename;
@@ -69,7 +74,7 @@ public:
 	}
 	
 	AveCSV *csv();
-	void updateCSV(AveCSV *csv, bool data);
+	void updateCSV(AveCSV *csv, int data);
 	
 	size_t boundCount()
 	{
@@ -112,8 +117,11 @@ public:
 	void reorderBoundByAlpha();
 	void addBindersToMenu(QMenu *menu);
 	void loadCSV(std::string filename);
-	void somethingToCluster4x(bool data);
+	void somethingToCluster4x(int data);
+	void recolourByCSV(std::string filename);
 	void refineModel(bool fixedOnly, bool svd = false);
+	void findNonCompetitors(std::vector<std::string> abs);
+	void plotDistanceCompetition();
 	
 	void setPassToResults(bool pass)
 	{
@@ -127,6 +135,7 @@ public:
 signals:
 	void refine();
 public slots:
+	void addBindersToMenu();
 	void handleMesh();
 	void abPatchwork(std::string id);
 	void jiggle();
@@ -151,6 +160,8 @@ public slots:
 	void chooseTarget(Target t);
 private:
 	bool isRunningMonteCarlo();
+	bool addNonCompetitor(std::vector<std::string> abs,
+	                      std::vector<std::string> &chain);
 	bool prepareWorkForMesh();
 	void createBinders();
 	Bound *findBound(double x, double y);

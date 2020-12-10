@@ -20,12 +20,15 @@
 #include "Refinement.h"
 #include <iostream>
 #include <ClusterList.h>
+#include <FileReader.h>
 #include <AveCSV.h>
 #include <Screen.h>
 #include "SurfaceView.h"
 #include "SlipGL.h"
 #include "Dialogue.h"
+#include "Genes.h"
 #include "Structure.h"
+#include "Refinement.h"
 #include "Experiment.h"
 #include "Controller.h"
 #include "Bound.h"
@@ -36,6 +39,7 @@
 
 SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 {
+	_genes = new Genes();
 	_screen = NULL;
 	_mouseButton = Qt::NoButton;
 	_controlPressed = false;
@@ -113,6 +117,10 @@ void SurfaceView::makeMenu()
 	act = structure->addAction(tr("Remove mesh"));
 	connect(act, &QAction::triggered, _experiment, &Experiment::removeMesh);
 	_actions.push_back(act);
+	structure->addSeparator();
+	act = structure->addAction(tr("Pause animation"));
+	connect(act, &QAction::triggered, this, &SurfaceView::pause);
+	_actions.push_back(act);
 
 	QMenu *data = menuBar()->addMenu(tr("&Data"));
 	_menus.push_back(data);
@@ -132,14 +140,36 @@ void SurfaceView::makeMenu()
 	act = data->addAction(tr("Model to cluster4x"));
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::modelToCluster4x);
+	act = data->addAction(tr("Errors to cluster4x"));
+	_actions.push_back(act);
+	connect(act, &QAction::triggered, this, &SurfaceView::errorsToCluster4x);
 
-	QMenu *binders = menuBar()->addMenu(tr("&Binders"));
-	_menus.push_back(binders);
+	_binders = menuBar()->addMenu(tr("&Binders"));
+	_menus.push_back(_binders);
 	
-	_experiment->addBindersToMenu(binders);
+	_experiment->addBindersToMenu(_binders);
 	
-	act = binders->addAction(tr("Write CSV"));
+	act = _binders->addAction(tr("Write CSV"));
 	connect(act, &QAction::triggered, _experiment, &Experiment::writeOutCSV);
+	_actions.push_back(act);
+	
+	act = _binders->addAction(tr("Colour by CSV"));
+	connect(act, &QAction::triggered, this, &SurfaceView::colourByCSV);
+	_actions.push_back(act);
+	
+	act = _binders->addAction(tr("Identify non-competitors"));
+	connect(act, &QAction::triggered, 
+	        this, &SurfaceView::identifyNonCompetitors);
+	_actions.push_back(act);
+	
+	act = _binders->addAction(tr("Distance-competition values"));
+	connect(act, &QAction::triggered, 
+	        this, &SurfaceView::plotDistanceCompetition);
+	_actions.push_back(act);
+	
+	act = _binders->addAction(tr("Load genes"));
+	connect(act, &QAction::triggered, 
+	        this, &SurfaceView::loadGenes);
 	_actions.push_back(act);
 
 	QMenu *refine = menuBar()->addMenu(tr("&Refine"));
@@ -261,6 +291,13 @@ void SurfaceView::mousePressEvent(QMouseEvent *e)
 	_lastY = e->y();
 	_mouseButton = e->button();
 	_moving = false;
+	
+	_gl->restartTimer();
+	
+	if (_experiment->refinement())
+	{
+		_experiment->refinement()->pause(false);
+	}
 }
 
 
@@ -408,11 +445,71 @@ void SurfaceView::launchCluster4x()
 
 void SurfaceView::modelToCluster4x()
 {
-	_experiment->somethingToCluster4x(false);
+	_experiment->somethingToCluster4x(0);
 }
 
 void SurfaceView::dataToCluster4x()
 {
-	_experiment->somethingToCluster4x(true);
+	_experiment->somethingToCluster4x(1);
 }
 
+void SurfaceView::errorsToCluster4x()
+{
+	_experiment->somethingToCluster4x(2);
+}
+
+void SurfaceView::colourByCSV()
+{
+	std::string filename = openDialogue(this, "Choose colour CSV", 
+	                                    "Comma-separated values (*.csv)");
+	
+	if (filename.length() == 0)
+	{
+		return;
+	}
+
+	_experiment->recolourByCSV(filename);
+
+}
+
+void SurfaceView::identifyNonCompetitors()
+{
+	std::string filename = openDialogue(this, "Choose comma-separated antibodies", 
+	                                    "Comma-separated values (*.csv)");
+	if (filename.length() == 0)
+	{
+		return;
+	}
+
+	std::string contents = get_file_contents(filename);
+	std::vector<std::string> abs = split(contents, ',');
+
+	_experiment->findNonCompetitors(abs);
+}
+
+void SurfaceView::plotDistanceCompetition()
+{
+	_experiment->plotDistanceCompetition();
+
+}
+
+void SurfaceView::pause()
+{
+	_gl->pause();
+	if (_experiment->refinement())
+	{
+		_experiment->refinement()->pause(true);
+	}
+}
+
+void SurfaceView::loadGenes()
+{
+	std::string filename = openDialogue(this, "Choose formatted genes", 
+	                                    "Comma-separated values (*.csv)");
+	if (filename.length() == 0)
+	{
+		return;
+	}
+
+	_genes->loadData(filename);
+}

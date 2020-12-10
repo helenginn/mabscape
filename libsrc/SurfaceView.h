@@ -22,6 +22,7 @@
 #include <QMainWindow>
 #include <QMouseEvent>
 
+class Genes;
 class Bound;
 class Controller;
 class QThread;
@@ -67,6 +68,11 @@ public:
 	{
 		return _screen;
 	}
+	
+	QMenu *getBinderMenu()
+	{
+		return _binders;
+	}
 
 	void convertToViewCoords(double *x, double *y);
 	void makeMenu();
@@ -85,18 +91,26 @@ public slots:
 	void loadSurface();
 	void loadCoords();
 private slots:
+	void pause();
 	void loadCSV();
+	void loadGenes();
+	void colourByCSV();
 	void loadPositions();
 	void dataToCluster4x();
 	void modelToCluster4x();
+	void errorsToCluster4x();
 	void unrestrainedRefine();
 	void fixToSurfaceRefine();
+	void identifyNonCompetitors();
+	void plotDistanceCompetition();
 private:
 	void convertCoords(double *x, double *y);
 	Experiment *_experiment;
 	Screen *_screen;
 	SlipGL *_gl;
+	Genes *_genes;
 	Qt::MouseButton _mouseButton;
+	QMenu *_binders;
 	bool _controlPressed;
 	bool _shiftPressed;
 	double _lastX; double _lastY;

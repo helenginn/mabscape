@@ -8,12 +8,10 @@ png_dep = dependency('libpng')
 boost_dep = dependency('boost')
 fftw_dep = dependency('fftw3f')
 dep_vag = dependency('libvag')
+dep_ccp4 = dependency('libccp4')
 dep_c4x = dependency('libcluster4x')
 dep_ica = dependency('libica')
-
-vagdir = dep_vag.get_pkgconfig_variable('prefix') + '/lib64'
-
-message('Vagdir: ' + vagdir)
+helen3d_dep = dependency('helen3d')
 
 cc = meson.get_compiler('c')
 m_dep = cc.find_library('m', required : false)
@@ -32,11 +30,11 @@ gen_src = custom_target('commit-output',
                         build_always_stale: true)
 
 moc_files = qt5.preprocess(moc_headers : 
-['libsrc/SlipGL.h',
+[#'libsrc/SlipGL.h',
 'libsrc/Controller.h',
 'libsrc/Experiment.h',
 'libsrc/Explorer.h',
-'libsrc/Mesh.h',
+#'libsrc/Mesh.h',
 'libsrc/PDBView.h',
 'libsrc/PatchView.h',
 'libsrc/Refinement.h',
@@ -46,27 +44,23 @@ moc_files = qt5.preprocess(moc_headers :
 
 executable('abmap', gen_src, moc_files,
 'libsrc/main.cpp',
+'libsrc/Antibody.cpp',
 'libsrc/Bound.cpp',
 'libsrc/Controller.cpp',
 'libsrc/Data.cpp',
 'libsrc/Experiment.cpp',
 'libsrc/Explorer.cpp',
-'libsrc/Icosahedron.cpp',
-'libsrc/Mesh.cpp',
+'libsrc/Genes.cpp',
 'libsrc/Patch.cpp',
 'libsrc/PatchView.cpp',
 'libsrc/PDBView.cpp',
-'libsrc/SlipGL.cpp',
-'libsrc/SlipPanel.cpp',
-'libsrc/SlipObject.cpp',
-'libsrc/SlipObjFile.cpp',
 'libsrc/Squiggle.cpp',
 'libsrc/Structure.cpp',
 'libsrc/SurfaceView.cpp',
 'libsrc/Refinement.cpp',
 'libsrc/Result.cpp',
-cpp_args: ['-std=c++11'], dependencies : [ boost_dep, dep_vag, dep_c4x, png_dep, qt5_dep, dep_ica ], 
-install_rpath: vagdir, install: true)
+cpp_args: ['-std=c++11'], dependencies : [ boost_dep, helen3d_dep, dep_vag, 
+	dep_c4x, png_dep, qt5_dep, dep_ica, dep_ccp4 ], install: true)
 
 kin_moc = qt5.preprocess(moc_headers : 
 [
@@ -95,5 +89,5 @@ executable('abmap.kinetics', kin_moc,
 'kinsrc/KExpDecay.cpp',
 'kinsrc/KLigOnOff.cpp',
 cpp_args: ['-std=c++11', '-Wall'], dependencies : [ boost_dep, dep_vag, dep_c4x, png_dep, qt5_dep, dep_ica ], 
-install_rpath: vagdir, install: true)
+install: true)
 

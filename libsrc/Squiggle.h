@@ -20,7 +20,7 @@
 #define __abmap__Squiggle__
 
 #include <vec3.h>
-#include "SlipObject.h"
+#include <SlipObject.h>
 
 class Squiggle : public SlipObject
 {

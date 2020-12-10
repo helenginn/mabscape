@@ -22,6 +22,7 @@
 #include "Structure.h"
 #include <Fibonacci.h>
 #include "Data.h"
+using namespace Helen3D;
 
 double Bound::_radius = 15.;
 bool Bound::_updateOnRender = false;
@@ -46,6 +47,7 @@ vec3 random_vec3(bool absolute = false)
 
 Bound::Bound(std::string filename) : Icosahedron()
 {
+	_value = 0;
 	_nearestNorm = make_vec3(1, 0, 0);
 	_special = false;
 	_snapping = false;
@@ -58,7 +60,7 @@ Bound::Bound(std::string filename) : Icosahedron()
 	setSelectable(true);
 }
 
-void Bound::snapToObject(SlipObject *obj)
+double Bound::snapToObject(Structure *obj)
 {
 	if (obj == NULL)
 	{
@@ -66,11 +68,16 @@ void Bound::snapToObject(SlipObject *obj)
 	}
 	
 	vec3 p = centroid();
-	vec3 nearest = obj->nearestVertex(p, true);
+	vec3 nearest = obj->lookupVertexPtr(p);
 
 	vec3 diff = vec3_subtract_vec3(nearest, p);
+	double l = vec3_length(diff);
+	lockMutex();
 	addToVertices(diff);
+	unlockMutex();
 	_realPosition = centroid();
+	
+	return l;
 }
 
 void Bound::randomlyPositionInRegion(SlipObject *obj)
@@ -80,25 +87,18 @@ void Bound::randomlyPositionInRegion(SlipObject *obj)
 		return;
 	}
 	
-	/*
-	vec3 min, max;
-	obj->boundaries(&min, &max);
-	vec3 scale = vec3_subtract_vec3(max, min);
-	vec3 place = random_vec3(true);
-	place.x *= scale.x;
-	place.y *= scale.y;
-	place.z *= scale.z;
-	vec3_add_to_vec3(&place, min);
-	*/
 	vec3 place = obj->randomVertex();
 
 	vec3 myCentroid = centroid();
 	vec3 diff = vec3_subtract_vec3(place, myCentroid);
 
+	lockMutex();
 	addToVertices(diff);
+	unlockMutex();
+	_realPosition = place;
 }
 
-void Bound::jiggleOnSurface(SlipObject *obj)
+void Bound::jiggleOnSurface(Structure *obj)
 {
 	if (_fixed)
 	{
@@ -106,7 +106,9 @@ void Bound::jiggleOnSurface(SlipObject *obj)
 	}
 	
 	vec3 jiggle = random_vec3();
+	lockMutex();
 	addToVertices(jiggle);
+	unlockMutex();
 	snapToObject(obj);
 }
 
@@ -163,12 +165,6 @@ void Bound::updatePositionToReal()
 	vec3 current = centroid();
 	vec3 working = getWorkingPosition();
 
-	if (_structure->hasMesh())
-	{
-		Vertex *close = _structure->nearestVertexPtr(working, true);
-		_nearestNorm = vec_from_pos(close->normal);
-	}
-
 	vec3 diff = vec3_subtract_vec3(working, current);
 	lockMutex();
 	addToVertices(diff);
@@ -204,7 +200,9 @@ void Bound::setRealPosition(vec3 real)
 
 	vec3 current = centroid();
 	vec3 diff = vec3_subtract_vec3(real, current);
+	lockMutex();
 	addToVertices(diff);
+	unlockMutex();
 }
 
 double Bound::carefulScoreWithOther(Bound *other)
@@ -224,36 +222,66 @@ double Bound::carefulScoreWithOther(Bound *other)
 	return dot;
 }
 
-double Bound::scoreWithOther(Bound *other)
+double Bound::sigmoidalScoreWithOther(Bound *other, bool dampen)
 {
-	std::string bin = name();
-	vec3 posi = getWorkingPosition();
-	std::string bjn = other->name();
-	
-	vec3 posj = other->getWorkingPosition();
+	vec3 posi = getStoredPosition();
+	vec3 posj = other->getStoredPosition();
 
 	vec3 vector = vec3_subtract_vec3(posi, posj);
+	double x = vec3_length(vector);
+
+	vec3 mid = vec3_add_vec3(posi, posj);
+	vec3_mult(&mid, 0.5);
+	
+	double dampening = 1;
+	if (dampen)
+	{
+		dampening = _structure->getDampening(mid);
+	}
+
+	double inflection = 22.;
+	double exponent = exp((inflection - x) / 2);
+	double val = exponent / (1 + exponent);
+	val *= dampening;
+	
+	return val;
+}
+
+double Bound::scoreWithOther(Bound *other, bool dampen)
+{
+	return sigmoidalScoreWithOther(other, dampen);
+	std::string bin = name();
+	vec3 posi = getStoredPosition();
+	std::string bjn = other->name();
+	
+	vec3 posj = other->getStoredPosition();
+	vec3 mid = vec3_add_vec3(posi, posj);
+	vec3_mult(&mid, 0.5);
+	
+	double dampening = 1;
+	if (dampen)
+	{
+		dampening = _structure->getDampening(mid);
+	}
+	
+	vec3 vector = vec3_subtract_vec3(posi, posj);
+
 	double distance = vec3_length(vector);
 	double radius = getRadius();
 
 	double prop = 0;
 	if (distance < 2 * radius)
 	{
-		double q = (2 * radius - distance) / 2;
+		double q = (2 * radius - distance);
 		q /= 2 * radius;
-		prop = 2 * (3 * q * q - 2 * q * q * q);
+		prop = (3 * q * q - 2 * q * q * q);
 	}
 
 	prop = pow(prop, 0.35);
 	double slide = std::max(0.2 * (1 - distance / 100.), 0.);
 	prop += slide;
-	prop = std::min(1., prop);
+	prop *= dampening;
 	
-	/*
-	double decrease = carefulScoreWithOther(other);
-	prop *= decrease;
-	*/
-
 	return prop;
 }
 

@@ -16,22 +16,19 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#ifndef __abmap__Icosahedron__
-#define __abmap__Icosahedron__
+#ifndef __abmap__Genes__ 
+#define __abmap__Genes__ 
 
-#include "SlipObject.h"
+#include <string>
 
-class Icosahedron : public SlipObject
+class Genes
 {
 public:
-	Icosahedron();
+	Genes();
+	
+	void loadData(std::string filename);
 
-protected:
-	virtual void triangulate();
-	virtual void calculateNormals();
-	virtual void removeUselessVertices(bool flaps = false);
 private:
-	void makeIco();
 };
 
 #endif

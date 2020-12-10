@@ -23,6 +23,7 @@
 #include <FileReader.h>
 
 std::map<std::string, MapStringDouble> Data::_relationships;
+std::map<std::string, MapStringDouble> Data::_finalValues;
 
 Data::Data(std::string filename)
 {
@@ -44,7 +45,8 @@ void Data::load()
 		
 		if (components.size() != 3)
 		{
-			std::cout << "Wrong number of terms, skipping. " << std::endl;
+			std::cout << "Wrong number of terms, skipping: " << std::endl;
+			std::cout << lines[i] << std::endl << std::endl;
 			continue;
 		}
 
@@ -66,8 +68,8 @@ void Data::load()
 			continue;
 		}
 		
-		if (val < 0) val = 0;
-		if (val > 1) val = 1;
+		if (val < -0.5) val = -0.5;
+		if (val > 1.5) val = 1.5;
 		
 		for (size_t j = 0; j < components.size(); j++)
 		{
@@ -110,37 +112,166 @@ void Data::load()
 			_ids.push_back(it->first);
 		}
 	}
+
+	for (size_t i = 0; i < _ids.size(); i++)
+	{
+		for (size_t j = 0; j < _ids.size(); j++)
+		{
+			double val = findValueFor(_ids[i], _ids[j]);
+			_finalValues[_ids[i]][_ids[j]] = val;
+		}
+	}
 	
 	std::cout << "Loaded " << _ids.size() << " binders." << std::endl;
+	
+//	normalise(true);
+//	normalise(false);
+}
+
+void Data::normalise(bool higher)
+{
+	const int topTarget = 4;
+	MapStringDouble scales;
+
+	for (size_t i = 0; i < _ids.size(); i++)
+	{
+		MapStringDouble ab = _relationships[_ids[i]];
+		
+		double *top = (double *)malloc(sizeof(double) * topTarget);
+		int total = 0;
+		
+		for (int j = 0; j < topTarget; j++)
+		{
+			top[j] = higher ? 0 : 1;
+		}
+		
+		for (size_t j = 0; j < _ids.size(); j++)
+		{
+			double candidate = valueFor(_ids[i], _ids[j]);
+			
+			if (candidate != candidate)
+			{
+				continue;
+			}
+
+			if (candidate > 1.)
+			{
+				candidate = 1;
+			}
+
+			if (candidate < 0.)
+			{
+				candidate = 0;
+			}
+
+			_relationships[_ids[i]][_ids[j]] = candidate;
+			
+			for (int l = 0; l < topTarget - 1; l++)
+			{
+				bool comp = (higher ? candidate >= top[l] :
+				             candidate <= top[l]);
+
+				if (comp)
+				{
+					total++;
+					for (int k = topTarget - 2; k >= l; k--)
+					{
+						top[k + 1] = top[k];
+					}
+
+					top[l] = candidate;
+					break;
+				}
+			}
+		}
+		
+		if (total > topTarget)
+		{
+			total = topTarget;
+		}
+		
+		if (total == 0)
+		{
+			continue;
+		}
+
+		std::cout << _ids[i] << " " << higher;
+		
+		double sum = 0;
+		for (int k = 0; k < topTarget; k++)
+		{
+			std::cout << ", " << top[k];
+			sum += top[k];
+		}
+		
+		sum /= (double)total;
+		std::cout << " " << sum << std::endl;
+		scales[_ids[i]] = sum;
+		
+		free(top);
+	}
+
+	for (size_t i = 0; i < _ids.size(); i++)
+	{
+		if (scales.count(_ids[i]) == 0)
+		{
+			continue;
+		}
+		
+		double sum = scales[_ids[i]];
+
+		for (size_t j = 0; j < _ids.size(); j++)
+		{
+			if (_relationships[_ids[i]].count(_ids[j]) == 0)
+			{
+				continue;
+			}
+
+			if (higher)
+			{
+				_relationships[_ids[i]][_ids[j]] /= sum;
+			}
+			else
+			{
+				double val = _relationships[_ids[i]][_ids[j]];
+				double extend = (1 - val) / (1 - sum);
+				_relationships[_ids[i]][_ids[j]] = 1 - extend;
+				
+				if (_ids[i] == "S309")
+				{
+					std::cout << _ids[j] << " " << val << " " << extend <<
+					" " << higher << " " << sum << 
+					" = " << 1 - extend << std::endl;
+				}
+			}
+		}
+	}
 }
 
 double Data::valueFor(std::string i, std::string j)
 {
-	double val1 = _relationships[i][j];
-	double val2 = _relationships[j][i];
-	
-	if (val1 != val1 && val2 != val2)
+	return _finalValues[i][j];
+}
+
+double Data::findValueFor(std::string i, std::string j)
+{
+	if (_relationships[i].count(j) == 0 &&
+	    _relationships[j].count(i) == 0)
 	{
-		return nan(" ");
+		return NAN;
 	}
 	
-	if (fabs(val1) < 1e-6 && fabs(val2) < 1e-6)
+	if (_relationships[i].count(j) == 0)
 	{
-		return nan(" ");
+		return _relationships[j][i];
 	}
 	
-	if (fabs(val1) < 1e-6)
+	if (_relationships[j].count(i) == 0)
 	{
-		return val2;
+		return _relationships[i][j];
 	}
 	
-	if (fabs(val2) < 1e-6)
-	{
-		return val1;
-	}
-	
-	return (val2 + val1) / 2;
-	return std::min(val2, val1);
+	return (_relationships[j][i] + _relationships[i][j]) / 2;
 }
 
 void Data::updateCSV(AveCSV *csv)
@@ -149,12 +280,8 @@ void Data::updateCSV(AveCSV *csv)
 	{
 		for (size_t j = 0; j < _ids.size(); j++)
 		{
-			if (_relationships.count(_ids[i]) &&
-			    _relationships[_ids[i]].count(_ids[j]))
-			{
-				double value = _relationships[_ids[i]][_ids[j]];
-				csv->addValue(_ids[i], _ids[j], value);
-			}
+			double val = valueFor(_ids[i], _ids[j]);
+			csv->addValue(_ids[i], _ids[j], val);
 		}
 	}
 

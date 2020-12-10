@@ -20,8 +20,8 @@
 #define __abmap__Bound__
 
 #include <mutex>
-#include "SlipObjFile.h"
-#include "Icosahedron.h"
+#include <SlipObjFile.h>
+#include <Icosahedron.h>
 
 class Structure;
 class SlipGL;
@@ -33,8 +33,8 @@ class Bound : public Icosahedron
 public:
 	Bound(std::string filename);
 
-	void snapToObject(SlipObject *obj);
-	void jiggleOnSurface(SlipObject *obj);
+	double snapToObject(Structure *obj);
+	void jiggleOnSurface(Structure *obj);
 	void randomlyPositionInRegion(SlipObject *obj);
 	void toggleFixPosition();
 	void updatePositionToReal();
@@ -139,9 +139,14 @@ public:
 	}
 	
 	vec3 getWorkingPosition();
+	vec3 getStoredPosition()
+	{
+		return _realPosition;
+	}
 
 	void setRealPosition(vec3 real);
-	double scoreWithOther(Bound *other);
+	double scoreWithOther(Bound *other, bool dampen = false);
+	double sigmoidalScoreWithOther(Bound *other, bool dampen = false);
 	double carefulScoreWithOther(Bound *other);
 	
 	void setSpecial(bool special);
@@ -150,6 +155,16 @@ public:
 	bool isSpecial()
 	{
 		return _special;
+	}
+	
+	void setValue(double val)
+	{
+		_value = val;
+	}
+	
+	double getValue()
+	{
+		return _value;
 	}
 private:
 	double percentageCloudInOther(Bound *b);
@@ -169,6 +184,7 @@ private:
 	bool _special;
 	static bool _updateOnRender;
 
+	double _value;
 };
 
 #endif

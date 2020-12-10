@@ -70,6 +70,10 @@ public:
 	}
 
 	void recolourByScore();
+	void pause(bool p)
+	{
+		_pause = p;
+	}
 	
 	static double compareBinders(void *obj, Parameter &p1, Parameter &p2);
 signals:
@@ -82,8 +86,10 @@ private:
 	Data *_data;
 	double score();
 	double partialScore(Bound *bi);
+	double _cycleNum;
 	bool _fixedOnly;
 	bool _convert;
+	bool _pause;
 
 	static Target _target;
 	Experiment *_experiment;

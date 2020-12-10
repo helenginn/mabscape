@@ -427,6 +427,12 @@ void Experiment::createBinders()
 	}
 }
 
+void Experiment::addBindersToMenu()
+{
+	QMenu *m = _view->getBinderMenu();
+	addBindersToMenu(m);
+}
+
 void Experiment::addBindersToMenu(QMenu *binders)
 {
 	for (size_t i = 0; i < _bounds.size(); i += 10)
@@ -784,7 +790,7 @@ void Experiment::writeOutCSV()
 			
 			if (val != val)
 			{
-				continue;
+//				continue;
 			}
 
 			double prop = bi->scoreWithOther(bj);
@@ -807,9 +813,9 @@ AveCSV *Experiment::csv()
 	return _data->getClusterCSV();
 }
 
-void Experiment::updateCSV(AveCSV *csv, bool data)
+void Experiment::updateCSV(AveCSV *csv, int data)
 {
-	if (data)
+	if (data == 1)
 	{
 		_data->updateCSV(csv);
 		return;
@@ -832,13 +838,19 @@ void Experiment::updateCSV(AveCSV *csv, bool data)
 
 			double prop = bi->scoreWithOther(bj);
 			
+			if (data == 2)
+			{
+				prop -= val;
+				prop = fabs(prop);
+			}
+			
 			csv->addValue(bin, bjn, prop);
 			csv->addValue(bjn, bin, prop);
 		}
 	}
 }
 
-void Experiment::somethingToCluster4x(bool data)
+void Experiment::somethingToCluster4x(int data)
 {
 	if (_view->clusterScreen() == NULL)
 	{
@@ -909,4 +921,173 @@ void Experiment::fixLabel()
 	l->setAlignment(Qt::AlignVCenter);
 	l->setAlignment(Qt::AlignHCenter);
 	l->show();
+}
+
+void Experiment::recolourByCSV(std::string filename)
+{
+	std::string contents = get_file_contents(filename);
+	std::vector<std::string> lines = split(contents, '\n');
+
+	double sum = 0;
+	double sqSum = 0;
+	double count = 0;
+
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		std::vector<std::string> components = split(lines[i], ',');
+		
+		if (components.size() < 2)
+		{
+			std::cout << "Wrong number of terms, skipping. " << std::endl;
+			continue;
+		}
+
+		std::string name = components[0];
+		double value = atof(components[1].c_str());
+		value = log(value);
+
+		Bound *b = bound(name);
+		if (b == NULL)
+		{
+			continue;
+		}
+
+		b->setValue(value);
+
+		sum += value;
+		sqSum += value * value;
+		count++;
+
+		std::cout << name << " " << value << std::endl;
+	}
+
+//	double mean = sum / count;
+//	double stdev = sqrt(sqSum / count - mean * mean);
+
+	for (size_t i = 0; i < _bounds.size(); i++)
+	{
+		Bound *b = bound(i);
+
+		double value = b->getValue();
+
+		if (b != NULL)
+		{
+			b->setColour(-value, -value, 0);
+			b->setValue(value);
+		}
+	}
+}
+
+bool Experiment::addNonCompetitor(std::vector<std::string> abs,
+                                  std::vector<std::string> &chain)
+{
+	std::vector<std::string>::iterator loc;
+	for (size_t i = 0; i < abs.size(); i++)
+	{
+		loc = std::find(chain.begin(), chain.end(), abs[i]);
+		
+		if (loc != chain.end())
+		{
+			continue;
+		}
+		
+		bool ok = true;
+		for (size_t j = 0; j < chain.size(); j++)
+		{
+			double comp = _data->valueFor(abs[i], chain[j]);
+			if (comp != comp)
+			{
+				ok = false;
+			}
+
+			if (comp > 0.3)
+			{
+				ok = false;
+			}
+		}
+		
+		if (ok)
+		{
+			chain.push_back(abs[i]);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void Experiment::findNonCompetitors(std::vector<std::string> abs)
+{
+	for (size_t i = 0; i < abs.size(); i++)
+	{
+		if (bound(abs[i]) == NULL)
+		{
+			abs.erase(abs.begin() + i);
+			i--;
+		}
+	}
+
+	for (size_t i = 0; i < abs.size(); i++)
+	{
+		std::vector<std::string> chain;
+		chain.push_back(abs[i]);
+		
+		bool more = true;
+		while (more)
+		{
+			more = addNonCompetitor(abs, chain);
+		}
+		
+		if (chain.size() <= 1)
+		{
+			continue;
+		}
+		
+		std::sort(chain.begin(), chain.end(), std::less<std::string>());
+		
+		for (size_t j = 0; j < chain.size(); j++)
+		{
+			std::cout << chain[j] << " " << std::flush;
+		}
+		
+		std::cout << std::endl;
+	}
+}
+
+void Experiment::plotDistanceCompetition()
+{
+	std::ofstream file;
+	file.open("distance_competition.csv");
+	
+	file << "first, second, distance, data, model" << std::endl;
+
+	for (size_t i = 0; i < boundCount() - 1; i++)
+	{
+		Bound *bi = bound(i);
+		vec3 posi = bi->getWorkingPosition();
+
+		for (size_t j = i; j < boundCount(); j++)
+		{
+			Bound *bj = bound(j);
+			
+			double val = _data->valueFor(bi->name(), bj->name());
+			
+			if (val != val)
+			{
+				continue;
+			}
+
+			vec3 posj = bj->getWorkingPosition();
+			vec3 diff = vec3_subtract_vec3(posi, posj);
+			
+			double l = vec3_length(diff);
+
+			double score = bi->scoreWithOther(bj);
+
+			file << bi->name() << ", " << bj->name() << ", ";
+			file << l << ", " << val << ", " << score << std::endl;
+		}
+	}
+
+	file.close();
 }

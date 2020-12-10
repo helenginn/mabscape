@@ -19,7 +19,7 @@
 #ifndef __abmap__Patch__
 #define __abmap__Patch__
 
-#include "SlipObject.h"
+#include <SlipObject.h>
 #include "PatchView.h"
 #include <QLabel>
 #include <vec3.h>

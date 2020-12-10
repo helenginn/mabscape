@@ -21,9 +21,13 @@
 #include "Bound.h"
 #include "Data.h"
 #include <iostream>
+#include <fstream>
+#include <FileReader.h>
 #include <maths.h>
 #include <RefinementNelderMead.h>
 #include <RefinementLBFGS.h>
+#include "Structure.h"
+#include "Mesh.h"
 
 Target Refinement::_target = TargetLeastSquares;
 
@@ -33,6 +37,7 @@ Refinement::Refinement(Experiment *expt)
 	_experiment = expt;
 	_data = expt->getData();
 	_convert = false;
+	_pause = false;
 	
 	for (size_t i = 0; i < _experiment->boundCount(); i++)
 	{
@@ -45,6 +50,10 @@ void Refinement::recolourByScore()
 {
 	std::map<Bound *, double> scores;
 	CorrelData cdcc = empty_CD();
+	CorrelData allcc = empty_CD();
+	
+	std::ofstream comp;
+	comp.open("cc_comparison.csv");
 
 	for (size_t i = 0; i < _experiment->boundCount(); i++)
 	{
@@ -62,8 +71,12 @@ void Refinement::recolourByScore()
 
 			double val = _data->valueFor(bi->name(), bj->name());
 			
-			val = std::max(0., val);
-			val = std::min(1., val);
+			if (val != val)
+			{
+				continue;
+			}
+			
+			val = std::max(0., val); val = std::min(1., val);
 
 			double raw = bi->scoreWithOther(bj);
 			double diff = (raw - val) * (raw - val);
@@ -74,6 +87,9 @@ void Refinement::recolourByScore()
 			}
 
 			add_to_CD(&cd, raw, val);
+			add_to_CD(&allcc, raw, val);
+			
+			comp << val << ", " << raw << std::endl;
 		}
 
 		double correl = evaluate_CD(cd);
@@ -82,10 +98,16 @@ void Refinement::recolourByScore()
 		add_to_CD(&cdcc, correl, 0.);
 	}
 	
+	comp.close();
+	
 	double m1, m2, s1, s2;
 	means_stdevs_CD(cdcc, &m1, &m2, &s1, &s2);
-	std::cout << "Mean CC: " << m1 << std::endl;
-	std::cout << "Stdev CC: " << s1 << std::endl;
+	std::cout << "Mean CC per Ab: " << m1 << std::endl;
+	std::cout << "Stdev CC per Ab: " << s1 << std::endl;
+	
+	double overall = evaluate_CD(allcc);
+	std::cout << "Overall CC: " << overall << std::endl;
+
 
 	for (size_t i = 0; i < _experiment->boundCount(); i++)
 	{
@@ -109,6 +131,12 @@ double Refinement::partialScore(Bound *bi)
 	for (size_t j = 0; j < _experiment->boundCount(); j++)
 	{
 		Bound *bj = _experiment->bound(j);
+		
+		if (bi == bj)
+		{
+			continue;
+		}
+
 		double val = _data->valueFor(bi->name(), bj->name());
 		
 		if (val != val)
@@ -166,15 +194,50 @@ double Refinement::score()
 	double sum = 0;
 	double count = 0;
 	CorrelData cd = empty_CD();
+	double cc = 0;
+	double abcount = 0;
 
-	for (size_t i = 1; i < _experiment->boundCount(); i++)
+	for (size_t i = 0; i < _experiment->boundCount(); i++)
 	{
 		Bound *bi = _experiment->bound(i);
-		bi->updatePositionToReal();
+		bi->getWorkingPosition();
+	}
 
-		for (size_t j = 0; j < i; j++)
+	for (size_t i = 0; i < _experiment->boundCount(); i++)
+	{
+		Bound *bi = _experiment->bound(i);
+		
+		if (!_pause)
 		{
+			bi->updatePositionToReal();
+		}
+		
+		CorrelData cd_per_ab = empty_CD();
+		std::string name = bi->name();
+
+		for (size_t j = 0; j < _experiment->boundCount(); j++)
+		{
+			if (_target == TargetLeastSquares && j >= i)
+			{
+				continue;
+			}
+
+			if (i == j)
+			{
+				continue;
+			}
+			
 			Bound *bj = _experiment->bound(j);
+			
+			if (_fixedOnly && !bi->isFixed() && !bj->isFixed())
+			{
+				continue;
+			}
+			
+			if (_fixedOnly && bi->isFixed() && bj->isFixed())
+			{
+				continue;
+			}
 			
 			double val = _data->valueFor(bi->name(), bj->name());
 
@@ -183,15 +246,12 @@ double Refinement::score()
 				continue;
 			}
 
-			double raw = bi->scoreWithOther(bj);
+			bool shouldDampen = false;//_cycleNum >= 25;
+			double raw = bi->scoreWithOther(bj, shouldDampen);
+
 			double diff = (raw - val) * (raw - val);
 			
 			if (diff != diff)
-			{
-				continue;
-			}
-			
-			if (_fixedOnly && !bi->isFixed() && !bj->isFixed())
 			{
 				continue;
 			}
@@ -203,13 +263,18 @@ double Refinement::score()
 			}
 			
 			add_to_CD(&cd, raw, val);
+			add_to_CD(&cd_per_ab, raw, val);
 		}
+		
+		double correl = evaluate_CD(cd_per_ab);
+		cc += correl;
+		abcount++;
 	}
 
-	double correl = evaluate_CD(cd);
 	if (_target == TargetCorrelation)
 	{
-		return -correl;
+		cc /= abcount;
+		return -cc;
 	}
 	else
 	{
@@ -229,13 +294,18 @@ void Refinement::refine()
 	RefinementLBFGSPtr ref = RefinementLBFGSPtr(new RefinementLBFGS());
 
 	bool changed = true;
-	int count = 0;
-	int target = 15;
-	if (!_fixedOnly && !_convert)
+	_cycleNum = 0;
+	int maxCycles = 60;
+	_fixedOnly = true;
+	_target = TargetLeastSquares;
+	
+	for (size_t i = 0; i < _experiment->boundCount(); i++)
 	{
-		target = 100;
+		Bound *b = _experiment->bound(i);
+		b->randomlyPositionInRegion(_experiment->structure()->mesh());
 	}
-	while (changed && count < target)
+
+	while (changed && _cycleNum < maxCycles)
 	{
 		ref->clearParameters();
 
@@ -254,35 +324,53 @@ void Refinement::refine()
 		}
 
 		ref->setSilent(true);
-		
-		Converter *conv = NULL;
-		if (_convert)
-		{
-			conv = new Converter();
-			conv->setCompareFunction(this, compareBinders);
-			conv->setStrategy(ref);
-		}
-
 		ref->refine();
 
-		delete conv;
-
-		for (size_t i = 0; i < _experiment->boundCount(); i++)
+		for (size_t i = 0; i < _experiment->boundCount() && !_fixedOnly; i++)
 		{
 			Bound *b = _experiment->bound(i);
-			b->snapToObject(NULL);
+			double dist = b->snapToObject(NULL);
+			
+			if (dist > Bound::getRadius() / 2 && 
+			    _target == TargetLeastSquares)
+			{
+				b->randomlyPositionInRegion(_experiment->structure()->mesh());
+			}
+		}
+
+		if (_cycleNum <= 30)
+		{
+			_experiment->jiggle();
 		}
 		
-		count++;
+		_cycleNum++;
 		changed = ref->changedSignificantly();
 		
-		if (_fixedOnly && count == 4)
+		if (_cycleNum == 10)
 		{
 			_fixedOnly = false;
 		}
+		
+		if (_cycleNum == 30)
+		{
+			_target = TargetCorrelation;
+		}
+		
+		if (!_fixedOnly && _cycleNum <= 20)
+		{
+//			_experiment->jiggle();
+		}
+		
+		if (_cycleNum <= 30)
+		{
+			changed = true;
+		}
 	}
 
-	std::cout << score() << std::flush;
+	_target = TargetLeastSquares;
+	std::cout << score() << " / " << std::flush;
+	_target = TargetCorrelation;
+	std::cout << -score() << std::flush;
 	std::cout << std::endl;
 
 	Bound::updateOnRender(false);

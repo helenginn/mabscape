@@ -22,6 +22,8 @@
 #include "shaders/vProj.h"
 #include "shaders/fProj.h"
 
+using namespace Helen3D;
+
 Patch::Patch(Structure *s)
 {
 	_s = s;

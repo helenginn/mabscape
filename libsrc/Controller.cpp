@@ -68,6 +68,10 @@ void splitCommand(std::string command, std::string *first, std::string *last)
 
 void Controller::run()
 {
+	connect(this, &Controller::fixMenu, _exp,
+	        [=]() {_exp->addBindersToMenu();},
+	        Qt::QueuedConnection);
+
 	for (size_t i = 0; i < _args.size(); i++)
 	{
 		std::string first, last;
@@ -100,6 +104,7 @@ void Controller::run()
 		{
 			std::string fn = last;
 			_exp->loadCSV(fn);
+			emit fixMenu();
 		}
 		else if (first == "load-positions")
 		{

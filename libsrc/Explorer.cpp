@@ -16,9 +16,13 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
+#include <MtzFile.h>
+
+#include <Frameworks.h>
+using namespace Helen3D;
+
 #include "Explorer.h"
 #include "Structure.h"
-#include "Mesh.h"
 #include "Experiment.h"
 #include "SurfaceView.h"
 #include "Result.h"
@@ -28,9 +32,14 @@
 #include <iostream>
 #include <fstream>
 #include <MtzFFT.h>
-#include <MtzFile.h>
+#include <Mesh.h>
 #include <Group.h>
 #include <FileReader.h>
+#include <libsrc/Absolute.h>
+#include <libsrc/Atom.h>
+#include <libsrc/Molecule.h>
+#include <libsrc/Crystal.h>
+#include <libsrc/Options.h>
 #include <AveCSV.h>
 #include <Screen.h>
 #include <ClusterList.h>
@@ -108,7 +117,6 @@ Explorer::Explorer(QWidget *parent) : QMainWindow(parent)
 
 	connect(_undoArt, &QPushButton::clicked,
 	        this, &Explorer::undoArt);
-	
 	
 	_widget->setSelectionMode(QAbstractItemView::ExtendedSelection);
 	
@@ -413,22 +421,26 @@ void Explorer::undoArt()
 	}
 }
 
-void Explorer::summariseBounds()
+void Explorer::writePDB(std::string filename, bool value)
 {
 	QList<QTreeWidgetItem *> list = _widget->selectedItems();
-	
+	CrystalPtr crystal = CrystalPtr(new Vagabond::Crystal());
+	MoleculePtr mol = MoleculePtr(new Molecule());
+	mol->setChainID("V");
+	crystal->addMolecule(mol);
+	Options::getRuntimeOptions()->addCrystal(crystal);
+	std::map<Bound *, double> _map;
+
+	std::ofstream f;
+	f.open(filename);
 	double sqSum = 0;
 	double count = 0;
-	std::map<Bound *, double> _map;
+
+	std::ostringstream header;
 	
 	for (size_t j = 0; j < _experiment->boundCount(); j++)
 	{
 		Bound *b = _experiment->bound(j);
-		
-		if (b->isFixed())
-		{
-			continue;
-		}
 
 		vec3 mean = empty_vec3();
 
@@ -457,7 +469,102 @@ void Explorer::summariseBounds()
 		sum /= (double)list.size();
 		double rmsd = sqrt(sum);
 		
-		std::cout << b->name() << "\t" << rmsd << " Å." << std::endl;
+		if (rmsd != rmsd)
+		{
+			rmsd = 0;
+		}
+		
+		if (value)
+		{
+			rmsd = b->getValue();
+		}
+		
+		double val = b->getValue();
+		AbsolutePtr abs = AbsolutePtr(new Absolute(mean, rmsd, "HG", val));
+		double num = j;
+		abs->setIdentity(j, "V", "ABS", "AB", num);
+		abs->addToMolecule(mol);
+		
+		std::cout << j << "\t" << b->name() << "\t" << rmsd 
+		<< " Å." << std::endl;
+		header << "REMARK " << b->name() << " IS AB " << 
+		abs->getAtom()->getAtomNum() << std::endl;
+		
+		if (b->isFixed())
+		{
+			continue;
+		}
+		
+		b->setRealPosition(mean);
+		b->snapToObject(NULL);
+		b->updatePositionToReal();
+		
+		sqSum += rmsd * rmsd;
+		_map[b] = rmsd;
+		count++;
+	}
+	
+	header << "REMARK" << std::endl;
+	
+	f << header.str() << std::endl;
+
+	std::string str = mol->makePDB(PDBTypeAverage, CrystalPtr(), -1);
+	f << str;
+	f.close();
+	
+}
+
+void Explorer::summariseBounds()
+{
+	writePDB("average.pdb", false);
+	writePDB("values.pdb", true);
+
+	QList<QTreeWidgetItem *> list = _widget->selectedItems();
+	
+	double sqSum = 0;
+	double count = 0;
+	std::map<Bound *, double> _map;
+	
+	for (size_t j = 0; j < _experiment->boundCount(); j++)
+	{
+		Bound *b = _experiment->bound(j);
+
+		vec3 mean = empty_vec3();
+
+		for (int i = 0; i < list.size(); i++)
+		{
+			QTreeWidgetItem *item = list[i];
+			Result *r = static_cast<Result *>(item);
+			vec3 v = r->vecForBound(b);
+			vec3_add_to_vec3(&mean, v);
+		}
+
+		vec3_mult(&mean, 1 / (double)list.size());
+		
+		double sum = 0;
+
+		for (int i = 0; i < list.size(); i++)
+		{
+			QTreeWidgetItem *item = list[i];
+			Result *r = static_cast<Result *>(item);
+			vec3 v = r->vecForBound(b);
+			vec3_subtract_from_vec3(&v, mean);
+			double l = vec3_sqlength(v);
+			sum += l;
+		}
+
+		sum /= (double)list.size();
+		double rmsd = sqrt(sum);
+		
+		if (rmsd != rmsd)
+		{
+			rmsd = 0;
+		}
+		
+		if (b->isFixed())
+		{
+			continue;
+		}
 		
 		b->setRealPosition(mean);
 		b->snapToObject(NULL);
@@ -483,16 +590,9 @@ void Explorer::summariseBounds()
 		rmsd /= stdev * 2;
 		double inverse = 1 - rmsd;
 
-//		double rad = b->averageRadius();
 		double resize = rmsd * 5;
 		
-
-//		b->resize(resize, true);
-		
 		b->recolourBoth(inverse, inverse, inverse);
-//		b->setAlpha(inverse);
 	}
-	
-//	_experiment->reorderBoundByAlpha();
 }
 

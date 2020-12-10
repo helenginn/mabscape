@@ -16,34 +16,32 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#ifndef __abmap__Mesh__
-#define __abmap__Mesh__
+#ifndef __abmap__KSecond__
+#define __abmap__KSecond__
 
-#include <QObject>
-#include "Icosahedron.h"
+#include "KFirst.h"
 
-class SlipGL;
-
-class Mesh : public QObject, public Icosahedron
+class KRatio : public KFirst
 {
-Q_OBJECT
 public:
-	Mesh(SlipObject *other);
+	KRatio();
+	
+	virtual void populateYs();
 
-signals:
-	void resultReady();
+	void setSecondModel(KLigOnOff *l)
+	{
+		_second = l;
+	}
 public slots:
-	void shrinkWrap();
-	void smoothCycles();
-	void inflateCycles();
-
+	virtual void refineCascade();
+protected:
+	virtual void addToStrategy(RefinementStrategyPtr str);
+	virtual void refine();
 private:
-	void smoothen(std::vector<Vertex> &vcopy);
-	void hug(std::vector<Vertex> &vcopy);
-
-	SlipObject *_parent;
-
-	static double _speed;
+	bool _active;
+	KLigOnOff *_second;
+	
+	double _jCut;
+	double _jRatio;
 };
-
 #endif

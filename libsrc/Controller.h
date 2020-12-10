@@ -37,6 +37,7 @@ public:
 	void setView(SurfaceView *view);
 signals:
 	void startPatch();
+	void fixMenu();
 public slots:
 	void run();
 private:

@@ -16,12 +16,16 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
+#include <libccp4/csymlib.h>
 #include "Structure.h"
 #include <iostream>
 #include <PDBReader.h>
 #include <Monomer.h>
 #include <Crystal.h>
+#include <Mesh.h>
 #include <Atom.h>
+
+using namespace Helen3D;
 
 Structure::Structure(std::string filename) : SlipObjFile(filename)
 {
@@ -264,6 +268,208 @@ void Structure::removeColouring()
 	}
 }
 
+double Structure::recalculateDampening(vec3 loc)
+{
+	if (!pointInside(loc))
+	{
+		return 1.0;
+	}
+
+	vec3 nearest = nearestVertex(loc, true);
+	vec3 diff = vec3_subtract_vec3(loc, nearest);
+	double d = vec3_length(diff);
+
+	if (d < 4)
+	{
+		return 1.0;
+	}
+
+	d -= 4;
+	d *= 2;
+	double val = 1.0 * exp(-(d*d));
+
+	return val;
+}
+
+vec3 Structure::lookupVertexPtr(vec3 pos)
+{
+	if (mesh() == NULL)
+	{
+		return nearestVertex(pos, true);
+	}
+
+	if (_vertexPtrs.size() == 0)
+	{
+		generateLookupGrid();
+	}
+  
+	if (!checkLocation(pos))
+	{
+		return nearestVertex(pos, true);
+	}
+
+	double closest = FLT_MAX;
+	vec3 vClose = empty_vec3();
+	long n = findIndex(pos);
+	
+	if (_vertexPtrs[n].size() == 0)
+	{
+		return nearestVertex(pos, true);
+	}
+	
+	for (size_t i = 0; i < _vertexPtrs[n].size(); i++)
+	{
+		vec3 near = _vertexPtrs[n][i];
+		vec3 diff = vec3_subtract_vec3(pos, near);
+
+		if (abs(diff.x) > closest || abs(diff.y) > closest 
+		    || abs(diff.z) > closest)
+		{
+			continue;
+		}
+
+		double length = vec3_sqlength(diff);
+		
+		if (length < closest)
+		{
+			closest = length;
+			vClose = near;
+		}
+	}
+	
+	if (vec3_length(vClose) < 1e-6)
+	{
+		return nearestVertex(pos, true);
+	}
+	
+	return vClose;
+}
+
+void Structure::generateLookupGrid()
+{
+	boundaries(&_min, &_max);
+	_min.x -= 2; _min.y -= 2; _min.z -= 2; 
+	_max.x += 2; _max.y += 2; _max.z += 2; 
+	vec3 size = vec3_subtract_vec3(_max, _min);
+	_nx = ceil(size.x);
+	_ny = ceil(size.y);
+	_nz = ceil(size.z);
+	
+	std::cout << "Making grid of size " << _nx << " " << _ny << " " 
+	<< _nz << "." << std::endl;
+
+	_dampening.resize(_nz * _ny * _nx);
+	
+	if (mesh() != NULL)
+	{
+		_vertexPtrs.resize(_nz * _ny * _nx);
+	}
+	
+	int max_stages = 100;
+	size_t per_stage = _dampening.size() / max_stages;
+	size_t stages = 0;
+
+	std::cout << "Populating dampening values: " << std::flush;
+	for (size_t i = 0; i < _dampening.size(); i++)
+	{
+		vec3 loc = findLocation(i);
+		_dampening[i] = recalculateDampening(loc);
+
+		double close = 5.0;
+		for (size_t j = 0; mesh() != NULL && j < mesh()->vertexCount(); j++)
+		{
+			Helen3D::Vertex v = mesh()->vertex(j);
+			vec3 diff = make_vec3(loc.x - v.pos[0],
+			                      loc.y - v.pos[1],
+			                      loc.z - v.pos[2]);
+
+			if (abs(diff.x) > close || abs(diff.y) > close 
+			    || abs(diff.z) > close)
+			{
+				continue;
+			}
+
+			double length = vec3_sqlength(diff);
+
+			if (length < close)
+			{
+				vec3 nearest = vec_from_pos(v.pos);
+				_vertexPtrs[i].push_back(nearest);
+			}
+		}
+
+		if (i > stages + per_stage)
+		{
+			stages += per_stage;
+			std::cout << "+" << std::flush;
+		}
+	}
+	
+	std::cout << " ... Done." << std::endl;
+}
+
+vec3 Structure::findLocation(long ele)
+{
+	long x = ele % _nx;
+	ele -= x;
+	ele /= _nx;
+
+	long y = ele % _ny;
+	ele -= y;
+	ele /= _ny;
+
+	long z = ele;
+
+	vec3 loc = make_vec3(x + 0.5, y + 0.5, z + 0.5);
+	vec3_add_to_vec3(&loc, _min);
+	return loc;
+}
+
+bool Structure::checkLocation(vec3 loc)
+{
+	if (loc.x > _max.x - 2 || loc.y > _max.y - 2 || loc.z > _max.z - 2)
+	{
+		return false;
+	}
+
+	if (loc.x < _min.x + 2 || loc.y < _min.y + 2 || loc.z < _min.z + 2)
+	{
+		return false;
+	}
+	
+	return true;
+}
+
+long Structure::findIndex(vec3 loc)
+{
+	vec3_subtract_from_vec3(&loc, _min);
+	loc.x = floor(loc.x);
+	loc.y = floor(loc.y);
+	loc.z = floor(loc.z);
+
+	long ele = loc.x + _nx * loc.y + (_nx * _ny) * loc.z;
+	return ele;
+}
+
+double Structure::getDampening(vec3 loc)
+{
+	if (_dampening.size() == 0)
+	{
+		generateLookupGrid();
+	}
+	
+	bool check = checkLocation(loc);
+	
+	if (!check)
+	{
+		return 1;
+	}
+
+	return cubic_interpolate(loc);
+	long idx = findIndex(loc);
+	return _dampening[idx];
+}
+
 void Structure::triangulate()
 {
 	if (_triangulation >= 2)
@@ -279,3 +485,99 @@ void Structure::triangulate()
 
 	_triangulation++;
 }
+
+/* 11-point interpolation - attempted transcription from Dave's function
+ * from GAP */
+double Structure::cubic_interpolate(vec3 vox000)
+{
+	vec3_subtract_from_vec3(&vox000, _min);
+
+	/* Pick out just the real components - this is faster
+	 * than modf */
+	vec3 uvw = make_vec3(vox000.x - floor(vox000.x),
+	                     vox000.y - floor(vox000.y),
+	                     vox000.z - floor(vox000.z));
+
+	/* Extra refers to the additional index to be fished
+	 * for 11-point interpolation. We already get 0 and 1. */
+	int extra[3] = {-1, -1, -1};
+	int central[3] = {0, 0, 0};
+	int next[3] = {1, 1, 1};
+	
+	/* If uvw components are greater than 0.5, then flip them 
+	 * make the extra index one ahead and reverse the order */
+	for (int i = 0; i < 3; i++)
+	{
+		if (*(&uvw.x + i) > 0.5)
+		{
+			extra[i] = 2;
+			central[i] = 1;
+			next[i] = 0;
+			*(&uvw.x + i) = 1 - *(&uvw.x + i);
+		}
+	}
+
+	int vox000x = vox000.x + central[0];
+	int vox000y = vox000.y + central[1];
+	int vox000z = vox000.z + central[2];
+	int vox000xm = vox000.x + next[0];
+	int vox000ym = vox000.y + next[1];
+	int vox000zm = vox000.z + next[2];
+	int vox000xn = vox000.x + extra[0];
+	int vox000yn = vox000.y + extra[1];
+	int vox000zn = vox000.z + extra[2];
+
+	vox000y  *= _nx;
+	vox000ym *= _nx;
+	vox000yn *= _nx;
+	vox000z  *= _nx * _ny;
+	vox000zm *= _nx * _ny;
+	vox000zn *= _nx * _ny;
+
+	long idx000 = vox000x + vox000y + vox000z;
+	long idx100 = vox000xm + vox000y + vox000z;
+	long idx010 = vox000x + vox000ym + vox000z;
+	long idx110 = vox000xm + vox000ym + vox000z;
+	long idx001 = vox000x + vox000y + vox000zm;
+	long idx101 = vox000xm + vox000y + vox000zm;
+	long idx011 = vox000x + vox000ym + vox000zm;
+	long idx111 = vox000xm + vox000ym + vox000zm;
+	
+	long idxn00 = vox000xn + vox000y + vox000z;
+	long idx0n0 = vox000x + vox000yn + vox000z;
+	long idx00n = vox000x + vox000y + vox000zn;
+	
+	double u = uvw.x;
+	double v = uvw.y;
+	double w = uvw.z;
+	
+	double p000 = _dampening[idx000];
+	double p001 = _dampening[idx001];
+	double p010 = _dampening[idx010];
+	double p011 = _dampening[idx011];
+	double p100 = _dampening[idx100];
+	double p101 = _dampening[idx101];
+	double p110 = _dampening[idx110];
+	double p111 = _dampening[idx111];
+	
+	double a = p100 - p000;
+	double b = p010 - p000;
+	double c = p110 - p010;
+	double d = p101 - p001;
+	
+	double pn00 = _dampening[idxn00];
+	double p0n0 = _dampening[idx0n0];
+	double p00n = _dampening[idx00n];
+
+	double p8value = p000+u*(a+w*(-a+d)+v*((c-a)+w*( a-c-d-p011+p111)))
+	+ v*(b+w*(-p001+p011-b))+w*(-p000+p001);
+	
+	double mod = (p000 - 0.5 * p100 - 0.5 * pn00) * (u - u * u);
+	mod += (p000 - 0.5 * p010 - 0.5 * p0n0) * (v - v * v);
+	mod += (p000 - 0.5 * p001 - 0.5 * p00n) * (w - w * w);
+	
+	double p11value = p8value + 0.4 * mod;
+
+	return p11value;
+}
+

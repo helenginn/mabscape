@@ -19,12 +19,13 @@
 #ifndef __abmap__Structure__
 #define __abmap__Structure__
 
-#include "SlipObjFile.h"
+#include <Frameworks.h>
+#include <SlipObjFile.h>
 #include <vec3.h>
 #include <shared_ptrs.h>
 
-typedef std::map<int, std::vector<Vertex *>> AtomMap;
-typedef std::map<Vertex *, int> AtomSingleMap;
+typedef std::map<int, std::vector<Helen3D::Vertex *>> AtomMap;
+typedef std::map<Helen3D::Vertex *, int> AtomSingleMap;
 
 class Structure : public SlipObjFile
 {
@@ -36,7 +37,10 @@ public:
 	void markExtraResidue(int i);
 	void convertExtraToColour();
 	void removeColouring();
+	double getDampening(vec3 loc);
+	double recalculateDampening(vec3 loc);
 	virtual void triangulate();
+	vec3 lookupVertexPtr(vec3 pos);
 
 	void addPDB(std::string filename);
 	void turtleShell();
@@ -62,8 +66,20 @@ public:
 	}
 
 private:
+	long findIndex(vec3 loc);
+	void generateLookupGrid();
+	bool checkLocation(vec3 loc);
+	double cubic_interpolate(vec3 vox000);
+	vec3 findLocation(long ele);
+
 	CrystalPtr _crystal;
 	int _triangulation;
+
+	std::vector<double> _dampening;
+	std::vector<std::vector<vec3> > _vertexPtrs;
+	vec3 _min;
+	vec3 _max;
+	int _nx, _ny, _nz;
 
 	std::map<int, std::string> _resNames;
 	std::map<int, vec3> _resPos;

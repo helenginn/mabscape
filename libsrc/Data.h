@@ -53,12 +53,15 @@ public:
 	AveCSV *getClusterCSV();
 	void updateCSV(AveCSV *csv);
 	double valueFor(std::string i, std::string j);
+	void normalise(bool higher);
 private:
+	double findValueFor(std::string i, std::string j);
 	std::string _filename;
 
 	std::map<std::string, int> _idCounts;
 	std::vector<std::string> _ids;
 	static std::map<std::string, MapStringDouble> _relationships;
+	static std::map<std::string, MapStringDouble> _finalValues;
 };
 
 #endif

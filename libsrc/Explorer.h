@@ -22,7 +22,7 @@
 #include <QMainWindow>
 #include <QTreeWidget>
 #include <map>
-#include "SlipObject.h"
+#include <SlipObject.h>
 
 class MtzFile;
 class QPushButton;
@@ -68,6 +68,7 @@ private slots:
 	void patchworkArt();
 	void undoArt();
 	void summariseBounds();
+	void writePDB(std::string filename, bool value);
 private:
 	void makeExplorer();
 	void updateTitle();
