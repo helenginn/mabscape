@@ -22,14 +22,20 @@
 #include <vec3.h>
 #include <SlipObject.h>
 
+class Result;
+
 class Squiggle : public SlipObject
 {
 public:
 	Squiggle();
 
-	void setPositions(std::vector<vec3> poz);
+	void setPositions(std::vector<vec3> poz, 
+	                  std::vector<Result *> results);
 	void clear();
+	std::vector<Result *> findResultsBetween(double x1, double y1,
+	                                         double x2, double y2);
 private:
+	std::vector<Result *> _results;
 
 };
 

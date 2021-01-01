@@ -30,14 +30,21 @@
 #include "Mesh.h"
 
 Target Refinement::_target = TargetLeastSquares;
+Target Refinement::_currTarg = TargetLeastSquares;
+bool Refinement::_relocateFliers = true;
 
 Refinement::Refinement(Experiment *expt)
 {
 	_fixedOnly = false;
 	_experiment = expt;
-	_data = expt->getData();
+	_data = NULL;
+	if (expt->getData())
+	{
+		_data = expt->getData();
+	}
 	_convert = false;
 	_pause = false;
+	_randomiseFirst = true;
 	
 	for (size_t i = 0; i < _experiment->boundCount(); i++)
 	{
@@ -162,7 +169,7 @@ double Refinement::partialScore(Bound *bi)
 			continue;
 		}
 
-		if (_target == TargetLeastSquares)
+		if (_currTarg == TargetLeastSquares)
 		{
 			sum += diff;
 			count++;
@@ -172,7 +179,7 @@ double Refinement::partialScore(Bound *bi)
 	}
 
 	double correl = evaluate_CD(cd);
-	if (_target == TargetCorrelation)
+	if (_currTarg == TargetCorrelation)
 	{
 		return -correl;
 	}
@@ -217,7 +224,7 @@ double Refinement::score()
 
 		for (size_t j = 0; j < _experiment->boundCount(); j++)
 		{
-			if (_target == TargetLeastSquares && j >= i)
+			if (_currTarg == TargetLeastSquares && j >= i)
 			{
 				continue;
 			}
@@ -256,7 +263,7 @@ double Refinement::score()
 				continue;
 			}
 			
-			if (_target == TargetLeastSquares)
+			if (_currTarg == TargetLeastSquares)
 			{
 				sum += diff;
 				count++;
@@ -271,7 +278,7 @@ double Refinement::score()
 		abcount++;
 	}
 
-	if (_target == TargetCorrelation)
+	if (_currTarg == TargetCorrelation)
 	{
 		cc /= abcount;
 		return -cc;
@@ -296,13 +303,23 @@ void Refinement::refine()
 	bool changed = true;
 	_cycleNum = 0;
 	int maxCycles = 60;
-	_fixedOnly = true;
-	_target = TargetLeastSquares;
+	_fixedOnly = false;
 	
-	for (size_t i = 0; i < _experiment->boundCount(); i++)
+	_currTarg = TargetCorrelation;
+	if (_target == TargetLeastSquares || _target == TargetBoth)
 	{
-		Bound *b = _experiment->bound(i);
-		b->randomlyPositionInRegion(_experiment->structure()->mesh());
+		_currTarg = TargetLeastSquares;
+	}
+	
+	if (_randomiseFirst)
+	{
+		_fixedOnly = true;
+
+		for (size_t i = 0; i < _experiment->boundCount(); i++)
+		{
+			Bound *b = _experiment->bound(i);
+			b->randomlyPositionInRegion(_experiment->structure()->mesh());
+		}
 	}
 
 	while (changed && _cycleNum < maxCycles)
@@ -332,7 +349,7 @@ void Refinement::refine()
 			double dist = b->snapToObject(NULL);
 			
 			if (dist > Bound::getRadius() / 2 && 
-			    _target == TargetLeastSquares)
+			    _currTarg == TargetLeastSquares && _relocateFliers)
 			{
 				b->randomlyPositionInRegion(_experiment->structure()->mesh());
 			}
@@ -351,26 +368,27 @@ void Refinement::refine()
 			_fixedOnly = false;
 		}
 		
-		if (_cycleNum == 30)
+		if (_cycleNum == 30 && _target == TargetCorrelation)
 		{
-			_target = TargetCorrelation;
+			_currTarg = TargetCorrelation;
 		}
 		
-		if (!_fixedOnly && _cycleNum <= 20)
-		{
-//			_experiment->jiggle();
-		}
-		
-		if (_cycleNum <= 30)
+		if (_cycleNum <= 30 && _target == TargetBoth)
 		{
 			changed = true;
 		}
 	}
 
-	_target = TargetLeastSquares;
+	_currTarg = TargetLeastSquares;
 	std::cout << score() << " / " << std::flush;
-	_target = TargetCorrelation;
+	_currTarg = TargetCorrelation;
 	std::cout << -score() << std::flush;
+	
+	if (_target == TargetLeastSquares)
+	{
+		_currTarg = TargetLeastSquares;
+	}
+
 	std::cout << std::endl;
 
 	Bound::updateOnRender(false);

@@ -25,6 +25,7 @@
 
 class SurfaceView;
 class Experiment;
+class QThread;
 
 class Controller : public QObject
 {
@@ -38,12 +39,18 @@ public:
 signals:
 	void startPatch();
 	void fixMenu();
+	void refine();
 public slots:
 	void run();
+	void jobDone();
+	void incrementJob();
 private:
+	bool processNextArg(std::string arg);
 	std::vector<std::string> _args;
 	SurfaceView *_view;
 	Experiment *_exp;
+	int _currentJob;
+	QThread *_w;
 };
 
 

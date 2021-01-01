@@ -17,9 +17,12 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #include "Controller.h"
+#include "Genes.h"
 #include "SurfaceView.h"
 #include "Experiment.h"
+#include "Structure.h"
 #include "Explorer.h"
+#include "Mesh.h"
 #include <iostream>
 #include <QThread>
 #include <QApplication>
@@ -66,81 +69,169 @@ void splitCommand(std::string command, std::string *first, std::string *last)
 	*last = command.substr(equal + 1, std::string::npos);
 }
 
+void Controller::jobDone()
+{
+	disconnect(_w, SIGNAL(finished()), this, SLOT(jobDone()));
+	disconnect(this, SIGNAL(refine()), nullptr, nullptr);
+	std::cout << "Done long job." << std::endl;
+	incrementJob();
+}
+
+/* returns if should process next job immediately */
+bool Controller::processNextArg(std::string arg)
+{
+	std::cout << std::endl;
+	std::cout << "Processing next arg: " << arg << std::endl;
+	std::string first, last;
+	splitCommand(arg, &first, &last);
+
+	if (first == "load-structure")
+	{
+		std::string fn = last;
+		_exp->loadStructure(fn);
+		return true;
+	}
+	if (first == "load-structure-coords")
+	{
+		std::string fn = last;
+		_exp->loadStructureCoords(fn);
+		return true;
+	}
+	else if (first == "refine-mesh")
+	{
+		_exp->meshStructure();
+		_exp->prepareWorkForMesh();
+		Mesh *m = _exp->structure()->mesh();
+		QThread *w = _exp->worker();
+		connect(this, SIGNAL(refine()), m, SLOT(shrinkWrap()));
+		connect(w, SIGNAL(finished()), this, SLOT(jobDone()));
+		w->start();
+		_w = w;
+		std::cout << "Refining mesh" << std::endl;
+
+		emit refine();
+		
+		return false;
+	}
+	else if (first == "smooth-mesh")
+	{
+		_exp->meshStructure();
+		_exp->prepareWorkForMesh();
+		Mesh *m = _exp->structure()->mesh();
+		QThread *w = _exp->worker();
+		connect(this, SIGNAL(refine()), m, SLOT(smoothCycles()));
+		connect(w, SIGNAL(finished()), this, SLOT(jobDone()));
+		w->start();
+		_w = w;
+		std::cout << "Smoothing mesh" << std::endl;
+
+		emit refine();
+		return false;
+	}
+	else if (first == "inflate-mesh")
+	{
+		_exp->meshStructure();
+		_exp->prepareWorkForMesh();
+		Mesh *m = _exp->structure()->mesh();
+		QThread *w = _exp->worker();
+		connect(this, SIGNAL(refine()), m, SLOT(inflateCycles()));
+		connect(w, SIGNAL(finished()), this, SLOT(jobDone()));
+		w->start();
+		_w = w;
+		std::cout << "Inflating mesh" << std::endl;
+
+		emit refine();
+		return false;
+	}
+	else if (first == "triangulate-mesh")
+	{
+		_exp->triangulateMesh();
+		return true;
+	}
+	else if (first == "load-data")
+	{
+		std::string fn = last;
+		_exp->loadCSV(fn);
+		emit fixMenu();
+		return true;
+	}
+	else if (first == "load-positions")
+	{
+		std::string fn = last;
+		_exp->loadPositions(fn);
+		return true;
+	}
+	else if (first == "monte-carlo")
+	{
+		int cycles = atoi(last.c_str());
+		_exp->setMonteTarget(cycles);
+		QThread *w = _exp->worker();
+		connect(w, SIGNAL(finished()), this, SLOT(jobDone()));
+		_exp->monteCarlo();
+		return false;
+	}
+	else if (first == "write-results")
+	{
+		std::string fn = last;
+		_exp->getExplorer()->writeResultsToFile(fn, true);
+		return true;
+	}
+	else if (first == "read-results")
+	{
+		std::string fn = last;
+		_exp->getExplorer()->readResults(fn);
+		return true;
+	}
+	else if (first == "patchwork")
+	{
+		std::string ab = last;
+
+		connect(this, &Controller::startPatch, _exp,
+		        [=]() {_exp->abPatchwork(ab);},
+		        Qt::QueuedConnection);
+
+		emit startPatch();
+		return true;
+	}
+	else if (first == "ab-junctions")
+	{
+		std::string file = last;
+		_view->genes()->loadSequences(last);
+
+		emit startPatch();
+		return true;
+	}
+	else if (first == "quit")
+	{
+		QApplication::quit();
+		return true;
+	}
+	
+	return true;
+}
+
+void Controller::incrementJob()
+{
+	bool result = true;
+	
+	while (result)
+	{
+		result = processNextArg(_args[_currentJob]);
+		_currentJob++;
+		
+		if (_currentJob >= _args.size())
+		{
+			break;
+		}
+	}
+}
+
 void Controller::run()
 {
 	connect(this, &Controller::fixMenu, _exp,
 	        [=]() {_exp->addBindersToMenu();},
 	        Qt::QueuedConnection);
 
-	for (size_t i = 0; i < _args.size(); i++)
-	{
-		std::string first, last;
-		splitCommand(_args[i], &first, &last);
-		
-		if (first == "load-structure")
-		{
-			std::string fn = last;
-			_exp->loadStructure(fn);
-		}
-		if (first == "load-structure-coords")
-		{
-			std::string fn = last;
-			_exp->loadStructureCoords(fn);
-		}
-		else if (first == "refine-mesh")
-		{
-			QThread *w = _exp->meshStructure();
-			w->wait();
-		}
-		else if (first == "triangulate-mesh")
-		{
-			_exp->triangulateMesh();
-		}
-		else if (first == "triangulate-structure")
-		{
-			_exp->triangulateStructure();
-		}
-		else if (first == "load-data")
-		{
-			std::string fn = last;
-			_exp->loadCSV(fn);
-			emit fixMenu();
-		}
-		else if (first == "load-positions")
-		{
-			std::string fn = last;
-			_exp->loadPositions(fn);
-		}
-		else if (first == "monte-carlo")
-		{
-			int cycles = atoi(last.c_str());
-			_exp->setMonteTarget(cycles);
-			QThread *w = _exp->monteCarlo();
-			w->wait();
-		}
-		else if (first == "write-results")
-		{
-			std::string fn = last;
-			_exp->getExplorer()->writeResultsToFile(fn, true);
-		}
-		else if (first == "read-results")
-		{
-			std::string fn = last;
-			_exp->getExplorer()->readResults(fn);
-		}
-		else if (first == "patchwork")
-		{
-			std::string ab = last;
-
-			connect(this, &Controller::startPatch, _exp,
-			        [=]() {_exp->abPatchwork(ab);},
-			        Qt::QueuedConnection);
-			
-			emit startPatch();
-		}
-		else if (first == "quit")
-		{
-			QApplication::quit();
-		}
-	}
+	_currentJob = 0;
+	incrementJob();
 }

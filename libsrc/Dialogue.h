@@ -21,12 +21,18 @@
 
 #include <QFileDialog>
 
-inline std::string openDialogue(QWidget *w, QString title, QString pattern)
+inline std::string openDialogue(QWidget *w, QString title, QString pattern,
+                                bool write = false)
 {
 	QFileDialog *f = new QFileDialog(w, title, pattern);
 	                                 
 	f->setFileMode(QFileDialog::AnyFile);
 	f->setOptions(QFileDialog::DontUseNativeDialog);
+	if (write)
+	{
+		f->setAcceptMode(QFileDialog::AcceptSave);
+	}
+
 	f->show();
 
     QStringList fileNames;

@@ -102,11 +102,11 @@ public:
 	}
 
 	void makeExplorer();
+	void relocateFliers(bool relocate);
 	void loadStructure(std::string filename);
 	void loadStructureCoords(std::string filename);
-	void triangulateStructure();
 	void loadPositions(std::string filename);
-	void hoverMouse(double x, double y);
+	void hoverMouse(double x, double y, bool shift);
 	void clickMouse(double x, double y);
 	void checkDrag(double x, double y);
 	void finishDragging();
@@ -116,9 +116,11 @@ public:
 	void fixLabel();
 	void reorderBoundByAlpha();
 	void addBindersToMenu(QMenu *menu);
+	bool prepareWorkForMesh();
 	void loadCSV(std::string filename);
 	void somethingToCluster4x(int data);
 	void recolourByCSV(std::string filename);
+	void refineFurther();
 	void refineModel(bool fixedOnly, bool svd = false);
 	void findNonCompetitors(std::vector<std::string> abs);
 	void plotDistanceCompetition();
@@ -132,6 +134,8 @@ public:
 	{
 		_monteTarget = target;
 	}
+	
+	QThread *worker();
 signals:
 	void refine();
 public slots:
@@ -140,13 +144,13 @@ public slots:
 	void abPatchwork(std::string id);
 	void jiggle();
 	void randomise();
-	void svdRefine();
 	void openResults();
 	void fixFromPDB();
 	void recolourByCorrelation();
 	void selectFromMenu();
 	void handleResults();
 	void handleError();
+	void oneTimeResults();
 	QThread *monteCarlo();
 	void mCarloStart();
 	void mCarloStop();
@@ -155,14 +159,18 @@ public slots:
 	void smoothMesh();
 	void inflateMesh();
 	void triangulateMesh();
-	QThread *meshStructure();
-	void writeOutCSV();
+	void meshStructure();
+	QThread *runSmoothMesh();
+	QThread *runInflateMesh();
+	void writeOutCSV(std::string filename);
 	void chooseTarget(Target t);
 private:
+	void drawWindow(double x, double y);
 	bool isRunningMonteCarlo();
-	bool addNonCompetitor(std::vector<std::string> abs,
-	                      std::vector<std::string> &chain);
-	bool prepareWorkForMesh();
+	void updateWindow();
+	void addNonCompetitor(std::vector<std::string> abs,
+	                      std::vector<std::string> &chain,
+	                      std::vector<std::string> *addable);
 	void createBinders();
 	Bound *findBound(double x, double y);
 	Bound *loadBound(std::string filename);
@@ -196,6 +204,10 @@ private:
 	
 	std::string _boundObj;
 	bool _passToResults;
+
+	QLabel *_selWindow;
+	bool _windowing;
+	double _winsx, _winsy, _winex, _winey;
 };
 
 #endif

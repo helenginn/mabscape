@@ -20,6 +20,9 @@
 #define __abmap__Genes__ 
 
 #include <string>
+#include <vector>
+
+class Antibody;
 
 class Genes
 {
@@ -27,8 +30,10 @@ public:
 	Genes();
 	
 	void loadData(std::string filename);
+	void loadSequences(std::string filename);
 
 private:
+	void compare(std::vector<Antibody *> abs);
 };
 
 #endif

@@ -29,7 +29,8 @@ class Bound;
 typedef enum
 {
 	TargetLeastSquares,
-	TargetCorrelation
+	TargetCorrelation,
+	TargetBoth
 } Target;
 
 class Refinement : public QObject
@@ -68,6 +69,21 @@ public:
 	{
 		_convert = conv;
 	}
+	
+	void setRandomiseFirst(bool rand)
+	{
+		_randomiseFirst = rand;
+	}
+	
+	static bool relocatingFliers()
+	{
+		return _relocateFliers;
+	}
+	
+	static void setRelocateFliers(bool relocate)
+	{
+		_relocateFliers = relocate;
+	}
 
 	void recolourByScore();
 	void pause(bool p)
@@ -90,8 +106,11 @@ private:
 	bool _fixedOnly;
 	bool _convert;
 	bool _pause;
+	bool _randomiseFirst;
 
+	static bool _relocateFliers;
 	static Target _target;
+	static Target _currTarg;
 	Experiment *_experiment;
 
 };

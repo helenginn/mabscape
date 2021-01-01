@@ -27,8 +27,10 @@ class Antibody
 public:
 	Antibody(std::string name, std::string hv, std::string hj,
 	         std::string hd, std::string lv, std::string lj);
+	
+	Antibody(std::string name, std::string haa, std::string laa);
 
-	double compareWithAntibody(Antibody *other);
+	double compareWithAntibody(Antibody *other, bool heavy);
 	
 	std::string name()
 	{
@@ -38,6 +40,8 @@ protected:
 	double compareGeneSet(std::vector<std::string> &group1,
 	                      std::vector<std::string> &group2,
 	                      int maxDrills);
+
+	double compareSequences(Antibody *other, bool heavy);
 private:
 	std::string _ab;
 	std::vector<std::string> _hv;
@@ -46,6 +50,9 @@ private:
 	std::vector<std::string> _lv;
 	std::vector<std::string> _lj;
 
+	std::string _haa;
+	std::string _laa;
+	bool _sequence;
 };
 
 

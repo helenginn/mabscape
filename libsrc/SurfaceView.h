@@ -54,6 +54,11 @@ public:
 		return _gl;
 	}
 	
+	Genes *genes()
+	{
+		return _genes;
+	}
+	
 	void addMenu(QMenu *men)
 	{
 		_menus.push_back(men);
@@ -96,9 +101,11 @@ private slots:
 	void loadGenes();
 	void colourByCSV();
 	void loadPositions();
+	void loadSequences();
 	void dataToCluster4x();
 	void modelToCluster4x();
 	void errorsToCluster4x();
+	void writeOutPositions();
 	void unrestrainedRefine();
 	void fixToSurfaceRefine();
 	void identifyNonCompetitors();

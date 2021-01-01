@@ -44,7 +44,7 @@ SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 	_mouseButton = Qt::NoButton;
 	_controlPressed = false;
 	_shiftPressed = false;
-	_lastX = -1; _lastY = -1;
+	_lastX = -2; _lastY = -2;
 	_moving = false;
 	_gl = new SlipGL(this);
 	_experiment = new Experiment(this);
@@ -86,18 +86,20 @@ void SurfaceView::makeMenu()
 	_menus.clear();
 	_actions.clear();
 
-	QMenu *structure = menuBar()->addMenu(tr("&Structure"));
+	QMenu *structure = menuBar()->addMenu(tr("&Antigen"));
 	_menus.push_back(structure);
-	QAction *act = structure->addAction(tr("Load structure surface"));
+	QAction *act = structure->addAction(tr("Load antigen surface"));
 	connect(act, &QAction::triggered, this, &SurfaceView::loadSurface);
 	_actions.push_back(act);
-	act = structure->addAction(tr("Load structure coordinates"));
+	act = structure->addAction(tr("Load antigen coordinates"));
 	connect(act, &QAction::triggered, this, &SurfaceView::loadCoords);
 	_actions.push_back(act);
+	/*
 	act = structure->addAction(tr("Triangulate structure"));
 	connect(act, &QAction::triggered, _experiment, 
 	        &Experiment::triangulateStructure);
 	_actions.push_back(act);
+	*/
 
 	structure->addSeparator();
 	act = structure->addAction(tr("Make collision mesh"));
@@ -117,17 +119,13 @@ void SurfaceView::makeMenu()
 	act = structure->addAction(tr("Remove mesh"));
 	connect(act, &QAction::triggered, _experiment, &Experiment::removeMesh);
 	_actions.push_back(act);
-	structure->addSeparator();
-	act = structure->addAction(tr("Pause animation"));
-	connect(act, &QAction::triggered, this, &SurfaceView::pause);
-	_actions.push_back(act);
 
 	QMenu *data = menuBar()->addMenu(tr("&Data"));
 	_menus.push_back(data);
 	act = data->addAction(tr("Load competition &data"));
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::loadCSV);
-	act = data->addAction(tr("Load &positions"));
+	act = data->addAction(tr("Load binder &positions"));
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::loadPositions);
 	act = data->addAction(tr("Launch cluster&4x"));
@@ -144,14 +142,20 @@ void SurfaceView::makeMenu()
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::errorsToCluster4x);
 
-	_binders = menuBar()->addMenu(tr("&Binders"));
+	_binders = menuBar()->addMenu(tr("&Antibodies"));
 	_menus.push_back(_binders);
 	
 	_experiment->addBindersToMenu(_binders);
 	
-	act = _binders->addAction(tr("Write CSV"));
-	connect(act, &QAction::triggered, _experiment, &Experiment::writeOutCSV);
+	act = _binders->addAction(tr("Write out antibody positions"));
+	connect(act, &QAction::triggered, this, &SurfaceView::writeOutPositions);
 	_actions.push_back(act);
+
+	_binders->addSeparator();
+	act = _binders->addAction(tr("Recolour by correlation"));
+	_actions.push_back(act);
+	connect(act, &QAction::triggered, _experiment, 
+	        &Experiment::recolourByCorrelation);
 	
 	act = _binders->addAction(tr("Colour by CSV"));
 	connect(act, &QAction::triggered, this, &SurfaceView::colourByCSV);
@@ -171,15 +175,16 @@ void SurfaceView::makeMenu()
 	connect(act, &QAction::triggered, 
 	        this, &SurfaceView::loadGenes);
 	_actions.push_back(act);
+	act = _binders->addAction(tr("Load sequences"));
+	connect(act, &QAction::triggered, 
+	        this, &SurfaceView::loadSequences);
+	_actions.push_back(act);
 
 	QMenu *refine = menuBar()->addMenu(tr("&Refine"));
 	_menus.push_back(refine);
-	act = refine->addAction(tr("&Refine"));
+	act = refine->addAction(tr("&Refine from here"));
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::unrestrainedRefine);
-	act = refine->addAction(tr("Refine, axis change"));
-	_actions.push_back(act);
-	connect(act, &QAction::triggered, _experiment, &Experiment::svdRefine);
 
 	QMenu *mc = refine->addMenu(tr("&Monte Carlo"));
 	_menus.push_back(mc);
@@ -220,11 +225,21 @@ void SurfaceView::makeMenu()
 	connect(act, &QAction::triggered, _experiment, 
 	[=]() { _experiment->chooseTarget(TargetLeastSquares); });
 
-	refine->addSeparator();
-	act = refine->addAction(tr("Recolour by correlation"));
+	act = refine->addAction(tr("Use both"));
 	_actions.push_back(act);
+	act->setCheckable(true);
+	act->setChecked(Refinement::currentTarget() == TargetBoth);
 	connect(act, &QAction::triggered, _experiment, 
-	        &Experiment::recolourByCorrelation);
+	[=]() { _experiment->chooseTarget(TargetBoth); });
+	refine->addSeparator();
+
+	act = refine->addAction(tr("Relocate flying antibodies"));
+	_actions.push_back(act);
+	act->setCheckable(true);
+	bool relocate = Refinement::relocatingFliers();
+	act->setChecked(relocate);
+	connect(act, &QAction::triggered, _experiment, 
+	[=]() { _experiment->relocateFliers(!relocate); });
 }
 
 void SurfaceView::convertCoords(double *x, double *y)
@@ -308,7 +323,7 @@ void SurfaceView::mouseMoveEvent(QMouseEvent *e)
 
 	if (_mouseButton == Qt::NoButton)
 	{
-		_experiment->hoverMouse(x, y);
+		_experiment->hoverMouse(x, y, _shiftPressed);
 
 		return;
 	}
@@ -383,6 +398,16 @@ void SurfaceView::mouseReleaseEvent(QMouseEvent *e)
 	_mouseButton = Qt::NoButton;
 }
 
+void SurfaceView::writeOutPositions()
+{
+	std::string filename = openDialogue(this, "Choose position CSV", 
+	                                    "Comma-separated values (*.csv)",
+	                                    true);
+	_experiment->writeOutCSV(filename);
+	
+	makeMenu();
+}
+
 void SurfaceView::loadPositions()
 {
 	std::string filename = openDialogue(this, "Choose position CSV", 
@@ -417,7 +442,7 @@ void SurfaceView::loadCoords()
 
 void SurfaceView::unrestrainedRefine()
 {
-	_experiment->refineModel(false);
+	_experiment->refineFurther();
 }
 
 void SurfaceView::fixToSurfaceRefine()
@@ -512,4 +537,16 @@ void SurfaceView::loadGenes()
 	}
 
 	_genes->loadData(filename);
+}
+
+void SurfaceView::loadSequences()
+{
+	std::string filename = openDialogue(this, "Choose formatted genes", 
+	                                    "Comma-separated values (*.csv)");
+	if (filename.length() == 0)
+	{
+		return;
+	}
+
+	_genes->loadSequences(filename);
 }

@@ -55,9 +55,16 @@ Experiment::Experiment(SurfaceView *view)
 	_monteCount = -1;
 	_monteTarget = DEFAULT_MONTE_CARLO;
 	_dragging = false;
-	_refinement = NULL;
+	_refinement = new Refinement(this);
 	_view = view;
 	_patchView = NULL;
+	_winsx = -2;
+	_winsy = -2;
+	_winex = -2;
+	_winey = -2;
+	_windowing = false;
+	_selWindow = new QLabel("", _view);
+	_selWindow->setStyleSheet("QLabel { border: 1px solid white; background-color: transparent; }");
 	_gl = NULL;
 	_structure = NULL;
 	_label = new QLabel("", _view);
@@ -95,17 +102,6 @@ void Experiment::loadStructureCoords(std::string filename)
 	_structure->addPDB(filename);
 }
 
-void Experiment::triangulateStructure()
-{
-	if (_structure == NULL)
-	{
-		std::cout << "No structure." << std::endl;
-		return;
-	}
-
-	_structure->triangulate();
-}
-
 void Experiment::recolourByCorrelation()
 {
 	if (!_refinement)
@@ -116,7 +112,31 @@ void Experiment::recolourByCorrelation()
 	_refinement->recolourByScore();
 }
 
-QThread *Experiment::meshStructure()
+QThread *Experiment::runSmoothMesh()
+{
+	std::cout << "Smoothing mesh..." << std::endl;
+	if (_mesh == NULL)
+	{
+		return _worker;
+	}
+
+	smoothMesh();
+	return _worker;
+}
+
+QThread *Experiment::runInflateMesh()
+{
+	if (_mesh == NULL)
+	{
+		return _worker;
+	}
+
+	std::cout << "Inflating mesh" << std::endl;
+	inflateMesh();
+	return _worker;
+}
+
+void Experiment::meshStructure()
 {
 	if (_mesh == NULL)
 	{
@@ -124,9 +144,12 @@ QThread *Experiment::meshStructure()
 		_gl->addObject(mesh, false);
 		_mesh = mesh;
 	}
+}
 
-	refineMesh();
-	return _worker;
+void Experiment::relocateFliers(bool relocate)
+{
+	Refinement::setRelocateFliers(relocate);
+	_view->makeMenu();
 }
 
 void Experiment::chooseTarget(Target t)
@@ -156,7 +179,8 @@ bool Experiment::prepareWorkForMesh()
 
 	if (_worker && _worker->isRunning())
 	{
-		return false;
+		std::cout << "Waiting for worker to finish old job" << std::endl;
+		_worker->wait();
 	}
 	
 	if (!_worker)
@@ -259,7 +283,7 @@ Bound *Experiment::findBound(double x, double y)
 	return which;
 }
 
-void Experiment::hoverMouse(double x, double y)
+void Experiment::hoverMouse(double x, double y, bool shift)
 {
 	Bound *which = findBound(x, y);
 
@@ -275,7 +299,7 @@ void Experiment::hoverMouse(double x, double y)
 		_label->show();
 		_view->setCursor(Qt::PointingHandCursor);
 		
-		if (_passToResults && _explorer)
+		if (_passToResults && _explorer && !shift)
 		{
 			_explorer->highlightBound(which);
 		}
@@ -285,7 +309,7 @@ void Experiment::hoverMouse(double x, double y)
 		dehighlightAll();
 		_view->setCursor(Qt::CrossCursor);
 
-		if (_passToResults && _explorer)
+		if (_passToResults && _explorer && !shift)
 		{
 			_explorer->highlightBound(NULL);
 		}
@@ -333,18 +357,59 @@ void Experiment::checkDrag(double x, double y)
 	if (_selected == NULL || _selected->isFixed())
 	{
 		_dragging = false;
-		return;
+	}
+	else
+	{
+		double z = -FLT_MAX;
+		_dragging = _selected->intersects(x, y, &z);
 	}
 
-	double z = -FLT_MAX;
-
-	_dragging = _selected->intersects(x, y, &z);
+	_view->setCursor(_dragging ? Qt::ClosedHandCursor : 
+	                 Qt::PointingHandCursor);
 	
-	_view->setCursor(_dragging ? Qt::ClosedHandCursor : Qt::PointingHandCursor);
+	if (!_dragging)
+	{
+		_windowing = true;
+	}
+}
+
+void Experiment::updateWindow()
+{
+	double x1 = _winsx;
+	double y1 = _winsy;
+	double x2 = _winex;
+	double y2 = _winey;
+	_view->convertToViewCoords(&x1, &y1);
+	_view->convertToViewCoords(&x2, &y2);
+	_selWindow->setGeometry(x1, y1, (x2 - x1), (y2 - y1));
+	_selWindow->show();
+}
+
+void Experiment::drawWindow(double x, double y)
+{
+	if (_winsx < -1 && _winsy < -1)
+	{
+		_winsx = x;
+		_winsy = y;
+		_winex = x;
+		_winey = y;
+	}
+	else
+	{
+		_winex = x;
+		_winey = y;
+	}
+
+	updateWindow();
 }
 
 void Experiment::drag(double x, double y)
 {
+	if (_windowing)
+	{
+		drawWindow(x, y);
+	}
+
 	if (_selected == NULL || !_dragging)
 	{
 		return;
@@ -378,9 +443,22 @@ void Experiment::hideLabel()
 void Experiment::finishDragging()
 {
 	_dragging = false;
+	_windowing = false;
+
 	if (_selected)
 	{
 		_selected->snapToObject(_structure);
+	}
+	
+	if (_winsx >= -1 && _winsy >= -1)
+	{
+		if (_explorer)
+		{
+			_explorer->selectSubset(_winsx, _winsy, _winex, _winey);
+		}
+		_selWindow->hide();
+		_winsx = -2;
+		_winsy = -2;
 	}
 
 	_view->setCursor(Qt::OpenHandCursor);
@@ -491,9 +569,33 @@ void Experiment::selectFromMenu()
 	select(b, -1, -1);
 }
 
-void Experiment::svdRefine()
+void Experiment::refineFurther()
 {
-	refineModel(false, true);
+	if (_worker && _worker->isRunning())
+	{
+		std::cout << "Doing something else" << std::endl;
+		return;
+	}
+	
+	if (!_worker)
+	{
+		_worker = new QThread();
+	}
+
+	_refinement = new Refinement(this);
+	_refinement->setRandomiseFirst(false);
+	_refinement->moveToThread(_worker);
+
+	connect(this, SIGNAL(refine()),
+	        _refinement, SLOT(refine()));
+
+	connect(_refinement, SIGNAL(resultReady()), 
+	        this, SLOT(oneTimeResults()));
+	connect(_refinement, SIGNAL(failed()), 
+	        this, SLOT(handleError()));
+	_worker->start();
+
+	emit refine();
 }
 
 void Experiment::refineModel(bool fixedOnly, bool svd)
@@ -559,6 +661,29 @@ bool Experiment::isRunningMonteCarlo()
 	return !finished;
 }
 
+void Experiment::oneTimeResults()
+{
+	Refinement *obj = static_cast<Refinement *>(QObject::sender());
+
+	disconnect(this, SIGNAL(refine()), nullptr, nullptr);
+	disconnect(obj, SIGNAL(resultReady()), nullptr, nullptr);
+	disconnect(obj, SIGNAL(failed()), this, SLOT(handleError()));
+
+	double newest = Refinement::getScore(obj);
+
+	Result *result = new Result();
+	result->setExperiment(this);
+	result->savePositions();
+	result->setScore(fabs(newest));
+	_results.push_back(result);
+	_explorer->addResults(_results);
+	_results.clear();
+
+	obj->deleteLater();
+	_worker->quit();
+	_worker->wait();
+}
+
 void Experiment::handleResults()
 {
 	Refinement *obj = static_cast<Refinement *>(QObject::sender());
@@ -576,6 +701,8 @@ void Experiment::handleResults()
 	result->savePositions();
 	result->setScore(newest);
 	_results.push_back(result);
+	_explorer->addResults(_results);
+	_results.clear();
 
 	if (!finished)
 	{
@@ -637,7 +764,7 @@ void Experiment::handleMesh()
 	disconnect(obj, SIGNAL(resultReady()), this, SLOT(handleMesh()));
 
 	_worker->quit();
-	_worker->wait();
+//	_worker->wait();
 }
 
 void Experiment::handleError()
@@ -683,7 +810,16 @@ void Experiment::monteCarloRound()
 
 void Experiment::loadPositions(std::string filename)
 {
-	std::string contents = get_file_contents(filename);
+	std::string contents;
+	try
+	{
+		contents = get_file_contents(filename);
+	}
+	catch (int e)
+	{
+		std::cout << "Could not find file" << std::endl;
+		return;
+	}
 	
 	std::vector<std::string> lines = split(contents, '\n');
 	
@@ -764,10 +900,10 @@ QThread *Experiment::monteCarlo()
 	return _worker;
 }
 
-void Experiment::writeOutCSV()
+void Experiment::writeOutCSV(std::string filename)
 {
 	std::ofstream posicsv;
-	posicsv.open("positions.csv"); 
+	posicsv.open(filename); 
 	std::ofstream file;
 	file.open("model.csv"); 
 
@@ -978,8 +1114,9 @@ void Experiment::recolourByCSV(std::string filename)
 	}
 }
 
-bool Experiment::addNonCompetitor(std::vector<std::string> abs,
-                                  std::vector<std::string> &chain)
+void Experiment::addNonCompetitor(std::vector<std::string> abs,
+                                  std::vector<std::string> &chain,
+                                  std::vector<std::string> *addable)
 {
 	std::vector<std::string>::iterator loc;
 	for (size_t i = 0; i < abs.size(); i++)
@@ -1000,7 +1137,7 @@ bool Experiment::addNonCompetitor(std::vector<std::string> abs,
 				ok = false;
 			}
 
-			if (comp > 0.3)
+			if (comp > 0.2)
 			{
 				ok = false;
 			}
@@ -1008,12 +1145,9 @@ bool Experiment::addNonCompetitor(std::vector<std::string> abs,
 		
 		if (ok)
 		{
-			chain.push_back(abs[i]);
-			return true;
+			addable->push_back(abs[i]);
 		}
 	}
-
-	return false;
 }
 
 void Experiment::findNonCompetitors(std::vector<std::string> abs)
@@ -1031,26 +1165,42 @@ void Experiment::findNonCompetitors(std::vector<std::string> abs)
 	{
 		std::vector<std::string> chain;
 		chain.push_back(abs[i]);
+
+		std::vector<std::vector<std::string> > extendables;
+		extendables.push_back(chain);
+
+		size_t num = 0;
 		
-		bool more = true;
-		while (more)
+		while (num < extendables.size())
 		{
-			more = addNonCompetitor(abs, chain);
+			std::vector<std::string> addable;
+			addNonCompetitor(abs, extendables[num], &addable);
+			
+			for (size_t j = 0; j < addable.size(); j++)
+			{
+				std::vector<std::string> newchain;
+				newchain.reserve(extendables[num].size() + 1);
+				newchain.insert(newchain.begin(), extendables[num].begin(),
+				                extendables[num].end());
+				newchain.push_back(addable[j]);
+				extendables.push_back(newchain);
+			}
+			
+			if (addable.size() == 0 && extendables[num].size() > 1)
+			{
+				std::sort(extendables[num].begin(), extendables[num].end(), 
+				          std::less<std::string>());
+
+				for (size_t j = 0; j < extendables[num].size(); j++)
+				{
+					std::cout << extendables[num][j] << " " << std::flush;
+				}
+
+				std::cout << std::endl;
+			}
+
+			num++;
 		}
-		
-		if (chain.size() <= 1)
-		{
-			continue;
-		}
-		
-		std::sort(chain.begin(), chain.end(), std::less<std::string>());
-		
-		for (size_t j = 0; j < chain.size(); j++)
-		{
-			std::cout << chain[j] << " " << std::flush;
-		}
-		
-		std::cout << std::endl;
 	}
 }
 
@@ -1090,4 +1240,14 @@ void Experiment::plotDistanceCompetition()
 	}
 
 	file.close();
+}
+
+QThread *Experiment::worker()
+{
+	if (!_worker)
+	{
+		_worker = new QThread();
+	}
+
+	return _worker;
 }

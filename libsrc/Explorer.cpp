@@ -199,6 +199,30 @@ void Explorer::itemSelectionChanged()
 	}
 }
 
+void Explorer::selectSubset(double x1, double y1, double x2, double y2)
+{
+	std::vector<Result *> results;
+	results = _squiggle->findResultsBetween(x1, y1, x2, y2);
+
+	_widget->clearSelection();
+	QItemSelectionModel *model = _widget->selectionModel();
+	
+	for (size_t i = 0; i < results.size(); i++)
+	{
+		Result *r = results[i];
+		int index = _widget->indexOfTopLevelItem(r);
+
+		if (index >= 0)
+		{
+			QModelIndex idx = model->model()->index(index, 0);
+			model->select(idx, QItemSelectionModel::Rows 
+			              | QItemSelectionModel::Select);
+		}
+
+		r->setSelected(true);
+	}
+}
+
 void Explorer::highlightBound(Bound *bi)
 {
 	if (bi == NULL)
@@ -210,6 +234,7 @@ void Explorer::highlightBound(Bound *bi)
 	QList<QTreeWidgetItem *> list = _widget->selectedItems();
 	
 	std::vector<vec3> poz;
+	std::vector<Result *> results;
 
 	for (int i = 0; i < list.size(); i++)
 	{
@@ -217,9 +242,10 @@ void Explorer::highlightBound(Bound *bi)
 		Result *r = static_cast<Result *>(item);
 		vec3 pos = r->vecForBound(bi);
 		poz.push_back(pos);
+		results.push_back(r);
 	}
 	
-	_squiggle->setPositions(poz);
+	_squiggle->setPositions(poz, results);
 }
 
 void Explorer::render(SlipGL *gl)
@@ -583,7 +609,9 @@ void Explorer::summariseBounds()
 		
 		if (b->isFixed())
 		{
-			b->resize(0.5, true);
+			double rad = b->averageRadius();
+			double resize = 1 / rad;
+			b->resize(resize, true);
 			continue;
 		}
 		double rmsd = _map[b];

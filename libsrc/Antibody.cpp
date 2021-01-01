@@ -17,7 +17,9 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #include "Antibody.h"
+#include "Blast.h"
 #include <FileReader.h>
+#include <cmath>
 
 Antibody::Antibody(std::string name, std::string hv, std::string hj,
                    std::string hd, std::string lv, std::string lj)
@@ -28,7 +30,17 @@ Antibody::Antibody(std::string name, std::string hv, std::string hj,
 	_lv = split(lv, '/');
 	_lj = split(lj, '/');
 	_ab = name;
+	_sequence = false;
 }
+
+Antibody::Antibody(std::string name, std::string haa, std::string laa)
+{
+	_ab = name;
+	_haa = haa;
+	_laa = laa;
+	_sequence = true;
+}
+
 
 double compareGenes(std::string one, std::string two, double maxDrills)
 {
@@ -110,8 +122,13 @@ double Antibody::compareGeneSet(std::vector<std::string> &group1,
 	return biggest;
 }
 
-double Antibody::compareWithAntibody(Antibody *other)
+double Antibody::compareWithAntibody(Antibody *other, bool heavy)
 {
+	if (_sequence)
+	{
+		return compareSequences(other, heavy);
+	}
+
 	double accum = 0;
 
 	accum += compareGeneSet(_hv, other->_hv, 3);
@@ -124,4 +141,33 @@ double Antibody::compareWithAntibody(Antibody *other)
 	accum /= 10;
 	
 	return accum;
+}
+
+double Antibody::compareSequences(Antibody *other, bool heavy)
+{
+	std::string ohaa = other->_haa;
+	std::string olaa = other->_laa;
+	
+	int muts, dels;
+	int size = 0;
+	
+	if (heavy)
+	{
+		compare_sequences(_haa, ohaa, &muts, &dels);
+		size = _haa.length() + ohaa.length();
+	}
+	else
+	{
+		compare_sequences(_laa, olaa, &muts, &dels);
+		size = _laa.length() + olaa.length();
+	}
+
+	double distance = muts + dels;
+	distance /= size / 10;
+	
+	if (heavy) distance /= 2;
+
+	double score = exp(-(distance * distance));
+
+	return score;
 }
