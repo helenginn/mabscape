@@ -1,4 +1,4 @@
-project('abmap', 'cpp', 'c')
+project('mabscape', 'cpp', 'c')
 qt5 = import('qt5')
 
 qt5_dep = dependency('qt5', modules: ['Core', 'Gui', 'Widgets', 'Sql'], required : false)
@@ -42,7 +42,7 @@ moc_files = qt5.preprocess(moc_headers :
 ],
 			moc_extra_arguments: ['-DMAKES_MY_MOC_HEADER_COMPILE'])
 
-executable('abmap', gen_src, moc_files,
+executable('mabscape', gen_src, moc_files,
 'libsrc/main.cpp',
 'libsrc/Antibody.cpp',
 'libsrc/Bound.cpp',
@@ -74,7 +74,7 @@ kin_moc = qt5.preprocess(moc_headers :
 moc_extra_arguments: ['-DMAKES_MY_MOC_HEADER_COMPILE'])
 
 
-executable('abmap.kinetics', kin_moc,
+executable('mabscape.kinetics', kin_moc,
 'kinsrc/main.cpp',
 'kinsrc/Curve.cpp',
 'kinsrc/CurveView.cpp',
