@@ -315,7 +315,6 @@ void SurfaceView::mousePressEvent(QMouseEvent *e)
 	}
 }
 
-
 void SurfaceView::mouseMoveEvent(QMouseEvent *e)
 {
 	double x = e->x(); double y = e->y();
