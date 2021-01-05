@@ -369,7 +369,7 @@ void Structure::generateLookupGrid()
 	size_t per_stage = _dampening.size() / max_stages;
 	size_t stages = 0;
 
-	std::cout << "Populating dampening values: " << std::flush;
+	std::cout << "Generating quick lookup table: " << std::flush;
 	for (size_t i = 0; i < _dampening.size(); i++)
 	{
 		vec3 loc = findLocation(i);

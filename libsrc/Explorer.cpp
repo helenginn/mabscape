@@ -644,5 +644,7 @@ void Explorer::summariseBounds()
 		
 		b->recolourBoth(inverse, inverse, inverse);
 	}
+	
+	std::cout << "Average positions found." << std::endl;
 }
 
