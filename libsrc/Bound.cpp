@@ -24,7 +24,7 @@
 #include "Data.h"
 using namespace Helen3D;
 
-double Bound::_radius = 15.;
+double Bound::_radius = 22.;
 bool Bound::_updateOnRender = false;
 
 vec3 random_vec3(bool absolute = false)
@@ -239,7 +239,7 @@ double Bound::sigmoidalScoreWithOther(Bound *other, bool dampen)
 		dampening = _structure->getDampening(mid);
 	}
 
-	double inflection = 25.;
+	double inflection = _radius;
 	double slope = 6;
 	double step = 0.0;
 	double exponent = exp((inflection - x) / slope);
