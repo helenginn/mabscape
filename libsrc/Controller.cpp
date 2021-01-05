@@ -81,7 +81,8 @@ void Controller::jobDone()
 bool Controller::processNextArg(std::string arg)
 {
 	std::cout << std::endl;
-	std::cout << "Processing next arg: " << arg << std::endl;
+	std::cout << "Processing next arg: " << "\"" << arg << 
+	"\"" << std::endl;
 	std::string first, last;
 	splitCommand(arg, &first, &last);
 
@@ -207,6 +208,7 @@ bool Controller::processNextArg(std::string arg)
 		return true;
 	}
 	
+	std::cout << "Didn't find a rule to process: " << first << std::endl;
 	return true;
 }
 
@@ -219,7 +221,7 @@ void Controller::incrementJob()
 		result = processNextArg(_args[_currentJob]);
 		_currentJob++;
 		
-		if (_currentJob >= _args.size())
+		if ((size_t)_currentJob >= _args.size())
 		{
 			break;
 		}
