@@ -183,6 +183,16 @@ bool Controller::processNextArg(std::string arg)
 		_exp->getExplorer()->readResults(fn);
 		return true;
 	}
+	else if (first == "select-all")
+	{
+		_exp->getExplorer()->selectAll();
+		return true;
+	}
+	else if (first == "average-positions")
+	{
+		_exp->getExplorer()->summariseBounds();
+		return true;
+	}
 	else if (first == "patchwork")
 	{
 		std::string ab = last;
