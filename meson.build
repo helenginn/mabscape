@@ -7,7 +7,7 @@ dep_gl = dependency('gl', required : false)
 png_dep = dependency('libpng')
 boost_dep = dependency('boost')
 fftw_dep = dependency('fftw3f')
-dep_vag = dependency('libvag')
+dep_vgeom = dependency('libvgeom')
 dep_ccp4 = dependency('libccp4')
 dep_c4x = dependency('libcluster4x')
 dep_ica = dependency('libica')
@@ -60,7 +60,7 @@ executable('mabscape', gen_src, moc_files,
 'libsrc/Refinement.cpp',
 'libsrc/Result.cpp',
 cpp_args: ['-std=c++11'], dependencies : [ boost_dep, helen3d_dep, dep_vag, 
-	dep_c4x, png_dep, qt5_dep, dep_ica, dep_ccp4 ], install: true)
+	dep_c4x, png_dep, qt5_dep, dep_ica, dep_ccp4, dep_vgeom ], install: true)
 
 kin_moc = qt5.preprocess(moc_headers : 
 [
