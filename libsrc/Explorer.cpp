@@ -511,8 +511,12 @@ void Explorer::writePDB(std::string filename, bool value)
 		abs->setIdentity(j, "V", "ABS", "AB", num);
 		abs->addToMolecule(mol);
 		
-		std::cout << j << "\t" << b->name() << "\t" << rmsd 
-		<< " Å." << std::endl;
+		if (!value)
+		{
+			std::cout << j << "\t" << b->name() << "\t" << rmsd 
+			<< " Å." << std::endl;
+		}
+
 		header << "REMARK " << b->name() << " IS AB " << 
 		abs->getAtom()->getAtomNum() << std::endl;
 		
