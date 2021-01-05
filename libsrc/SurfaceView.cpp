@@ -362,7 +362,7 @@ void SurfaceView::mouseMoveEvent(QMouseEvent *e)
 		}
 		else
 		{
-			_gl->draggedLeftMouse(-xDiff * 4, -yDiff * 4);
+			_gl->draggedLeftMouse(xDiff * 4, yDiff * 4);
 		}
 	}
 	else if (_mouseButton == Qt::RightButton)
