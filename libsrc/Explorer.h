@@ -58,6 +58,8 @@ public:
 	void writeResultsToFile(std::string filename, bool all = false);
 	void readResults(std::string filename);
 	void abPatchwork(std::string id);
+public slots:
+	void summariseBounds();
 private slots:
 	void currentItemChanged(QTreeWidgetItem *current, 
 	                        QTreeWidgetItem *prev);
@@ -69,7 +71,6 @@ private slots:
 	void cluster4xChanged();
 	void patchworkArt();
 	void undoArt();
-	void summariseBounds();
 	void writePDB(std::string filename, bool value);
 private:
 	void makeExplorer();
