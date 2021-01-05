@@ -32,9 +32,10 @@
 #include <iomanip>
 #include <fstream>
 #include <algorithm>
-#include <AveCSV.h>
+#include <c4xsrc/AveCSV.h>
 #include <Group.h>
 #include <ClusterList.h>
+#include <mat4x4.h>
 #include <Screen.h>
 #include <float.h>
 #include <QLabel>
