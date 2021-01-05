@@ -164,8 +164,6 @@ double Antibody::compareSequences(Antibody *other, bool heavy)
 
 	double distance = muts + dels;
 	distance /= size / 10;
-	
-	if (heavy) distance /= 2;
 
 	double score = exp(-(distance * distance));
 
