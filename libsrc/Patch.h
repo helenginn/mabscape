@@ -19,10 +19,10 @@
 #ifndef __abmap__Patch__
 #define __abmap__Patch__
 
-#include <SlipObject.h>
+#include <helen3d/SlipObject.h>
 #include "PatchView.h"
 #include <QLabel>
-#include <vec3.h>
+#include <helen3d/vec3.h>
 #include <QtGui/qopengl.h>
 #include <QtGui/qopenglfunctions.h>
 

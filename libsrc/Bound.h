@@ -20,8 +20,8 @@
 #define __abmap__Bound__
 
 #include <mutex>
-#include <SlipObjFile.h>
-#include <Icosahedron.h>
+#include <helen3d/SlipObjFile.h>
+#include <helen3d/Icosahedron.h>
 
 class Structure;
 class SlipGL;

@@ -20,9 +20,9 @@
 #define __abmap__Structure__
 
 #include <Frameworks.h>
-#include <SlipObjFile.h>
-#include <vec3.h>
-#include <shared_ptrs.h>
+#include <helen3d/SlipObjFile.h>
+#include <helen3d/vec3.h>
+#include <libsrc/shared_ptrs.h>
 
 typedef std::map<int, std::vector<Helen3D::Vertex *>> AtomMap;
 typedef std::map<Helen3D::Vertex *, int> AtomSingleMap;

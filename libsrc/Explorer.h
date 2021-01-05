@@ -22,7 +22,7 @@
 #include <QMainWindow>
 #include <QTreeWidget>
 #include <map>
-#include <SlipObject.h>
+#include <helen3d/SlipObject.h>
 
 class MtzFile;
 class QPushButton;
