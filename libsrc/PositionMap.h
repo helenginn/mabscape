@@ -19,7 +19,7 @@
 #ifndef __abmap__PositionMap__
 #define __abmap__PositionMap__
 
-#include <vec3.h>
+#include <helen3d/vec3.h>
 class Bound;
 typedef std::map<Bound *, vec3> PositionMap;
 

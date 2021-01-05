@@ -18,7 +18,7 @@
 
 #include "Antibody.h"
 #include "Blast.h"
-#include <FileReader.h>
+#include <libsrc/FileReader.h>
 #include <cmath>
 
 Antibody::Antibody(std::string name, std::string hv, std::string hj,

@@ -18,9 +18,9 @@
 
 #include <iostream>
 #include "Bound.h"
-#include <RefinementStrategy.h>
+#include <helen3d/RefinementStrategy.h>
 #include "Structure.h"
-#include <Fibonacci.h>
+#include <libsrc/Fibonacci.h>
 #include "Data.h"
 using namespace Helen3D;
 

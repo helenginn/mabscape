@@ -16,14 +16,14 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
+#include <h3dsrc/Mesh.h>
 #include <libccp4/csymlib.h>
 #include "Structure.h"
 #include <iostream>
-#include <PDBReader.h>
-#include <Monomer.h>
-#include <Crystal.h>
-#include <Mesh.h>
-#include <Atom.h>
+#include <libsrc/PDBReader.h>
+#include <libsrc/Monomer.h>
+#include <libsrc/Crystal.h>
+#include <libsrc/Atom.h>
 
 using namespace Helen3D;
 

@@ -24,8 +24,8 @@
 #include <AveCSV.h>
 #include <Screen.h>
 #include "SurfaceView.h"
-#include "SlipGL.h"
-#include "Dialogue.h"
+#include <h3dsrc/SlipGL.h>
+#include <h3dsrc/Dialogue.h>
 #include "Genes.h"
 #include "Structure.h"
 #include "Refinement.h"

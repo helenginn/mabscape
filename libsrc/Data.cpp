@@ -17,10 +17,10 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #include "Data.h"
-#include <AveCSV.h>
+#include <c4xsrc/AveCSV.h>
 #include <iostream>
 #include <cmath>
-#include <FileReader.h>
+#include <libsrc/FileReader.h>
 
 std::map<std::string, MapStringDouble> Data::_relationships;
 std::map<std::string, MapStringDouble> Data::_finalValues;

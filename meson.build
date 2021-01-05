@@ -13,6 +13,7 @@ dep_ccp4 = dependency('libccp4')
 dep_c4x = dependency('libcluster4x')
 dep_ica = dependency('libica')
 helen3d_dep = dependency('helen3d')
+helencore_dep = dependency('helencore')
 
 cc = meson.get_compiler('c')
 m_dep = cc.find_library('m', required : false)
@@ -60,8 +61,9 @@ executable('mabscape', gen_src, moc_files,
 'libsrc/SurfaceView.cpp',
 'libsrc/Refinement.cpp',
 'libsrc/Result.cpp',
-cpp_args: ['-std=c++11'], dependencies : [ boost_dep, helen3d_dep, dep_vag, 
-	dep_c4x, png_dep, qt5_dep, dep_ica, dep_ccp4, dep_vgeom ], install: true)
+cpp_args: ['-std=c++11'], dependencies : [ boost_dep, helen3d_dep,
+helencore_dep, dep_vag, dep_c4x, png_dep, qt5_dep, dep_ica, 
+dep_ccp4, dep_vgeom ], install: true)
 
 kin_moc = qt5.preprocess(moc_headers : 
 [
