@@ -544,6 +544,24 @@ void Explorer::writePDB(std::string filename, bool value)
 	
 }
 
+void Explorer::selectAll()
+{
+	QItemSelectionModel *model = _widget->selectionModel();
+
+	for (size_t i = 0; i < _widget->topLevelItemCount(); i++)
+	{
+		QTreeWidgetItem *item = _widget->topLevelItem(i);
+		QModelIndex idx = model->model()->index(i, 0);
+		model->select(idx, QItemSelectionModel::Rows 
+		              | QItemSelectionModel::Select);
+		item->setSelected(true);
+	}
+	
+	itemSelectionChanged();
+	std::cout << "Selected " << _widget->topLevelItemCount() <<
+	" results." << std::endl;
+}
+
 void Explorer::summariseBounds()
 {
 	writePDB("average.pdb", false);

@@ -52,6 +52,7 @@ public:
 
 	void highlightBound(Bound *bi);
 	void selectSubset(double x1, double y1, double x2, double y2);
+	void selectAll();
 	
 	virtual void render(SlipGL *gl);
 	void writeResultsToFile(std::string filename, bool all = false);
