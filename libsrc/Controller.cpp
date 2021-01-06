@@ -224,6 +224,11 @@ bool Controller::processNextArg(std::string arg)
 
 void Controller::incrementJob()
 {
+	if (_args.size() == 0)
+	{
+		return;
+	}
+
 	bool result = true;
 	
 	while (result)
