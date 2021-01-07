@@ -21,7 +21,8 @@
 #include <iostream>
 #include <ClusterList.h>
 #include <FileReader.h>
-#include <AveCSV.h>
+#include <c4xsrc/AveCSV.h>
+#include <c4xsrc/Group.h>
 #include <Screen.h>
 #include "SurfaceView.h"
 #include <h3dsrc/SlipGL.h>
@@ -452,16 +453,29 @@ void SurfaceView::fixToSurfaceRefine()
 
 void SurfaceView::launchCluster4x()
 {
-	if (_screen == NULL)
+	if (_screen != NULL)
 	{
-		_screen = new Screen(NULL);
+		_screen->show();
 	}
 
+	_screen = new Screen(NULL);
 	_screen->setWindowTitle("cluster4x - abmap");
 	ClusterList *list = _screen->getList();
-	
 	AveCSV *csv = _experiment->csv();
-	list->getFromCSV(csv);
+	csv->setList(list);
+
+	csv->startNewCSV("Model");
+	_experiment->updateCSV(csv, 0);
+	csv->startNewCSV("Errors");
+	_experiment->updateCSV(csv, 2);
+
+	csv->preparePaths();
+	list->addCSVSwitcher();
+	csv->setChosen(0);
+
+	Group *top = Group::topGroup();
+	top->setCustomName("Data, model, errors");
+	top->updateText();
 
 	_screen->show();
 	makeMenu();

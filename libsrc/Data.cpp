@@ -290,6 +290,7 @@ void Data::updateCSV(AveCSV *csv)
 AveCSV *Data::getClusterCSV()
 {
 	AveCSV *csv = new AveCSV(NULL, "");
+	csv->startNewCSV("Data");
 	updateCSV(csv);
 	return csv;
 }

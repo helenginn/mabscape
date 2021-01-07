@@ -999,6 +999,18 @@ void Experiment::somethingToCluster4x(int data)
 	size_t count = list->groupCount();
 	Group *grp = list->group(count - 1);
 	AveCSV *csv = Group::topGroup()->getAveCSV();
+	if (data == 0)
+	{
+		AveCSV::setChosen("Model");
+	}
+	else if (data == 1)
+	{
+		AveCSV::setChosen("Data");
+	}
+	else if (data == 2)
+	{
+		AveCSV::setChosen("Errors");
+	}
 	updateCSV(csv, data);
 	_view->clusterScreen()->getList()->cluster(grp);
 }

@@ -164,7 +164,8 @@ void Explorer::currentItemChanged(QTreeWidgetItem *current,
 
 	Result *r = static_cast<Result *>(current);
 	r->applyPositions();
-	_experiment->somethingToCluster4x(false);
+	_experiment->somethingToCluster4x(0);
+	_experiment->somethingToCluster4x(2);
 }
 
 void Explorer::itemSelectionChanged()
@@ -275,7 +276,18 @@ void Explorer::makeCluster()
 		_connections[fft->getMtzFile()] = r;
 	}
 	
-	_screen->getList()->makeGroup(datasets);
+	std::string num = i_to_str(list.size());
+	std::string custom = num + " mabscape solutions";
+	
+	Group *grp = _screen->getList()->makeGroup(datasets);
+	
+	if (grp != NULL)
+	{
+		grp->useAverageType(AveCA);
+		grp->useAverageGroup(GroupMe);
+		grp->setCustomName(custom);
+		grp->updateText();
+	}
 }
 
 void Explorer::cluster4xChanged()
