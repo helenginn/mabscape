@@ -405,3 +405,33 @@ void Bound::setSpecial(bool special)
 	}
 }
 
+void Bound::colourByValue(double stdev)
+{
+	double val = _value / stdev;
+	double red = 0;
+	double green = 0;
+	double blue = 0;
+
+	if (val != val) /* we go grey */
+	{
+		red = 100;
+		green = 100;
+		blue = 100;
+	}
+	else if (val < 0.0)
+	{
+		/* we go blue. */
+		red = 255 - val * 255;
+		green = 255 - val * 255;
+		blue = 255;
+	}
+	else if (val >= 0.0) /* We go red. */
+	{
+		red = 255;
+		green = 255 - val * 255;
+		blue = 255 - val * 255;
+	}
+
+	red /= 255; green /= 255; blue /= 255;
+	setColour(red, green, blue);
+}

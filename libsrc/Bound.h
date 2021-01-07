@@ -52,6 +52,7 @@ public:
 	
 	void setSnapping(bool snapping);
 	virtual void render(SlipGL *gl);
+	void colourByValue(double stdev = 1);
 	
 	static void updateOnRender(bool render)
 	{

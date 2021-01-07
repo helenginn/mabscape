@@ -1068,6 +1068,12 @@ void Experiment::recolourByCSV(std::string filename)
 	double sum = 0;
 	double sqSum = 0;
 	double count = 0;
+	
+	for (size_t i = 0; i < _bounds.size(); i++)
+	{
+		Bound *b = bound(i);
+		b->setValue(NAN);
+	}
 
 	for (size_t i = 0; i < lines.size(); i++)
 	{
@@ -1109,8 +1115,8 @@ void Experiment::recolourByCSV(std::string filename)
 
 		if (b != NULL)
 		{
-			b->setColour(-value, -value, 0);
 			b->setValue(value);
+			b->colourByValue(3.);
 		}
 	}
 }
