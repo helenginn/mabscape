@@ -416,35 +416,6 @@ void Explorer::chooseAndReadResults()
 	readResults(filename);
 }
 
-void Explorer::patchworkArt()
-{
-	undoArt();
-	Structure *s = _experiment->structure();
-//	s->triangulate();
-
-	QList<QTreeWidgetItem *> list = _widget->selectedItems();
-	
-	for (size_t j = 0; j < _experiment->boundCount(); j++)
-	{
-		Bound *b = _experiment->bound(j);
-
-		for (int i = 0; i < list.size(); i++)
-		{
-			QTreeWidgetItem *item = list[i];
-			Result *r = static_cast<Result *>(item);
-			r->markVerticesAroundBound(s, b);
-		}
-		
-		s->convertExtraToColour();
-	}
-
-	for (size_t i = 0; i < _experiment->boundCount(); i++)
-	{
-		Bound *bi = _experiment->bound(i);
-		bi->setAlpha(0.);
-	}
-}
-
 void Explorer::undoArt()
 {
 	for (size_t j = 0; j < _experiment->boundCount(); j++)

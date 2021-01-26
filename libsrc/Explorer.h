@@ -69,7 +69,6 @@ private slots:
 	void chooseAndReadResults();
 	void writeResults();
 	void cluster4xChanged();
-	void patchworkArt();
 	void undoArt();
 	void writePDB(std::string filename, bool value);
 private:
@@ -86,7 +85,6 @@ private:
 	QPushButton *_writeResults;
 	QPushButton *_readResults;
 	QPushButton *_clearClusters;
-	QPushButton *_patchwork;
 	QPushButton *_summarise;
 	QPushButton *_undoArt;
 };
