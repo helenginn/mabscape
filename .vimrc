@@ -1,4 +1,4 @@
-set path=./,libsrc/**,kinsrc/**,
+set path=kinsrc/**,~/vagabond/c4xsrc/**,~/vagabond/subprojects/**,./,libsrc/**,
 
 command! Tags !ctags -R kinsrc/* libsrc/*
 command! Ninja :wa|!ninja -C build/current
