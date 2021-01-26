@@ -156,13 +156,13 @@ void Experiment::meshStructure()
 void Experiment::relocateFliers(bool relocate)
 {
 	Refinement::setRelocateFliers(relocate);
-	_view->makeMenu();
+//	_view->makeMenu();
 }
 
 void Experiment::chooseTarget(Target t)
 {
 	Refinement::chooseTarget(t);
-	_view->makeMenu();
+//	_view->makeMenu();
 }
 
 void Experiment::triangulateStructure()
