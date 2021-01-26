@@ -308,10 +308,21 @@ double Structure::recalculateDampening(vec3 loc)
 	return val;
 }
 
-vec3 Structure::lookupVertexPtr(vec3 pos)
+vec3 Structure::nearestNormal(vec3 pos, bool useMesh)
+{
+	Vertex *vClose = nearestVertexPtr(pos, useMesh);
+	vec3 v = vec_from_pos(vClose->normal);
+	return v;
+}
+
+vec3 Structure::lookupVertexPtr(vec3 pos, bool wantNormal)
 {
 	if (mesh() == NULL)
 	{
+		if (wantNormal)
+		{
+			return nearestNormal(pos, true);
+		}
 		return nearestVertex(pos, true);
 	}
 
@@ -322,6 +333,10 @@ vec3 Structure::lookupVertexPtr(vec3 pos)
   
 	if (!checkLocation(pos))
 	{
+		if (wantNormal)
+		{
+			return nearestNormal(pos, true);
+		}
 		return nearestVertex(pos, true);
 	}
 
@@ -331,9 +346,14 @@ vec3 Structure::lookupVertexPtr(vec3 pos)
 	
 	if (_vertexPtrs[n].size() == 0)
 	{
+		if (wantNormal)
+		{
+			return nearestNormal(pos, true);
+		}
 		return nearestVertex(pos, true);
 	}
 	
+	int best_i = -1;
 	for (size_t i = 0; i < _vertexPtrs[n].size(); i++)
 	{
 		vec3 near = _vertexPtrs[n][i];
@@ -351,6 +371,19 @@ vec3 Structure::lookupVertexPtr(vec3 pos)
 		{
 			closest = length;
 			vClose = near;
+			best_i = i;
+		}
+	}
+
+	if (wantNormal)
+	{
+		if (best_i >= 0)
+		{
+			return _normalPtrs[n][best_i];
+		}
+		else
+		{
+			return nearestNormal(pos, true);
 		}
 	}
 	
@@ -380,6 +413,7 @@ void Structure::generateLookupGrid()
 	if (mesh() != NULL)
 	{
 		_vertexPtrs.resize(_nz * _ny * _nx);
+		_normalPtrs.resize(_nz * _ny * _nx);
 	}
 	
 	int max_stages = 100;
@@ -393,6 +427,8 @@ void Structure::generateLookupGrid()
 		_dampening[i] = recalculateDampening(loc);
 
 		double close = 5.0;
+		vec3 normtot = empty_vec3();
+		double count = 0;
 		for (size_t j = 0; mesh() != NULL && j < mesh()->vertexCount(); j++)
 		{
 			Helen3D::Vertex v = mesh()->vertex(j);
@@ -412,9 +448,12 @@ void Structure::generateLookupGrid()
 			{
 				vec3 nearest = vec_from_pos(v.pos);
 				_vertexPtrs[i].push_back(nearest);
+
+				vec3 normal = vec_from_pos(v.normal);
+				_normalPtrs[i].push_back(normal);
 			}
 		}
-
+		
 		if (i > stages + per_stage)
 		{
 			stages += per_stage;

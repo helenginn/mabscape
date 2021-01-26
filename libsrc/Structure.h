@@ -42,7 +42,7 @@ public:
 	double getDampening(vec3 loc);
 	double recalculateDampening(vec3 loc);
 	virtual void triangulate();
-	vec3 lookupVertexPtr(vec3 pos);
+	vec3 lookupVertexPtr(vec3 pos, bool wantNormal = false);
 
 	void addPDB(std::string filename);
 	void turtleShell();
@@ -75,6 +75,7 @@ signals:
 	void resultReady();
 
 private:
+	vec3 nearestNormal(vec3 pos, bool useMesh);
 	long findIndex(vec3 loc);
 	void generateLookupGrid();
 	bool checkLocation(vec3 loc);
@@ -86,6 +87,7 @@ private:
 
 	std::vector<double> _dampening;
 	std::vector<std::vector<vec3> > _vertexPtrs;
+	std::vector<std::vector<vec3> > _normalPtrs;
 	vec3 _min;
 	vec3 _max;
 	int _nx, _ny, _nz;
