@@ -92,6 +92,11 @@ public:
 		return _nameMap[name];
 	}
 	
+	std::vector<Bound *> bounds()
+	{
+		return _bounds;
+	}
+	
 	Structure *structure()
 	{
 		return _structure;
