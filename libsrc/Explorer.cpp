@@ -519,8 +519,21 @@ void Explorer::writePDB(std::string filename, bool value)
 		
 		double val = b->getValue();
 		AbsolutePtr abs = AbsolutePtr(new Absolute(mean, rmsd, "HG", val));
-		double num = j;
-		abs->setIdentity(j, "V", "ABS", "AB", num);
+		
+		int num = 0;
+		std::string name = b->name();
+		
+		for (size_t i = 0; i < name.length(); i++)
+		{
+			if (name[i] >= '0' && name[i] <= '9')
+			{
+				char *n = &name[i];
+				num = atoi(n);
+				break;
+			}
+		}
+
+		abs->setIdentity(num, "V", "ABS", "AB", num);
 		abs->addToMolecule(mol);
 		
 		if (!value)
@@ -529,7 +542,7 @@ void Explorer::writePDB(std::string filename, bool value)
 			<< " Å." << std::endl;
 		}
 
-		header << "REMARK " << b->name() << " IS AB " << 
+		header << "REMARK " << b->name() << " IS AB    " << 
 		abs->getAtom()->getAtomNum() << std::endl;
 		
 		if (b->isFixed())
