@@ -615,7 +615,6 @@ void Experiment::refineModel(bool fixedOnly, bool svd)
 	_refinement->moveToThread(_worker);
 
 	_refinement->setFixedOnly(fixedOnly);
-	_refinement->setConvert(svd);
 
 	connect(this, SIGNAL(refine()),
 	        _refinement, SLOT(refine()));

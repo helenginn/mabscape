@@ -42,7 +42,6 @@ Refinement::Refinement(Experiment *expt)
 	{
 		_data = expt->getData();
 	}
-	_convert = false;
 	_pause = false;
 	_randomiseFirst = true;
 	
@@ -391,7 +390,6 @@ void Refinement::refine()
 
 	std::cout << std::endl;
 
-	Bound::updateOnRender(false);
 	resultReady();
 }
 

@@ -65,11 +65,6 @@ public:
 		_fixedOnly = only;
 	}
 	
-	void setConvert(bool conv)
-	{
-		_convert = conv;
-	}
-	
 	void setRandomiseFirst(bool rand)
 	{
 		_randomiseFirst = rand;
@@ -104,7 +99,6 @@ private:
 	double partialScore(Bound *bi);
 	double _cycleNum;
 	bool _fixedOnly;
-	bool _convert;
 	bool _pause;
 	bool _randomiseFirst;
 
