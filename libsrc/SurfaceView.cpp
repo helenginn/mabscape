@@ -491,6 +491,7 @@ void SurfaceView::loadCoords()
 	std::string filename = openDialogue(this, "Load structure coordinates", 
 	                                    "Protein data bank file (*.pdb)");
 	_experiment->loadStructureCoords(filename);
+	makeMenu();
 }
 
 void SurfaceView::unrestrainedRefine()
