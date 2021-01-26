@@ -298,6 +298,12 @@ void SurfaceView::loadMetadata()
 	std::string filename = openDialogue(this, "Choose metadata CSV", 
 	                                    "Comma-separated values (*.csv)",
 	                                    false);
+
+	if (!checkFileIsValid(filename, false))
+	{
+		return;
+	}
+
 	_metadata->setFilename(filename);
 	_metadata->loadBounds(_experiment->bounds());
 	_metadata->load();
@@ -456,6 +462,12 @@ void SurfaceView::writeOutPositions()
 	std::string filename = openDialogue(this, "Choose position CSV", 
 	                                    "Comma-separated values (*.csv)",
 	                                    true);
+
+	if (!checkFileIsValid(filename, true))
+	{
+		return;
+	}
+
 	_experiment->writeOutCSV(filename);
 	
 	makeMenu();
@@ -465,6 +477,12 @@ void SurfaceView::loadPositions()
 {
 	std::string filename = openDialogue(this, "Choose position CSV", 
 	                                    "Comma-separated values (*.csv)");
+
+	if (!checkFileIsValid(filename, false))
+	{
+		return;
+	}
+
 	_experiment->loadPositions(filename);
 	
 	makeMenu();
@@ -474,6 +492,12 @@ void SurfaceView::loadCSV()
 {
 	std::string filename = openDialogue(this, "Choose competition data CSV", 
 	                                    "Comma-separated values (*.csv)");
+
+	if (!checkFileIsValid(filename, false))
+	{
+		return;
+	}
+
 	_experiment->loadCSV(filename);
 	
 	makeMenu();
@@ -483,6 +507,12 @@ void SurfaceView::loadSurface()
 {
 	std::string filename = openDialogue(this, "Load surface file", 
 	                                    "Wavefront object file (*.obj)");
+
+	if (!checkFileIsValid(filename, false))
+	{
+		return;
+	}
+
 	_experiment->loadStructure(filename);
 }
 
@@ -490,6 +520,12 @@ void SurfaceView::loadCoords()
 {
 	std::string filename = openDialogue(this, "Load structure coordinates", 
 	                                    "Protein data bank file (*.pdb)");
+
+	if (!checkFileIsValid(filename, false))
+	{
+		return;
+	}
+
 	_experiment->loadStructureCoords(filename);
 	makeMenu();
 }
@@ -554,6 +590,12 @@ void SurfaceView::identifyNonCompetitors()
 {
 	std::string filename = openDialogue(this, "Choose comma-separated antibodies", 
 	                                    "Comma-separated values (*.csv)");
+
+	if (!checkFileIsValid(filename, false))
+	{
+		return;
+	}
+
 	if (filename.length() == 0)
 	{
 		return;
@@ -584,6 +626,12 @@ void SurfaceView::loadGenes()
 {
 	std::string filename = openDialogue(this, "Choose formatted genes", 
 	                                    "Comma-separated values (*.csv)");
+
+	if (!checkFileIsValid(filename, false))
+	{
+		return;
+	}
+
 	if (filename.length() == 0)
 	{
 		return;
@@ -596,6 +644,12 @@ void SurfaceView::loadSequences()
 {
 	std::string filename = openDialogue(this, "Choose formatted genes", 
 	                                    "Comma-separated values (*.csv)");
+
+	if (!checkFileIsValid(filename, false))
+	{
+		return;
+	}
+
 	if (filename.length() == 0)
 	{
 		return;
