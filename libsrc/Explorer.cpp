@@ -447,9 +447,6 @@ void Explorer::patchworkArt()
 
 void Explorer::undoArt()
 {
-	Structure *s = _experiment->structure();
-	s->recolour(0, 0.5, 0.5);
-
 	for (size_t j = 0; j < _experiment->boundCount(); j++)
 	{
 		Bound *b = _experiment->bound(j);
