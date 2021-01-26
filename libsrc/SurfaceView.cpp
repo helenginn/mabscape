@@ -54,8 +54,7 @@ SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 	
 	makeMenu();
 
-	resize(1000, 1000);
-	setFocus();
+	resize(600, 600);
 	setMouseTracking(true);
 	_gl->setMouseTracking(true);
 }
