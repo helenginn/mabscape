@@ -26,7 +26,6 @@
 using namespace Helen3D;
 
 double Bound::_radius = 13.;
-bool Bound::_updateOnRender = false;
 
 vec3 random_vec3(bool absolute = false)
 {
@@ -142,13 +141,6 @@ vec3 Bound::getWorkingPosition()
 	else
 	{
 		vec3 nearest;
-		if (_updateOnRender)
-		{
-			std::lock_guard<std::mutex> l(_mutex);
-			nearest = _structure->nearestVertex(_realPosition);
-			return nearest;
-		}
-
 		nearest = _structure->nearestVertex(_realPosition);
 		return nearest;
 	}

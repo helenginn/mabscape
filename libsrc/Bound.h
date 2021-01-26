@@ -54,11 +54,6 @@ public:
 	virtual void render(SlipGL *gl);
 	void colourByValue(double stdev = 1);
 	
-	static void updateOnRender(bool render)
-	{
-		_updateOnRender = render;
-	}
-	
 	void setStructure(Structure *s)
 	{
 		_structure = s;
@@ -73,69 +68,33 @@ public:
 	
 	static double getPosX(void *object)
 	{
-		if (_updateOnRender)
-		{
-			Bound *b = static_cast<Bound *>(object);
-			std::lock_guard<std::mutex> l(b->_mutex);
-			return static_cast<Bound *>(object)->_realPosition.x;
-		}
 
 		return static_cast<Bound *>(object)->_realPosition.x;
 	}
 	
 	static double getPosY(void *object)
 	{
-		if (_updateOnRender)
-		{
-			Bound *b = static_cast<Bound *>(object);
-			std::lock_guard<std::mutex> l(b->_mutex);
-			return static_cast<Bound *>(object)->_realPosition.y;
-		}
 
 		return static_cast<Bound *>(object)->_realPosition.y;
 	}
 
 	static double getPosZ(void *object)
 	{
-		if (_updateOnRender)
-		{
-			Bound *b = static_cast<Bound *>(object);
-			std::lock_guard<std::mutex> l(b->_mutex);
-			return static_cast<Bound *>(object)->_realPosition.z;
-		}
 		return static_cast<Bound *>(object)->_realPosition.z;
 	}
 
 	static void setPosX(void *object, double x)
 	{
-		if (_updateOnRender)
-		{
-			Bound *b = static_cast<Bound *>(object);
-			std::lock_guard<std::mutex> l(b->_mutex);
-			static_cast<Bound *>(object)->_realPosition.x = x;
-		}
 		static_cast<Bound *>(object)->_realPosition.x = x;
 	}
 
 	static void setPosY(void *object, double y)
 	{
-		if (_updateOnRender)
-		{
-			Bound *b = static_cast<Bound *>(object);
-			std::lock_guard<std::mutex> l(b->_mutex);
-			static_cast<Bound *>(object)->_realPosition.y = y;
-		}
 		static_cast<Bound *>(object)->_realPosition.y = y;
 	}
 
 	static void setPosZ(void *object, double z)
 	{
-		if (_updateOnRender)
-		{
-			Bound *b = static_cast<Bound *>(object);
-			std::lock_guard<std::mutex> l(b->_mutex);
-			static_cast<Bound *>(object)->_realPosition.z = z;
-		}
 		static_cast<Bound *>(object)->_realPosition.z = z;
 	}
 	
@@ -183,7 +142,6 @@ private:
 	bool _snapping;
 	bool _fixed;
 	bool _special;
-	static bool _updateOnRender;
 
 	double _value;
 };
