@@ -54,7 +54,7 @@ Bound::Bound(std::string filename) : Icosahedron()
 	_special = false;
 	_snapping = false;
 	_fixed = false;
-	setColour(0.8, 0.8, 0.8);
+	setColour(0.7, 0.7, 0.7);
 	triangulate();
 	resize(2);
 	_central = true;
