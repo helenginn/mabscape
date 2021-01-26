@@ -99,12 +99,21 @@ void SurfaceView::makeMenu()
 	act = structure->addAction(tr("Load antigen coordinates"));
 	connect(act, &QAction::triggered, this, &SurfaceView::loadCoords);
 	_actions.push_back(act);
-	/*
+	
 	act = structure->addAction(tr("Triangulate structure"));
 	connect(act, &QAction::triggered, _experiment, 
 	        &Experiment::triangulateStructure);
 	_actions.push_back(act);
-	*/
+	
+	act = structure->addAction(tr("Highlight residues"));
+	connect(act, &QAction::triggered, this, 
+	        &SurfaceView::highlightResidues);
+	if (!_experiment->structure() ||
+	    !_experiment->structure()->hasResidues())
+	{
+		act->setDisabled(true);
+	}
+	_actions.push_back(act);
 
 	structure->addSeparator();
 	act = structure->addAction(tr("Make collision mesh"));
@@ -137,6 +146,7 @@ void SurfaceView::makeMenu()
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::launchCluster4x);
 
+	/*
 	act = data->addAction(tr("Data to cluster4x"));
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::dataToCluster4x);
@@ -146,6 +156,7 @@ void SurfaceView::makeMenu()
 	act = data->addAction(tr("Errors to cluster4x"));
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::errorsToCluster4x);
+	*/
 
 	_binders = menuBar()->addMenu(tr("&Antibodies"));
 	_menus.push_back(_binders);
@@ -253,6 +264,13 @@ void SurfaceView::makeMenu()
 	act->setChecked(relocate);
 	connect(act, &QAction::triggered, _experiment, 
 	[=]() { _experiment->relocateFliers(!relocate); });
+
+	/*
+	act = refine->addAction(tr("Enable elbow angles"));
+	_actions.push_back(act);
+	connect(act, &QAction::triggered, _experiment, 
+	[=]() {_experiment->enableElbows();});
+	*/
 }
 
 void SurfaceView::convertCoords(double *x, double *y)
