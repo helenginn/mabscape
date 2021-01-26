@@ -436,7 +436,18 @@ void SurfaceView::mouseReleaseEvent(QMouseEvent *e)
 	{
 		_experiment->finishDragging();
 	}
-	
+
+	if (!_moving && e->button() == Qt::RightButton
+	    && _experiment->getSelected() != NULL)
+	{
+		QMenu *menu = new QMenu;
+		menu->addAction("Recolour others by error", _experiment,  
+		                SLOT(recolourByBoundErrors()));
+
+		menu->exec(e->globalPos());
+
+	}
+
 	_mouseButton = Qt::NoButton;
 }
 
