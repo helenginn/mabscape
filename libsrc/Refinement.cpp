@@ -334,10 +334,7 @@ void Refinement::refine()
 		ref->setCycles(2000);
 		ref->setEvaluationFunction(Refinement::getScore, this);
 		
-		if (!_convert)
-		{
-			ref->setPartialEvaluation(Refinement::getPartialScore);
-		}
+		ref->setPartialEvaluation(Refinement::getPartialScore);
 
 		ref->setSilent(true);
 		ref->refine();
