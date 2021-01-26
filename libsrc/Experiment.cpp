@@ -349,7 +349,7 @@ void Experiment::deselectAll()
 {
 	for (size_t i = 0; i < _bounds.size(); i++)
 	{
-		_bounds[i]->setSelected(false);
+		_bounds[i]->selectMe(false);
 	}
 	
 	_selected = NULL;
@@ -359,7 +359,7 @@ void Experiment::deselectAll()
 void Experiment::select(Bound *bound, double x, double y)
 {
 	_selected = bound;
-	bound->setSelected(true);
+	bound->selectMe(true);
 	QString name = QString::fromStdString(bound->name());
 	_view->convertToViewCoords(&x, &y);
 

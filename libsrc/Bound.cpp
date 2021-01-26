@@ -350,3 +350,12 @@ void Bound::randomiseElbow()
 	_elbowAngle = deg2rad((double)(rand() % 360));
 }
 
+void Bound::selectMe(bool sel)
+{
+	setSelected(sel);
+	
+	if (_arrow)
+	{
+		_arrow->setSelected(sel);
+	}
+}

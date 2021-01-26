@@ -128,6 +128,8 @@ public:
 	
 	void randomiseElbow();
 	
+	void selectMe(bool sel);
+	
 	void setSpecial(bool special);
 	void colourFixed();
 	
