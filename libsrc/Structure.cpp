@@ -24,14 +24,18 @@
 #include <libsrc/Monomer.h>
 #include <libsrc/Crystal.h>
 #include <libsrc/Atom.h>
+#include <libsrc/shaders/vStructure.h>
+#include <libsrc/shaders/fStructure.h>
 
 using namespace Helen3D;
 
 Structure::Structure(std::string filename) : SlipObjFile(filename)
 {
+	_vString = Structure_vsh();
+	_fString = Structure_fsh();
 	resize(1);
 	setName("Structure");
-	recolour(0, 0.5, 0.5);
+	recolour(0.4, 0.1, 0.4);
 	_triangulation = 0;
 	
 	bool collapsed = collapseCommonVertices();
