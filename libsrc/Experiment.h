@@ -174,6 +174,7 @@ public slots:
 	void smoothMesh();
 	void inflateMesh();
 	void triangulateMesh();
+	void triangulateStructure();
 	void meshStructure();
 	QThread *runSmoothMesh();
 	QThread *runInflateMesh();
