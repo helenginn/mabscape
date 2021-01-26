@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ $# -eq 0 ]; then
+	exit
+fi
+
 vagabond_version=`grep 'VAGABOND_VERSION_NUMBER' $1 | cut -d' ' -f3`
 vagabond_commit="notcompiledfromgit"
 
