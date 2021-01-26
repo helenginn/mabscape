@@ -66,12 +66,12 @@ public:
 		return _radius;
 	}
 	
-	void addToStrategy(RefinementStrategy *str);
 	static void setRadius(void *object, double r)
 	{
 		_radius = r;
 	}
 	
+	void addToStrategy(RefinementStrategy *str, bool elbow = false);
 	
 	static double getPosX(void *object)
 	{
@@ -103,6 +103,16 @@ public:
 	static void setPosZ(void *object, double z)
 	{
 		static_cast<Bound *>(object)->_realPosition.z = z;
+	}
+
+	static void setElbowAngle(void *object, double a)
+	{
+		static_cast<Bound *>(object)->_elbowAngle = a;
+	}
+	
+	static double getElbowAngle(void *object)
+	{
+		return static_cast<Bound *>(object)->_elbowAngle;
 	}
 	
 	vec3 getWorkingPosition();

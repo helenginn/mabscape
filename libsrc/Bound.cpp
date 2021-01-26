@@ -226,7 +226,7 @@ void Bound::render(SlipGL *gl)
 	}
 }
 
-void Bound::addToStrategy(RefinementStrategy *str)
+void Bound::addToStrategy(RefinementStrategy *str, bool elbow)
 {
 	if (_fixed)
 	{
@@ -235,12 +235,21 @@ void Bound::addToStrategy(RefinementStrategy *str)
 
 	double step = 10;
 	double tol = 0.01;
-	str->addParameter(this, Bound::getPosX, Bound::setPosX,
-	                  (rand() % 2 - 0.5) * step, tol, name() + "_x");
-	str->addParameter(this, Bound::getPosY, Bound::setPosY,
-	                  (rand() % 2 - 0.5) * step, tol, name() + "_y");
-	str->addParameter(this, Bound::getPosZ, Bound::setPosZ,
-	                  (rand() % 2 - 0.5) * step, tol, name() + "_z");
+	if (!elbow)
+	{
+		str->addParameter(this, Bound::getPosX, Bound::setPosX,
+		                  (rand() % 2 - 0.5) * step, tol, name() + "_x");
+		str->addParameter(this, Bound::getPosY, Bound::setPosY,
+		                  (rand() % 2 - 0.5) * step, tol, name() + "_y");
+		str->addParameter(this, Bound::getPosZ, Bound::setPosZ,
+		                  (rand() % 2 - 0.5) * step, tol, name() + "_z");
+	}
+	
+	if (elbow && _arrow != NULL)
+	{
+		str->addParameter(this, Bound::getElbowAngle, Bound::setElbowAngle,
+		                  deg2rad(90.), deg2rad(2.), name() + "elbow");
+	}
 }
 
 void Bound::setRealPosition(vec3 real)
