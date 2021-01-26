@@ -97,6 +97,11 @@ public:
 		return _bounds;
 	}
 	
+	Bound *getSelected()
+	{
+		return _selected;
+	}
+	
 	Structure *structure()
 	{
 		return _structure;
