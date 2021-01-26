@@ -102,6 +102,7 @@ public slots:
 private slots:
 	void pause();
 	void loadCSV();
+	void bitMoreRefine();
 	void loadMetadata();
 	void loadPositions();
 	void loadSequences();
@@ -110,8 +111,6 @@ private slots:
 	void errorsToCluster4x();
 	void highlightResidues();
 	void writeOutPositions();
-	void unrestrainedRefine();
-	void fixToSurfaceRefine();
 	void identifyNonCompetitors();
 	void plotDistanceCompetition();
 private:

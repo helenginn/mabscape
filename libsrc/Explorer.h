@@ -57,20 +57,18 @@ public:
 	virtual void render(SlipGL *gl);
 	void writeResultsToFile(std::string filename, bool all = false);
 	void readResults(std::string filename);
-	void abPatchwork(std::string id);
 public slots:
 	void summariseBounds();
 private slots:
-	void currentItemChanged(QTreeWidgetItem *current, 
-	                        QTreeWidgetItem *prev);
 	void clear();
-	void itemSelectionChanged();
+	void undoArt();
 	void makeCluster();
-	void chooseAndReadResults();
 	void writeResults();
 	void cluster4xChanged();
-	void undoArt();
+	void itemSelectionChanged();
+	void chooseAndReadResults();
 	void writePDB(std::string filename, bool value);
+	void currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *prev);
 private:
 	void makeExplorer();
 	void updateTitle();

@@ -202,9 +202,9 @@ void SurfaceView::makeMenu()
 
 	QMenu *refine = menuBar()->addMenu(tr("&Refine"));
 	_menus.push_back(refine);
-	act = refine->addAction(tr("&Refine from here"));
+	act = refine->addAction(tr("&Refine this a bit more"));
 	_actions.push_back(act);
-	connect(act, &QAction::triggered, this, &SurfaceView::unrestrainedRefine);
+	connect(act, &QAction::triggered, this, &SurfaceView::bitMoreRefine);
 
 	QMenu *mc = refine->addMenu(tr("&Monte Carlo"));
 	_menus.push_back(mc);
@@ -526,16 +526,10 @@ void SurfaceView::loadCoords()
 	makeMenu();
 }
 
-void SurfaceView::unrestrainedRefine()
+void SurfaceView::bitMoreRefine()
 {
 	_experiment->refineFurther();
 }
-
-void SurfaceView::fixToSurfaceRefine()
-{
-	_experiment->refineModel(true);
-}
-
 
 void SurfaceView::launchCluster4x()
 {
