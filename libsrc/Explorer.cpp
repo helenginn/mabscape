@@ -261,6 +261,7 @@ void Explorer::makeCluster()
 	if (_screen == NULL)
 	{
 		_experiment->getView()->launchCluster4x();
+		_screen = _experiment->getView()->clusterScreen();
 	}
 
 	QList<QTreeWidgetItem *> list = _widget->selectedItems();
