@@ -68,7 +68,8 @@ executable('mabscape', gen_src, moc_files,
 'libsrc/Result.cpp',
 cpp_args: ['-std=c++11'], dependencies : [ boost_dep, helen3d_dep,
 helencore_dep, dep_vag, dep_c4x, png_dep, qt5_dep, dep_ica, 
-dep_ccp4, dep_vgeom ], install: true)
+dep_ccp4, dep_vgeom ], 
+install: true)
 
 kin_moc = qt5.preprocess(moc_headers : 
 [
