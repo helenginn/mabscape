@@ -48,6 +48,7 @@ SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 	_lastX = -2; _lastY = -2;
 	_moving = false;
 	_gl = new SlipGL(this);
+	_gl->setZFar(2000);
 	_experiment = new Experiment(this);
 	_experiment->setGL(_gl);
 	_gl->show();
