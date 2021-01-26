@@ -226,6 +226,13 @@ bool Controller::processNextArg(std::string arg)
 		emit startPatch();
 		return true;
 	}
+	else if (first == "enable-elbows")
+	{
+		_exp->enableElbows();
+
+		emit startPatch();
+		return true;
+	}
 	else if (first == "ab-junctions")
 	{
 		std::string file = last;

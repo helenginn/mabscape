@@ -163,6 +163,7 @@ public slots:
 	void handleMesh();
 	void abPatchwork(std::string id);
 	void jiggle();
+	void enableElbows();
 	void randomise();
 	void openResults();
 	void fixFromPDB();
