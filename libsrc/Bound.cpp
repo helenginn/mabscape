@@ -414,9 +414,10 @@ void Bound::colourByValue(double stdev)
 		green = 100;
 		blue = 100;
 	}
-	else if (val < 0.0)
+	else if (val < 0.0) /* we go blue. */
 	{
-		/* we go blue. */
+		val = -val;
+		
 		red = 255 - val * 255;
 		green = 255 - val * 255;
 		blue = 255;
@@ -429,5 +430,6 @@ void Bound::colourByValue(double stdev)
 	}
 
 	red /= 255; green /= 255; blue /= 255;
+	red *= 0.8; green *= 0.8; blue *= 0.8;
 	setColour(red, green, blue);
 }
