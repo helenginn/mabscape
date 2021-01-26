@@ -633,22 +633,6 @@ bool boundDiffuserThanBound(Bound *a, Bound *b)
 	return (a->vertex(0).color[3] < b->vertex(0).color[3]);
 }
 
-void Experiment::reorderBoundByAlpha()
-{
-	std::sort(_bounds.begin(), _bounds.end(),
-	          boundDiffuserThanBound);
-	
-	for (size_t i = 0; i < _bounds.size(); i++)
-	{
-		_gl->removeObject(_bounds[i]);
-	}
-	
-	for (size_t i = 0; i < _bounds.size(); i++)
-	{
-		_gl->addObject(_bounds[i], false);
-	}
-}
-
 bool Experiment::isRunningMonteCarlo()
 {
 	int count = 0;
@@ -1069,67 +1053,6 @@ void Experiment::fixLabel()
 	l->setAlignment(Qt::AlignVCenter);
 	l->setAlignment(Qt::AlignHCenter);
 	l->show();
-}
-
-void Experiment::recolourByCSV(std::string filename)
-{
-	std::string contents = get_file_contents(filename);
-	std::vector<std::string> lines = split(contents, '\n');
-
-	double sum = 0;
-	double sqSum = 0;
-	double count = 0;
-	
-	for (size_t i = 0; i < _bounds.size(); i++)
-	{
-		Bound *b = bound(i);
-		b->setValue(NAN);
-	}
-
-	for (size_t i = 0; i < lines.size(); i++)
-	{
-		std::vector<std::string> components = split(lines[i], ',');
-		
-		if (components.size() < 2)
-		{
-			std::cout << "Wrong number of terms, skipping. " << std::endl;
-			continue;
-		}
-
-		std::string name = components[0];
-		double value = atof(components[1].c_str());
-		value = log(value);
-
-		Bound *b = bound(name);
-		if (b == NULL)
-		{
-			continue;
-		}
-
-		b->setValue(value);
-
-		sum += value;
-		sqSum += value * value;
-		count++;
-
-		std::cout << name << " " << value << std::endl;
-	}
-
-//	double mean = sum / count;
-//	double stdev = sqrt(sqSum / count - mean * mean);
-
-	for (size_t i = 0; i < _bounds.size(); i++)
-	{
-		Bound *b = bound(i);
-
-		double value = b->getValue();
-
-		if (b != NULL)
-		{
-			b->setValue(value);
-			b->colourByValue(3.);
-		}
-	}
 }
 
 void Experiment::addNonCompetitor(std::vector<std::string> abs,

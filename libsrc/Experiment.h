@@ -130,12 +130,10 @@ public:
 	void hideLabel();
 	void fixBound();
 	void fixLabel();
-	void reorderBoundByAlpha();
 	void addBindersToMenu(QMenu *menu);
 	bool prepareWorkForMesh();
 	void loadCSV(std::string filename);
 	void somethingToCluster4x(int data);
-	void recolourByCSV(std::string filename);
 	void refineFurther();
 	void refineModel(bool fixedOnly, bool svd = false);
 	void findNonCompetitors(std::vector<std::string> abs);
