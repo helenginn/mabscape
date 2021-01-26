@@ -637,3 +637,40 @@ double Structure::cubic_interpolate(vec3 vox000)
 	return p11value;
 }
 
+void Structure::highlightResidues(std::string result)
+{
+	std::vector<std::string> segments = split(result, ',');
+	std::cout << "Highlighting " << result << std::endl;
+
+	for (int i = 0; i < segments.size(); i++)
+	{
+		std::string seg = segments[i];
+		trim(seg);
+		
+		std::vector<std::string> bounds = split(seg, '-');
+		
+		if (bounds.size() == 1)
+		{
+			markExtraResidue(atoi(bounds[0].c_str()));
+		}
+		else if (bounds.size() == 2)
+		{
+			int bound0 = atoi(bounds[0].c_str());
+			int bound1 = atoi(bounds[1].c_str());
+			
+			int min = std::min(bound0, bound1);
+			int max = std::max(bound0, bound1);
+			
+			for (int i = min; i < max; i++)
+			{
+				markExtraResidue(i);
+			}
+		}
+		else
+		{
+			std::cout << "Ignoring: " << seg << std::endl;
+		}
+	}
+	
+	convertExtraToColour(0.5, 0.5, 0.5);
+}

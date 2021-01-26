@@ -39,6 +39,7 @@ public:
 	void convertExtraToColour(double red = 0.2, double green = 0.2,
 	                          double blue = 0.2);
 	void removeColouring();
+	void highlightResidues(std::string result);
 	double getDampening(vec3 loc);
 	double recalculateDampening(vec3 loc);
 	virtual void triangulate();
