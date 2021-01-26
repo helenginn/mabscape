@@ -31,7 +31,7 @@
 
 Target Refinement::_target = TargetLeastSquares;
 Target Refinement::_currTarg = TargetLeastSquares;
-bool Refinement::_relocateFliers = true;
+bool Refinement::_relocateFliers = false;
 
 Refinement::Refinement(Experiment *expt)
 {
