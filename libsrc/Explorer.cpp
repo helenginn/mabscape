@@ -667,7 +667,10 @@ void Explorer::summariseBounds()
 
 		double resize = rmsd * 5;
 		
-		b->recolourBoth(inverse, inverse, inverse);
+		if (b->getValue() == NAN)
+		{
+			b->recolourBoth(inverse, inverse, inverse);
+		}
 	}
 	
 	std::cout << "Average positions found." << std::endl;
