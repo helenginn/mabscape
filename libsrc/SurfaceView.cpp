@@ -671,6 +671,11 @@ void SurfaceView::highlightResidues()
 
 void SurfaceView::receiveDialogue(DialogueType type, std::string result)
 {
+	if (_experiment->isSomethingHappening())
+	{
+		return;
+	}
+
 	if (type == DialogueHighlight && _experiment->structure())
 	{
 		_experiment->structure()->highlightResidues(result);
