@@ -102,8 +102,8 @@ public slots:
 private slots:
 	void pause();
 	void loadCSV();
-	void bitMoreRefine();
 	void loadMetadata();
+	void bitMoreRefine();
 	void loadPositions();
 	void loadSequences();
 	void dataToCluster4x();
