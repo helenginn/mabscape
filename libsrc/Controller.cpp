@@ -193,6 +193,23 @@ bool Controller::processNextArg(std::string arg)
 		_exp->getExplorer()->selectAll();
 		return true;
 	}
+	else if (first == "use-target")
+	{
+		if (last == "both")
+		{
+			_exp->chooseTarget(TargetBoth);
+		}
+		else if (last == "correlation")
+		{
+			_exp->chooseTarget(TargetCorrelation);
+		}
+		else if (last == "least-squares")
+		{
+			_exp->chooseTarget(TargetLeastSquares);
+		}
+
+		return true;
+	}
 	else if (first == "average-positions")
 	{
 		_exp->getExplorer()->summariseBounds();
