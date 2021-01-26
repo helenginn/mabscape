@@ -29,7 +29,6 @@ class Genes
 public:
 	Genes();
 	
-	void loadData(std::string filename);
 	void loadSequences(std::string filename);
 
 private:

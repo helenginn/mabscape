@@ -333,7 +333,6 @@ void Refinement::refine()
 
 		ref->setCycles(2000);
 		ref->setEvaluationFunction(Refinement::getScore, this);
-		
 		ref->setPartialEvaluation(Refinement::getPartialScore);
 
 		ref->setSilent(true);

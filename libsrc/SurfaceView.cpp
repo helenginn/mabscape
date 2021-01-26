@@ -195,10 +195,6 @@ void SurfaceView::makeMenu()
 
 	_binders->addSeparator();
 	
-	act = _binders->addAction(tr("Load genes"));
-	connect(act, &QAction::triggered, 
-	        this, &SurfaceView::loadGenes);
-	_actions.push_back(act);
 	act = _binders->addAction(tr("Load sequences"));
 	connect(act, &QAction::triggered, 
 	        this, &SurfaceView::loadSequences);
@@ -621,24 +617,6 @@ void SurfaceView::pause()
 	{
 		_experiment->refinement()->pause(true);
 	}
-}
-
-void SurfaceView::loadGenes()
-{
-	std::string filename = openDialogue(this, "Choose formatted genes", 
-	                                    "Comma-separated values (*.csv)");
-
-	if (!checkFileIsValid(filename, false))
-	{
-		return;
-	}
-
-	if (filename.length() == 0)
-	{
-		return;
-	}
-
-	_genes->loadData(filename);
 }
 
 void SurfaceView::loadSequences()

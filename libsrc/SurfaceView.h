@@ -102,7 +102,6 @@ public slots:
 private slots:
 	void pause();
 	void loadCSV();
-	void loadGenes();
 	void loadMetadata();
 	void loadPositions();
 	void loadSequences();
