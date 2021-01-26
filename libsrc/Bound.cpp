@@ -22,6 +22,8 @@
 #include "Structure.h"
 #include <libsrc/Fibonacci.h>
 #include "Data.h"
+#include <libsrc/shaders/vStructure.h>
+#include <libsrc/shaders/fStructure.h>
 
 using namespace Helen3D;
 
@@ -56,6 +58,8 @@ Bound::Bound(std::string filename) : Icosahedron()
 	triangulate();
 	resize(2);
 	_central = true;
+	_fString = Structure_fsh();
+	_vString = Structure_vsh();
 
 	setSelectable(true);
 }
