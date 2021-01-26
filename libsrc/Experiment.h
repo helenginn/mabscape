@@ -27,6 +27,7 @@
 #include <QObject>
 #include "PositionMap.h"
 
+class Metadata;
 class SurfaceView;
 class Explorer;
 class SlipGL;
@@ -99,6 +100,16 @@ public:
 	Explorer *getExplorer()
 	{
 		return _explorer;
+	}
+	
+	Metadata *metadata()
+	{
+		return _metadata;
+	}
+	
+	void setMetadata(Metadata *md)
+	{
+		_metadata = md;
 	}
 
 	void makeExplorer();
@@ -196,6 +207,7 @@ private:
 	QThread *_worker;
 	std::mutex _mut;
 
+	Metadata *_metadata;
 	Mesh *_mesh;
 	int _monteCount;
 	int _monteTarget;
