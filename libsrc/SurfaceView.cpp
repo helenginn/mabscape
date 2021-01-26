@@ -546,6 +546,7 @@ void SurfaceView::launchCluster4x()
 	if (_screen != NULL)
 	{
 		_screen->show();
+		return;
 	}
 
 	_screen = new Screen(NULL);
