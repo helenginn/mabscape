@@ -1,7 +1,7 @@
 project('mabscape', 'cpp', 'c')
 qt5 = import('qt5')
 
-qt5_dep = dependency('qt5', modules: ['Core', 'Gui', 'Widgets', 'Sql'], required : false)
+qt5_dep = dependency('qt5', modules: ['Core', 'Gui', 'Widgets'], required : false)
 dep_gl = dependency('gl', required : false)
 
 png_dep = dependency('libpng')
