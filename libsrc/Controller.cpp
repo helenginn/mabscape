@@ -149,6 +149,11 @@ bool Controller::processNextArg(std::string arg)
 		_exp->triangulateMesh();
 		return true;
 	}
+	else if (first == "triangulate-structure")
+	{
+		_exp->triangulateStructure();
+		return true;
+	}
 	else if (first == "load-data")
 	{
 		std::string fn = last;
