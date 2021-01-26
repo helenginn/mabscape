@@ -196,7 +196,7 @@ void Explorer::itemSelectionChanged()
 	for (size_t i = 0; i < _experiment->boundCount(); i++)
 	{
 		Bound *bi = _experiment->bound(i);
-		bi->setAlpha(alpha);
+		//bi->setAlpha(alpha);
 	}
 }
 
