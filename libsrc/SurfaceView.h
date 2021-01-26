@@ -23,6 +23,7 @@
 #include <QMouseEvent>
 
 class Genes;
+class Metadata;
 class Bound;
 class Controller;
 class QThread;
@@ -99,7 +100,7 @@ private slots:
 	void pause();
 	void loadCSV();
 	void loadGenes();
-	void colourByCSV();
+	void loadMetadata();
 	void loadPositions();
 	void loadSequences();
 	void dataToCluster4x();
@@ -118,6 +119,7 @@ private:
 	Genes *_genes;
 	Qt::MouseButton _mouseButton;
 	QMenu *_binders;
+	Metadata *_metadata;
 	bool _controlPressed;
 	bool _shiftPressed;
 	double _lastX; double _lastY;

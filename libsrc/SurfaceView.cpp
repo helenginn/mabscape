@@ -18,6 +18,7 @@
 
 #define PAN_SENSITIVITY 30
 #include "Refinement.h"
+#include "Metadata.h"
 #include <iostream>
 #include <ClusterList.h>
 #include <FileReader.h>
@@ -40,6 +41,7 @@
 
 SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 {
+	_metadata = new Metadata();
 	_genes = new Genes();
 	_screen = NULL;
 	_mouseButton = Qt::NoButton;
@@ -51,6 +53,7 @@ SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 	_gl->setZFar(2000);
 	_experiment = new Experiment(this);
 	_experiment->setGL(_gl);
+	_experiment->setMetadata(_metadata);
 	_gl->show();
 	_gl->setAcceptsFocus(false);
 	
@@ -152,16 +155,22 @@ void SurfaceView::makeMenu()
 	act = _binders->addAction(tr("Write out antibody positions"));
 	connect(act, &QAction::triggered, this, &SurfaceView::writeOutPositions);
 	_actions.push_back(act);
+	
+	act = _binders->addAction(tr("Load metadata"));
+	connect(act, &QAction::triggered, this, &SurfaceView::loadMetadata);
+	_actions.push_back(act);
+	
+	QMenu *rec = _binders->addMenu(tr("Recolour by..."));
 
-	_binders->addSeparator();
-	act = _binders->addAction(tr("Recolour by correlation"));
+	act = rec->addAction(tr("Recolour by correlation"));
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, _experiment, 
 	        &Experiment::recolourByCorrelation);
-	
-	act = _binders->addAction(tr("Colour by CSV"));
-	connect(act, &QAction::triggered, this, &SurfaceView::colourByCSV);
-	_actions.push_back(act);
+
+	if (_metadata->titleCount() > 0)
+	{
+		_metadata->makeMenu(rec, _experiment);
+	}
 	
 	act = _binders->addAction(tr("Identify non-competitors"));
 	connect(act, &QAction::triggered, 
@@ -172,6 +181,8 @@ void SurfaceView::makeMenu()
 	connect(act, &QAction::triggered, 
 	        this, &SurfaceView::plotDistanceCompetition);
 	_actions.push_back(act);
+
+	_binders->addSeparator();
 	
 	act = _binders->addAction(tr("Load genes"));
 	connect(act, &QAction::triggered, 
@@ -262,6 +273,18 @@ void SurfaceView::convertToViewCoords(double *x, double *y)
 	
 	*x = (*x + 1.0) * w / 2;
 	*y = (-*y + 1.0) * h / 2;
+}
+
+void SurfaceView::loadMetadata()
+{
+	std::string filename = openDialogue(this, "Choose metadata CSV", 
+	                                    "Comma-separated values (*.csv)",
+	                                    false);
+	_metadata->setFilename(filename);
+	_metadata->loadBounds(_experiment->bounds());
+	_metadata->load();
+	
+	makeMenu();
 }
 
 void SurfaceView::resizeEvent(QResizeEvent *event)
@@ -495,20 +518,6 @@ void SurfaceView::dataToCluster4x()
 void SurfaceView::errorsToCluster4x()
 {
 	_experiment->somethingToCluster4x(2);
-}
-
-void SurfaceView::colourByCSV()
-{
-	std::string filename = openDialogue(this, "Choose colour CSV", 
-	                                    "Comma-separated values (*.csv)");
-	
-	if (filename.length() == 0)
-	{
-		return;
-	}
-
-	_experiment->recolourByCSV(filename);
-
 }
 
 void SurfaceView::identifyNonCompetitors()
