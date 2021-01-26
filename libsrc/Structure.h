@@ -27,15 +27,17 @@
 typedef std::map<int, std::vector<Helen3D::Vertex *>> AtomMap;
 typedef std::map<Helen3D::Vertex *, int> AtomSingleMap;
 
-class Structure : public SlipObjFile
+class Structure : public QObject, public SlipObjFile
 {
+Q_OBJECT
 public:
 	Structure(std::string filename);
 	
 	void clearExtra();
 	void markExtraAround(vec3 pos, double reach, bool fillout = false);
 	void markExtraResidue(int i);
-	void convertExtraToColour();
+	void convertExtraToColour(double red = 0.2, double green = 0.2,
+	                          double blue = 0.2);
 	void removeColouring();
 	double getDampening(vec3 loc);
 	double recalculateDampening(vec3 loc);
@@ -44,6 +46,11 @@ public:
 
 	void addPDB(std::string filename);
 	void turtleShell();
+	
+	bool hasResidues()
+	{
+		return (_resNames.size() > 0);
+	}
 	
 	size_t litResidueCount()
 	{
@@ -64,6 +71,8 @@ public:
 	{
 		return _resPos[res];
 	}
+signals:
+	void resultReady();
 
 private:
 	long findIndex(vec3 loc);

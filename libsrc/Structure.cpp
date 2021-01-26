@@ -80,6 +80,12 @@ void Structure::turtleShell()
 
 void Structure::addPDB(std::string filename)
 {
+	_resNames.clear();
+	_resPos.clear();
+	_atomMap.clear();
+	_singleMap.clear();
+	_resiList.clear();
+
 	PDBReader pdb = PDBReader();
 	pdb.setFilename(filename);
 	_crystal = pdb.getCrystal();
@@ -108,7 +114,7 @@ void Structure::addPDB(std::string filename)
 			}
 		}
 		
-		if (atom)
+		if (atom && atom->getMonomer())
 		{
 			int res = atom->getResidueNum();
 			std::string type = atom->getMonomer()->getIdentifier();
@@ -138,6 +144,7 @@ void Structure::addPDB(std::string filename)
 	}
 	
 	turtleShell();
+	resultReady();
 }
 
 void Structure::markExtraAround(vec3 pos, double reach, bool fillout)
@@ -187,6 +194,11 @@ void Structure::markExtraAround(vec3 pos, double reach, bool fillout)
 
 void Structure::markExtraResidue(int resi)
 {
+	if (_atomMap.count(resi) == 0)
+	{
+		return;
+	}
+
 	std::vector<Vertex *> vs = _atomMap[resi];
 
 	for (size_t i = 0; i < vs.size(); i++)
@@ -198,13 +210,14 @@ void Structure::markExtraResidue(int resi)
 			continue;
 		}
 
-		vs[i]->color[0] = 0.4;
-		vs[i]->color[1] = 0.4;
-		vs[i]->color[2] = 1.0;
+//		vs[i]->color[0] = 0.4;
+//		vs[i]->color[1] = 0.4;
+//		vs[i]->color[2] = 1.0;
+		vs[i]->extra[0] = 1.0;
 	}
 }
 
-void Structure::convertExtraToColour()
+void Structure::convertExtraToColour(double red, double green, double blue)
 {
 	for (size_t i = 0; i < _vertices.size(); i++)
 	{
@@ -243,9 +256,9 @@ void Structure::convertExtraToColour()
 				continue;
 			}
 
-			_vertices[i].color[0] = 0.8;
-			_vertices[i].color[1] = 0.8;
-			_vertices[i].color[2] = 0.8;
+			_vertices[i].color[0] = red;
+			_vertices[i].color[1] = green;
+			_vertices[i].color[2] = blue;
 		}
 	}
 
