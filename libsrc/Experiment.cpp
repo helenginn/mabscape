@@ -167,7 +167,7 @@ void Experiment::chooseTarget(Target t)
 
 void Experiment::triangulateStructure()
 {
-	if (_structure)
+	if (_structure && !isSomethingHappening())
 	{
 		_structure->triangulate();
 	}
@@ -183,6 +183,11 @@ void Experiment::triangulateMesh()
 	_mesh->changeToTriangles();
 	_mesh->SlipObject::triangulate();
 	_mesh->changeToLines();
+}
+
+bool Experiment::isSomethingHappening()
+{
+	return (_worker && _worker->isRunning());
 }
 
 bool Experiment::prepareWorkForObject(QObject *object)

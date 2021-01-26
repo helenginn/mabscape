@@ -123,6 +123,7 @@ public:
 	}
 
 	void makeExplorer();
+	bool isSomethingHappening();
 	void relocateFliers(bool relocate);
 	void loadStructure(std::string filename);
 	void loadStructureCoords(std::string filename);
