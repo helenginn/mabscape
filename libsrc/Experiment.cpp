@@ -165,6 +165,14 @@ void Experiment::chooseTarget(Target t)
 	_view->makeMenu();
 }
 
+void Experiment::triangulateStructure()
+{
+	if (_structure)
+	{
+		_structure->triangulate();
+	}
+}
+
 void Experiment::triangulateMesh()
 {
 	if (_mesh == NULL)
