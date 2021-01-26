@@ -20,11 +20,11 @@
 #include "Refinement.h"
 #include "Metadata.h"
 #include <iostream>
-#include <ClusterList.h>
 #include <FileReader.h>
+#include <c4xsrc/ClusterList.h>
 #include <c4xsrc/AveCSV.h>
 #include <c4xsrc/Group.h>
-#include <Screen.h>
+#include <c4xsrc/Screen.h>
 #include "SurfaceView.h"
 #include <h3dsrc/SlipGL.h>
 #include <h3dsrc/Dialogue.h>
