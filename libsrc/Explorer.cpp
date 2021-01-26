@@ -179,7 +179,7 @@ void Explorer::itemSelectionChanged()
 		
 		if (_experiment->structure()->hasMesh())
 		{
-			_experiment->structure()->mesh()->setAlpha(0.1);
+			_experiment->structure()->mesh()->setAlpha(0.3);
 		}
 	}
 	else
