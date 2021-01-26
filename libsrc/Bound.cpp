@@ -17,6 +17,7 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #include <iostream>
+#include "Arrow.h"
 #include "Bound.h"
 #include <helen3d/RefinementStrategy.h>
 #include "Structure.h"
@@ -28,6 +29,7 @@
 using namespace Helen3D;
 
 double Bound::_radius = 13.;
+double Bound::_shoulderAngle = deg2rad(45.);
 
 vec3 random_vec3(bool absolute = false)
 {
@@ -49,7 +51,9 @@ vec3 random_vec3(bool absolute = false)
 
 Bound::Bound(std::string filename) : Icosahedron()
 {
-	_value = 0;
+	_elbowAngle = NAN;
+	_arrow = NULL;
+	_value = NAN;
 	_nearestNorm = make_vec3(1, 0, 0);
 	_special = false;
 	_snapping = false;
@@ -167,11 +171,59 @@ void Bound::updatePositionToReal()
 	addToVertices(diff);
 	unlockMutex();
 
+	if (_arrow != NULL)
+	{
+		redrawElbow();
+		_arrow->populate();
+	}
+}
+
+void Bound::redrawElbow()
+{
+	if (_arrow == NULL || _elbowAngle != _elbowAngle)
+	{
+		return;
+	}
+
+	vec3 norm = _structure->lookupVertexPtr(_realPosition, true);
+	vec3 elbow = norm;
+	
+	vec3 zAxis = make_vec3(0, 0, 1);
+	vec3 cross = vec3_cross_vec3(zAxis, norm);
+	vec3_set_length(&cross, 1);
+
+	mat3x3 rot = mat3x3_unit_vec_rotation(cross, _shoulderAngle);
+	mat3x3_mult_vec(rot, &elbow);
+	
+	mat3x3 swing = mat3x3_unit_vec_rotation(norm, _elbowAngle);
+	mat3x3_mult_vec(swing, &elbow);
+
+	vec3_mult(&elbow, 4.);
+	vec3 start = vec3_add_vec3(_realPosition, elbow);
+	vec3_mult(&elbow, 6.);
+	vec3 end = vec3_add_vec3(start, elbow);
+	
+	_arrow->setEnds(start, end);
+}
+
+void Bound::enableElbow()
+{
+	randomiseElbow();
+	_arrow = new Arrow(this);
+	_arrow->setSelectable(true);
+	redrawElbow();
+	_arrow->populate();
 }
 
 void Bound::render(SlipGL *gl)
 {
 	SlipObject::render(gl);
+	
+	if (_arrow != NULL)
+	{
+		redrawElbow();
+		_arrow->render(gl);
+	}
 }
 
 void Bound::addToStrategy(RefinementStrategy *str)
@@ -433,3 +485,9 @@ void Bound::colourByValue(double stdev)
 	red *= 0.8; green *= 0.8; blue *= 0.8;
 	setColour(red, green, blue);
 }
+
+void Bound::randomiseElbow()
+{
+	_elbowAngle = deg2rad((double)(rand() % 360));
+}
+

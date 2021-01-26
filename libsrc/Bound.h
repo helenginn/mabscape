@@ -25,6 +25,7 @@
 
 class Structure;
 class SlipGL;
+class Arrow;
 class Data;
 class RefinementStrategy;
 
@@ -53,18 +54,24 @@ public:
 	void setSnapping(bool snapping);
 	virtual void render(SlipGL *gl);
 	void colourByValue(double stdev = 1);
+	void enableElbow();
 	
 	void setStructure(Structure *s)
 	{
 		_structure = s;
 	}
 	
-	static double getRadius()
+	static double getRadius(void *object = NULL)
 	{
 		return _radius;
 	}
 	
 	void addToStrategy(RefinementStrategy *str);
+	static void setRadius(void *object, double r)
+	{
+		_radius = r;
+	}
+	
 	
 	static double getPosX(void *object)
 	{
@@ -109,6 +116,8 @@ public:
 	double sigmoidalScoreWithOther(Bound *other, bool dampen = false);
 	double carefulScoreWithOther(Bound *other);
 	
+	void randomiseElbow();
+	
 	void setSpecial(bool special);
 	void colourFixed();
 	
@@ -133,6 +142,7 @@ private:
 
 	std::vector<vec3> _pointCloud;
 	std::vector<vec3> _viableCloud;
+	void redrawElbow();
 
 	std::mutex _mutex;
 	Structure *_structure;
@@ -142,7 +152,11 @@ private:
 	bool _snapping;
 	bool _fixed;
 	bool _special;
+	
+	Arrow *_arrow;
 
+	double _elbowAngle;
+	static double _shoulderAngle;
 	double _value;
 };
 
