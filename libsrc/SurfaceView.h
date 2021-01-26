@@ -21,6 +21,7 @@
 
 #include <QMainWindow>
 #include <QMouseEvent>
+#include "InputDialogue.h"
 
 class Genes;
 class Metadata;
@@ -81,8 +82,9 @@ public:
 	}
 
 	void convertToViewCoords(double *x, double *y);
-	void makeMenu();
 	void startController(QThread *q, Controller *c);
+
+	void receiveDialogue(DialogueType type, std::string result);
 signals:
 	void runController();
 protected:
@@ -96,6 +98,7 @@ public slots:
 	void launchCluster4x();
 	void loadSurface();
 	void loadCoords();
+	void makeMenu();
 private slots:
 	void pause();
 	void loadCSV();
@@ -106,6 +109,7 @@ private slots:
 	void dataToCluster4x();
 	void modelToCluster4x();
 	void errorsToCluster4x();
+	void highlightResidues();
 	void writeOutPositions();
 	void unrestrainedRefine();
 	void fixToSurfaceRefine();

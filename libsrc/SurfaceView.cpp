@@ -603,3 +603,22 @@ void SurfaceView::loadSequences()
 
 	_genes->loadSequences(filename);
 }
+
+void SurfaceView::highlightResidues()
+{
+	Dialogue *d = new Dialogue(NULL, "Highlight residues",
+	                           "List residues of choice",
+	                           "305, 330-349",
+	                           "Highlight");
+	d->setWindow(this);
+	d->setTag(DialogueHighlight);
+	d->show();
+}
+
+void SurfaceView::receiveDialogue(DialogueType type, std::string result)
+{
+	if (type == DialogueHighlight && _experiment->structure())
+	{
+		_experiment->structure()->highlightResidues(result);
+	}
+}
