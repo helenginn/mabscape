@@ -166,6 +166,7 @@ public slots:
 	void randomise();
 	void openResults();
 	void fixFromPDB();
+	void recolourByBoundErrors();
 	void recolourByCorrelation();
 	void selectFromMenu();
 	void handleResults();

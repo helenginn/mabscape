@@ -1018,6 +1018,7 @@ void Experiment::somethingToCluster4x(int data)
 	{
 		AveCSV::setChosen("Errors");
 	}
+
 	updateCSV(csv, data);
 	_view->clusterScreen()->getList()->cluster(grp);
 }
@@ -1216,3 +1217,26 @@ QThread *Experiment::worker()
 
 	return _worker;
 }
+
+void Experiment::recolourByBoundErrors()
+{
+	for (size_t i = 0; i < boundCount(); i++)
+	{
+		Bound *b = bound(i);
+		
+		if (b == _selected)
+		{
+			b->recolour(1, 1, 0);
+			continue;
+		}
+		
+		double pred = _selected->scoreWithOther(b);
+		double obs = _data->valueFor(b->name(), _selected->name());
+		
+		double diff = obs - pred;
+		b->setValue(diff);
+		b->colourByValue(1);
+	}
+
+}
+
