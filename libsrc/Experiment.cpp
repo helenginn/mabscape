@@ -1247,7 +1247,7 @@ void Experiment::recolourByBoundErrors()
 
 void Experiment::enableElbows()
 {
-	Refinement::enableElbows();
+//	Refinement::enableElbows();
 	Bound::setRadius(NULL, 10);
 
 	for (size_t i = 0; i < boundCount(); i++)
