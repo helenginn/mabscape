@@ -99,8 +99,14 @@ void Experiment::loadStructureCoords(std::string filename)
 		std::cout << "No structure." << std::endl;
 		return;
 	}
-
-	_structure->addPDB(filename);
+	
+	prepareWorkForObject(_structure);
+	connect(_structure, SIGNAL(resultReady()), this, SLOT(handleMesh()));
+	connect(_structure, SIGNAL(resultReady()), _view, SLOT(makeMenu()));
+	connect(this, &Experiment::refine, _structure, 
+	        [=]() { _structure->addPDB(filename);} );
+	
+	emit refine();
 }
 
 void Experiment::recolourByCorrelation()
@@ -171,9 +177,9 @@ void Experiment::triangulateMesh()
 	_mesh->changeToLines();
 }
 
-bool Experiment::prepareWorkForMesh()
+bool Experiment::prepareWorkForObject(QObject *object)
 {
-	if (_mesh == NULL)
+	if (object == NULL)
 	{
 		return false;
 	}
@@ -189,7 +195,19 @@ bool Experiment::prepareWorkForMesh()
 		_worker = new QThread();
 	}
 
-	_mesh->moveToThread(_worker);
+	object->moveToThread(_worker);
+
+	return true;
+}
+
+bool Experiment::prepareWorkForMesh()
+{
+	bool success = prepareWorkForObject(_mesh);
+	
+	if (!success)
+	{
+		return false;
+	}
 
 	connect(_mesh, SIGNAL(resultReady()), this, SLOT(handleMesh()));
 	return true;
@@ -742,10 +760,8 @@ void Experiment::finishUpMonteCarlo()
 
 void Experiment::handleMesh()
 {
-	Mesh *obj = static_cast<Mesh *>(QObject::sender());
-
 	disconnect(this, SIGNAL(refine()), nullptr, nullptr);
-	disconnect(obj, SIGNAL(resultReady()), this, SLOT(handleMesh()));
+	disconnect(nullptr, nullptr, this, SLOT(handleMesh()));
 
 	_worker->quit();
 //	_worker->wait();

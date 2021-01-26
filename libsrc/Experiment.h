@@ -132,6 +132,7 @@ public:
 	void fixLabel();
 	void addBindersToMenu(QMenu *menu);
 	bool prepareWorkForMesh();
+	bool prepareWorkForObject(QObject *object);
 	void loadCSV(std::string filename);
 	void somethingToCluster4x(int data);
 	void refineFurther();
