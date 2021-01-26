@@ -573,7 +573,7 @@ void Explorer::selectAll()
 {
 	QItemSelectionModel *model = _widget->selectionModel();
 
-	for (size_t i = 0; i < _widget->topLevelItemCount(); i++)
+	for (int i = 0; i < _widget->topLevelItemCount(); i++)
 	{
 		QTreeWidgetItem *item = _widget->topLevelItem(i);
 		QModelIndex idx = model->model()->index(i, 0);
