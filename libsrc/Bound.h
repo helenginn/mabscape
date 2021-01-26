@@ -123,8 +123,8 @@ public:
 
 	void setRealPosition(vec3 real);
 	double scoreWithOther(Bound *other, bool dampen = false);
-	double sigmoidalScoreWithOther(Bound *other, bool dampen = false);
-	double carefulScoreWithOther(Bound *other);
+	double sigmoidalScore(vec3 posi, vec3 posj, double slope = 2, 
+	                      double mult = 1);
 	
 	void randomiseElbow();
 	
@@ -146,12 +146,6 @@ public:
 		return _value;
 	}
 private:
-	double percentageCloudInOther(Bound *b);
-	void cloud(double totalPoints);
-	void filterCloud();
-
-	std::vector<vec3> _pointCloud;
-	std::vector<vec3> _viableCloud;
 	void redrawElbow();
 
 	std::mutex _mutex;

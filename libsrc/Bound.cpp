@@ -263,189 +263,39 @@ void Bound::setRealPosition(vec3 real)
 	unlockMutex();
 }
 
-double Bound::carefulScoreWithOther(Bound *other)
+double Bound::sigmoidalScore(vec3 posi, vec3 posj, double slope, double mult)
 {
-	if (!_structure->hasMesh())
-	{
-		return 1;
-	}
-
-	vec3 mynorm = _nearestNorm;
-	vec3 yournorm = other->_nearestNorm;
-
-	double dot = vec3_dot_vec3(mynorm, yournorm);
-	dot /= 4;
-	dot += 0.75;
-	
-	return dot;
-}
-
-double Bound::sigmoidalScoreWithOther(Bound *other, bool dampen)
-{
-	vec3 posi = getStoredPosition();
-	vec3 posj = other->getStoredPosition();
-
 	vec3 vector = vec3_subtract_vec3(posi, posj);
 	double x = vec3_length(vector);
 
 	vec3 mid = vec3_add_vec3(posi, posj);
 	vec3_mult(&mid, 0.5);
-	
-	double dampening = 1;
-	if (dampen)
-	{
-		dampening = _structure->getDampening(mid);
-	}
 
-	double inflection = _radius * 2;
-	double slope = 2;
-	double step = 0.0;
+	double inflection = _radius * 2 * mult;
 	double exponent = exp((inflection - x) / slope);
 	double val = exponent / (1 + exponent);
-	val *= (1 - step);
-	val += step;
 	
 	return val;
+
 }
 
 double Bound::scoreWithOther(Bound *other, bool dampen)
 {
-	return sigmoidalScoreWithOther(other, dampen);
-	std::string bin = name();
 	vec3 posi = getStoredPosition();
-	std::string bjn = other->name();
-	
 	vec3 posj = other->getStoredPosition();
-	vec3 mid = vec3_add_vec3(posi, posj);
-	vec3_mult(&mid, 0.5);
-	
-	double dampening = 1;
-	if (dampen)
+
+	double val = sigmoidalScore(posi, posj);
+
+	if (_arrow != NULL && other->_arrow != NULL)
 	{
-		dampening = _structure->getDampening(mid);
+		redrawElbow();
+		vec3 endi = _arrow->end();
+		vec3 endj = other->_arrow->end();
+
+		val += sigmoidalScore(endi, endj, 10.0, 2.0) * (1 - val);
 	}
 	
-	vec3 vector = vec3_subtract_vec3(posi, posj);
-
-	double distance = vec3_length(vector);
-	double radius = getRadius();
-
-	double prop = 0;
-	if (distance < 2 * radius)
-	{
-		double q = (2 * radius - distance);
-		q /= 2 * radius;
-		prop = (3 * q * q - 2 * q * q * q);
-	}
-
-	prop = pow(prop, 0.35);
-	double slide = std::max(0.2 * (1 - distance / 100.), 0.);
-	prop += slide;
-	prop *= dampening;
-	
-	return prop;
-}
-
-double Bound::percentageCloudInOther(Bound *b)
-{
-	filterCloud();
-	vec3 other = b->getWorkingPosition();
-	double sqr = getRadius();
-	double clash = 0;
-
-	for (size_t i = 0; i < _viableCloud.size(); i++)
-	{
-		vec3 p = _viableCloud[i];
-		vec3_subtract_from_vec3(&p, other);
-		
-		double sql = vec3_sqlength(p);
-		if (sql < sqr)
-		{
-			clash++;
-		}
-	}
-
-	return clash / (double)_viableCloud.size();
-}
-
-void Bound::filterCloud()
-{
-	_viableCloud.clear();
-	if (_pointCloud.size() == 0)
-	{
-		cloud(120);
-	}
-
-	vec3 centre = centroid();
-	for (size_t i = 0; i < _pointCloud.size(); i++)
-	{
-		vec3 p = _pointCloud[i];
-		vec3_add_to_vec3(&p, centre);
-
-		if (!_structure->pointInside(p))
-		{
-			_viableCloud.push_back(p);
-		}
-	}
-}
-
-void Bound::cloud(double totalPoints)
-{
-	double totalSurfaces = 0;
-	double factor = pow(totalPoints, 1./3.) * 2;
-	int layers = lrint(factor);
-	_pointCloud.clear();
-
-	layers = 1;
-	
-	std::vector<double> layerSurfaces;
-
-	/* Work out relative ratios of the surfaces on which points
-	 * will be generated. */
-	for (int i = 1; i <= layers; i++)
-	{
-		layerSurfaces.push_back(i * i);
-		totalSurfaces += i * i;
-	}
-
-	double scale = totalPoints / (double)totalSurfaces;
-
-	double addTotal = 0;
-	Fibonacci fib;
-	fib.generateLattice(layers, 1);
-	std::vector<vec3> directions = fib.getPoints();
-	
-	if (totalPoints < 2)
-	{
-		_pointCloud.push_back(empty_vec3());
-	}
-
-	_pointCloud.reserve(totalPoints);
-	vec3 yAxis = make_vec3(0, 1, 0);
-
-	for (int j = 0; j < layers; j++)
-	{
-		vec3 cross = vec3_cross_vec3(directions[j], yAxis);
-		
-		mat3x3 mat = mat3x3_closest_rot_mat(yAxis, directions[j], cross);
-
-		double m = getRadius() * (double)(j + 1) / (double)layers;
-
-		int samples = layerSurfaces[j] * scale + 1;
-		
-		fib.generateLattice(samples, m);
-		std::vector<vec3> points = fib.getPoints();
-		
-		for (size_t i = 0; i < points.size(); i++)
-		{
-			double add = 1;
-			addTotal += add;
-			
-			mat3x3_mult_vec(mat, &points[i]);
-
-			_pointCloud.push_back(points[i]);
-		}
-	}
+	return val;
 }
 
 void Bound::setSpecial(bool special)
