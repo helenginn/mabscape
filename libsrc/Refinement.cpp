@@ -344,7 +344,7 @@ void Refinement::refine()
 			Bound *b = _experiment->bound(i);
 			double dist = b->snapToObject(NULL);
 			
-			if (dist > Bound::getRadius() / 2 && 
+			if (dist > Bound::getRadius() * 2 / 3 && 
 			    _currTarg == TargetLeastSquares && _relocateFliers)
 			{
 				b->randomlyPositionInRegion(_experiment->structure()->mesh());

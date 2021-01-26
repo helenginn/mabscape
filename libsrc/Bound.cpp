@@ -28,7 +28,7 @@
 
 using namespace Helen3D;
 
-double Bound::_radius = 13.;
+double Bound::_radius = 11.;
 double Bound::_shoulderAngle = deg2rad(45.);
 
 vec3 random_vec3(bool absolute = false)
@@ -234,7 +234,7 @@ void Bound::addToStrategy(RefinementStrategy *str, bool elbow)
 	}
 
 	double step = 10;
-	double tol = 0.01;
+	double tol = 0.1;
 	if (!elbow)
 	{
 		str->addParameter(this, Bound::getPosX, Bound::setPosX,
