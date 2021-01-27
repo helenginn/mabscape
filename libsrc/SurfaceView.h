@@ -102,6 +102,7 @@ public slots:
 private slots:
 	void pause();
 	void loadCSV();
+	void exportPDB();
 	void loadMetadata();
 	void bitMoreRefine();
 	void loadPositions();

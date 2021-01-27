@@ -1241,3 +1241,92 @@ void Experiment::enableElbows()
 		b->enableElbow();
 	}
 }
+
+void Experiment::writePDB(std::string filename)
+{
+	CrystalPtr crystal = CrystalPtr(new Vagabond::Crystal());
+	MoleculePtr mol = MoleculePtr(new Molecule());
+	mol->setChainID("V");
+	crystal->addMolecule(mol);
+	Options::getRuntimeOptions()->addCrystal(crystal);
+	std::map<Bound *, double> _map;
+
+	std::ofstream f;
+	f.open(filename);
+	double sqSum = 0;
+	double count = 0;
+
+	std::ostringstream header;
+	
+	Metadata *m = metadata();
+	
+	for (size_t j = 0; j < boundCount(); j++)
+	{
+		Bound *b = bound(j);
+
+		double rmsd = b->RMSD();
+		
+		if (rmsd != rmsd)
+		{
+			rmsd = 0;
+		}
+		
+		if (b->getValue() == b->getValue())
+		{
+			rmsd = b->getValue();
+		}
+		
+		double val = b->getValue();
+		vec3 mean = b->getStoredPosition();
+
+		AbsolutePtr abs = AbsolutePtr(new Absolute(mean, rmsd, "HG", val));
+		
+		int num = 0;
+		std::string name = b->name();
+		
+		for (size_t i = 0; i < name.length(); i++)
+		{
+			if (name[i] >= '0' && name[i] <= '9')
+			{
+				char *n = &name[i];
+				num = atoi(n);
+				break;
+			}
+		}
+		
+		std::string chain = "V";
+		
+		if (m->hasKey(b, "chain"))
+		{
+			chain = m->valueForKey(b, "chain");
+		}
+
+		abs->setIdentity(num, chain, "ABS", "AB", num);
+		abs->addToMolecule(mol);
+		
+		header << "REMARK " << b->name() << " IS AB    " << 
+		abs->getAtom()->getAtomNum() << std::endl;
+		
+		if (b->isFixed())
+		{
+			continue;
+		}
+		
+		b->setRealPosition(mean);
+		b->snapToObject(NULL);
+		b->updatePositionToReal();
+		
+		sqSum += rmsd * rmsd;
+		_map[b] = rmsd;
+		count++;
+	}
+	
+	header << "REMARK" << std::endl;
+	
+	f << header.str() << std::endl;
+
+	std::string str = mol->makePDB(PDBTypeAverage, CrystalPtr(), -1);
+	f << str;
+	f.close();
+	
+}

@@ -67,7 +67,6 @@ private slots:
 	void cluster4xChanged();
 	void itemSelectionChanged();
 	void chooseAndReadResults();
-	void writePDB(std::string filename, bool value);
 	void currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *prev);
 private:
 	void makeExplorer();

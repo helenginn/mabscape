@@ -185,6 +185,7 @@ public slots:
 	void meshStructure();
 	QThread *runSmoothMesh();
 	QThread *runInflateMesh();
+	void writePDB(std::string filename);
 	void writeOutCSV(std::string filename);
 	void chooseTarget(Target t);
 private:

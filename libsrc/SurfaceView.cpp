@@ -654,3 +654,18 @@ void SurfaceView::receiveDialogue(DialogueType type, std::string result)
 		_experiment->structure()->highlightResidues(result);
 	}
 }
+
+void SurfaceView::exportPDB()
+{
+	if (_experiment->isSomethingHappening())
+	{
+		return;
+	}
+
+	std::string filename = openDialogue(this, "Choose PDB file", 
+	                                    "Protein data bank file (*.pdb)",
+	                                    true);
+
+	_experiment->writePDB(filename);
+}
+
