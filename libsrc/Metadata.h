@@ -61,6 +61,7 @@ public:
 	
 	void makeMenu(QMenu *m, Experiment *e);
 	void colourBy(std::string title);
+	void colourOptions(std::string title);
 
 	void load();
 	

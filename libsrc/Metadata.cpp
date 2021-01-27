@@ -21,6 +21,7 @@
 #include <hcsrc/FileReader.h>
 
 #include "Experiment.h"
+#include "ColourOptions.h"
 #include "SurfaceView.h"
 #include "Metadata.h"
 #include "Bound.h"
@@ -117,6 +118,12 @@ void Metadata::load()
 	}
 }
 
+void Metadata::colourOptions(std::string title)
+{
+	ColourOptions *options = new ColourOptions(NULL);
+	options->show();
+}
+
 void Metadata::colourBy(std::string title)
 {
 	double sum = 0;
@@ -186,6 +193,8 @@ void Metadata::makeMenu(QMenu *m, Experiment *e)
 		QAction *act = m->addAction(qTitle);
 		connect(act, &QAction::triggered, 
 		        this, [=]() {colourBy(_titles[i]);});
+		connect(act, &QAction::triggered, 
+		        this, [=]() {colourOptions(_titles[i]);});
 	}
 
 }
