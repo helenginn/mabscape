@@ -41,7 +41,6 @@ class Result;
 class Mesh;
 class QLabel;
 class QThread;
-class PatchView;
 
 class Experiment : public QObject
 {
@@ -159,10 +158,10 @@ public:
 	QThread *worker();
 signals:
 	void refine();
+	void alteredMenu();
 public slots:
 	void addBindersToMenu();
 	void handleMesh();
-	void abPatchwork(std::string id);
 	void jiggle();
 	void enableElbows();
 	void randomise();
@@ -207,7 +206,6 @@ private:
 	bool _dragging;
 
 	SurfaceView *_view;
-	PatchView *_patchView;
 	SlipGL *_gl;
 	Data *_data;
 	Refinement *_refinement;

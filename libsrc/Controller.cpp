@@ -215,17 +215,6 @@ bool Controller::processNextArg(std::string arg)
 		_exp->getExplorer()->summariseBounds();
 		return true;
 	}
-	else if (first == "patchwork")
-	{
-		std::string ab = last;
-
-		connect(this, &Controller::startPatch, _exp,
-		        [=]() {_exp->abPatchwork(ab);},
-		        Qt::QueuedConnection);
-
-		emit startPatch();
-		return true;
-	}
 	else if (first == "enable-elbows")
 	{
 		_exp->enableElbows();

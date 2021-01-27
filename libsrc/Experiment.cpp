@@ -58,7 +58,6 @@ Experiment::Experiment(SurfaceView *view)
 	_dragging = false;
 	_refinement = new Refinement(this);
 	_view = view;
-	_patchView = NULL;
 	_winsx = -2;
 	_winsy = -2;
 	_winex = -2;
@@ -576,10 +575,6 @@ void Experiment::addBindersToMenu(QMenu *binders)
 			        this, &Experiment::fixFromPDB);
 			_view->addAction(act);
 
-			act = mb->addAction("Patchwork from position");
-			connect(act, &QAction::triggered, this,
-			        [=](){ abPatchwork(name); });
-			_view->addAction(act);
 		}
 	}
 }
@@ -1054,21 +1049,6 @@ void Experiment::fixFromPDB()
 	}
 }
 
-
-void Experiment::abPatchwork(std::string id)
-{
-	Bound *b = bound(id);
-	vec3 p = b->getWorkingPosition();
-	_structure->removeColouring();
-	_structure->markExtraAround(p, 10., true);
-	
-	_patchView = new PatchView();
-	_patchView->setExperiment(this);
-	_patchView->setCentre(p);
-	_patchView->setTitle(id);
-	_patchView->project();
-	_patchView->show();
-}
 
 void Experiment::fixLabel()
 {
