@@ -63,6 +63,9 @@ public:
 	void colourBy(std::string title);
 
 	void load();
+	
+	bool hasKey(Bound *b, std::string key);
+	std::string valueForKey(Bound *b, std::string key);
 private:
 	std::string _filename;
 

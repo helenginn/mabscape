@@ -201,3 +201,13 @@ void Metadata::loadBounds(std::vector<Bound *> bounds)
 		_names[b->name()] = b;
 	}
 }
+
+bool Metadata::hasKey(Bound *b, std::string key)
+{
+	return _keys.count(b) && _keys[b].count(key);
+}
+
+std::string Metadata::valueForKey(Bound *b, std::string key)
+{
+	return _keys[b][key];
+}
