@@ -172,6 +172,13 @@ void Metadata::colourBy(std::string title)
 
 void Metadata::makeMenu(QMenu *m, Experiment *e)
 {
+	QList<QAction *> widges = m->findChildren<QAction *>("metadata");
+	
+	for (size_t i = 0; i < widges.size(); i++)
+	{
+		m->removeAction(widges[i]);
+	}
+
 	for (size_t i = 0; i < _titles.size(); i++)
 	{
 		QString qTitle = QString::fromStdString(_titles[i]);
