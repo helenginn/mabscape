@@ -35,7 +35,12 @@
 #include <c4xsrc/AveCSV.h>
 #include <Group.h>
 #include <ClusterList.h>
-#include <mat4x4.h>
+#include <hcsrc/mat4x4.h>
+#include <libsrc/Absolute.h>
+#include <libsrc/Atom.h>
+#include <libsrc/Molecule.h>
+#include <libsrc/Crystal.h>
+#include <libsrc/Options.h>
 #include <Screen.h>
 #include <float.h>
 #include <QLabel>
