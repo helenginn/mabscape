@@ -16,7 +16,7 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
-#include "PatchView.h"
+#include "Metadata.h"
 #include "Experiment.h"
 #include "PDBView.h"
 #include "Explorer.h"
