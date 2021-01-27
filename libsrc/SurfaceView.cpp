@@ -604,7 +604,7 @@ void SurfaceView::launchCluster4x()
 	}
 
 	_screen = new Screen(NULL);
-	_screen->setWindowTitle("cluster4x - abmap");
+	_screen->setWindowTitle("cluster4x - mabscape");
 	ClusterList *list = _screen->getList();
 	AveCSV *csv = _experiment->csv();
 	csv->setList(list);
