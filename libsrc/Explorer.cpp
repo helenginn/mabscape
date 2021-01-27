@@ -453,6 +453,7 @@ void Explorer::summariseBounds()
 	{
 		Bound *b = _experiment->bound(j);
 
+		double best_sum = FLT_MAX;
 		vec3 mean = empty_vec3();
 
 		for (int i = 0; i < list.size(); i++)
@@ -460,12 +461,27 @@ void Explorer::summariseBounds()
 			QTreeWidgetItem *item = list[i];
 			Result *r = static_cast<Result *>(item);
 			vec3 v = r->vecForBound(b);
-			vec3_add_to_vec3(&mean, v);
-		}
+			double sum = 0;
 
-		vec3_mult(&mean, 1 / (double)list.size());
+			for (int j = 0; j < list.size(); j++)
+			{
+				QTreeWidgetItem *jtem = list[j];
+				Result *r2 = static_cast<Result *>(jtem);
+				vec3 v2 = r2->vecForBound(b);
+				vec3_subtract_from_vec3(&v2, v);
+				sum += vec3_length(v2);
+
+			}
+			
+			if (sum < best_sum)
+			{
+				best_sum = sum;
+				mean = v;
+			}
+		}
 		
 		double sum = 0;
+
 
 		for (int i = 0; i < list.size(); i++)
 		{
@@ -485,14 +501,16 @@ void Explorer::summariseBounds()
 			rmsd = 0;
 		}
 		
+		b->setRMSD(rmsd);
+		
 		if (b->isFixed())
 		{
 			continue;
 		}
 		
 		b->setRealPosition(mean);
-		b->snapToObject(NULL);
 		b->updatePositionToReal();
+		b->snapToObject(NULL);
 		
 		sqSum += rmsd * rmsd;
 		_map[b] = rmsd;
