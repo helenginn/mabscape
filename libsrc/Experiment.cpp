@@ -880,7 +880,7 @@ void Experiment::loadPositions(std::string filename)
 		}
 
 		float v1 = atof(bits[1].c_str());
-		float v2 = -atof(bits[2].c_str());
+		float v2 = atof(bits[2].c_str());
 		float v3 = atof(bits[3].c_str());
 
 		vec3 pos = make_vec3(v1, v2, v3);
@@ -902,8 +902,6 @@ void Experiment::loadPositions(std::string filename)
 		
 		b->colourFixed();
 		b->snapToObject(NULL);
-
-		b->updatePositionToReal();
 	}
 
 }
@@ -941,12 +939,12 @@ void Experiment::writeOutCSV(std::string filename)
 	{
 		Bound *bi = bound(i);
 		std::string bin = bi->name();
-		vec3 posi = bi->getWorkingPosition();
+		vec3 posi = bi->getStoredPosition();
 		std::string fixed = bi->isFixed() ? "*" : "";
 		std::string special = bi->isSpecial() ? "^" : "";
 		
 		posicsv << fixed << special << bin << "," << 
-		posi.x << "," << -posi.y << "," << posi.z << std::endl;
+		posi.x << "," << posi.y << "," << posi.z << std::endl;
 
 		for (size_t j = 0; j < i; j++)
 		{
