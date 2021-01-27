@@ -75,15 +75,13 @@ double Bound::snapToObject(Structure *obj)
 		obj = _structure;
 	}
 	
-	vec3 p = centroid();
+	vec3 p = _realPosition;
 	vec3 nearest = obj->lookupVertexPtr(p);
-
 	vec3 diff = vec3_subtract_vec3(nearest, p);
+
 	double l = vec3_length(diff);
-	lockMutex();
-	addToVertices(diff);
-	unlockMutex();
-	_realPosition = centroid();
+	_realPosition = nearest;
+	updatePositionToReal();
 	
 	return l;
 }
@@ -164,9 +162,7 @@ void Bound::setSnapping(bool snapping)
 void Bound::updatePositionToReal()
 {
 	vec3 current = centroid();
-	vec3 working = getWorkingPosition();
-
-	vec3 diff = vec3_subtract_vec3(working, current);
+	vec3 diff = vec3_subtract_vec3(_realPosition, current);
 	lockMutex();
 	addToVertices(diff);
 	unlockMutex();
@@ -256,6 +252,7 @@ void Bound::setRealPosition(vec3 real)
 {
 	_realPosition = real;
 
+	return;
 	vec3 current = centroid();
 	vec3 diff = vec3_subtract_vec3(real, current);
 	lockMutex();
