@@ -251,13 +251,6 @@ void Bound::addToStrategy(RefinementStrategy *str, bool elbow)
 void Bound::setRealPosition(vec3 real)
 {
 	_realPosition = real;
-
-	return;
-	vec3 current = centroid();
-	vec3 diff = vec3_subtract_vec3(real, current);
-	lockMutex();
-	addToVertices(diff);
-	unlockMutex();
 }
 
 double Bound::sigmoidalScore(vec3 posi, vec3 posj, double slope, double mult)
