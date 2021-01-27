@@ -147,6 +147,16 @@ public:
 	{
 		return _value;
 	}
+	
+	void setRMSD(double val)
+	{
+		_rmsd = val;
+	}
+	
+	double RMSD()
+	{
+		return _rmsd;
+	}
 private:
 	void redrawElbow();
 
@@ -164,6 +174,7 @@ private:
 	double _elbowAngle;
 	static double _shoulderAngle;
 	double _value;
+	double _rmsd;
 };
 
 #endif

@@ -51,6 +51,7 @@ vec3 random_vec3(bool absolute = false)
 
 Bound::Bound(std::string filename) : Icosahedron()
 {
+	_rmsd = 0;
 	_elbowAngle = NAN;
 	_arrow = NULL;
 	_value = NAN;
@@ -78,8 +79,8 @@ double Bound::snapToObject(Structure *obj)
 	vec3 p = _realPosition;
 	vec3 nearest = obj->lookupVertexPtr(p);
 	vec3 diff = vec3_subtract_vec3(nearest, p);
-
 	double l = vec3_length(diff);
+
 	_realPosition = nearest;
 	updatePositionToReal();
 	
