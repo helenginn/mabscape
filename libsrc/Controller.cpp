@@ -263,8 +263,7 @@ void Controller::incrementJob()
 
 void Controller::run()
 {
-	connect(this, &Controller::fixMenu, _exp,
-	        [=]() {_exp->addBindersToMenu();},
+	connect(this, &Controller::fixMenu, _view, &SurfaceView::updateMenu,
 	        Qt::QueuedConnection);
 
 	_currentJob = 0;

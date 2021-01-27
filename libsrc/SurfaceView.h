@@ -98,6 +98,7 @@ public slots:
 	void launchCluster4x();
 	void loadSurface();
 	void loadCoords();
+	void updateMenu();
 	void makeMenu();
 private slots:
 	void pause();

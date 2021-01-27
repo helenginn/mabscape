@@ -54,6 +54,8 @@ SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 	_experiment = new Experiment(this);
 	_experiment->setGL(_gl);
 	_experiment->setMetadata(_metadata);
+	connect(_experiment, &Experiment::alteredMenu,
+	        this, &SurfaceView::updateMenu);
 	_gl->show();
 	_gl->setAcceptsFocus(false);
 	
@@ -73,6 +75,58 @@ void SurfaceView::startController(QThread *q, Controller *c)
 	q->start();
 
 	emit runController();
+}
+
+void SurfaceView::updateMenu()
+{
+	bool no_structure = (_experiment->structure() == NULL);
+	bool no_data = (_experiment->boundCount() == 0);
+	bool no_residues = (no_structure 
+	                    || _experiment->structure()->hasResidues());
+
+	QMenuBar *b = menuBar();
+	QAction *act = b->findChild<QAction *>("highlight_residues");
+	act->setDisabled(no_residues);
+
+
+	QList<QAction *> widgets = b->findChildren<QAction *>("need_structure");
+	for (int i = 0; i < widgets.size(); i++)
+	{
+		widgets[i]->setDisabled(no_structure);
+	}
+
+	widgets = b->findChildren<QAction *>("need_data");
+	for (int i = 0; i < widgets.size(); i++)
+	{
+		widgets[i]->setDisabled(no_structure || no_data);
+	}
+
+	QMenu *menu = b->findChild<QMenu *>("metadata");
+	if (menu)
+	{
+		menu->setDisabled(no_structure || no_data);
+		_metadata->makeMenu(menu, _experiment);
+	}
+	
+	act = b->findChild<QAction *>("correlation");
+	act->setChecked(Refinement::currentTarget() == TargetCorrelation);
+
+	act = b->findChild<QAction *>("least_squares");
+	act->setChecked(Refinement::currentTarget() == TargetLeastSquares);
+
+	act = b->findChild<QAction *>("both");
+	act->setChecked(Refinement::currentTarget() == TargetBoth);
+
+	act = b->findChild<QAction *>("relocate");
+	bool relocate = Refinement::relocatingFliers();
+	act->setChecked(relocate);
+	connect(act, &QAction::triggered, _experiment, 
+	[=]() { _experiment->relocateFliers(!relocate); });
+	
+	if (!no_data)
+	{
+		_experiment->addBindersToMenu();
+	}
 }
 
 void SurfaceView::makeMenu()
@@ -106,6 +160,7 @@ void SurfaceView::makeMenu()
 	_actions.push_back(act);
 	
 	act = structure->addAction(tr("Highlight residues"));
+	act->setObjectName("highlight_residues");
 	connect(act, &QAction::triggered, this, 
 	        &SurfaceView::highlightResidues);
 	if (!_experiment->structure() ||
@@ -117,46 +172,43 @@ void SurfaceView::makeMenu()
 
 	structure->addSeparator();
 	act = structure->addAction(tr("Make collision mesh"));
+	act->setObjectName("need_structure");
 	connect(act, &QAction::triggered, _experiment, &Experiment::meshStructure);
 	_actions.push_back(act);
 	act = structure->addAction(tr("Refine mesh"));
+	act->setObjectName("need_structure");
 	connect(act, &QAction::triggered, _experiment, &Experiment::refineMesh);
 	_actions.push_back(act);
 	act = structure->addAction(tr("Triangulate mesh"));
+	act->setObjectName("need_structure");
 	connect(act, &QAction::triggered, _experiment, &Experiment::triangulateMesh);
 	act = structure->addAction(tr("Smooth mesh"));
+	act->setObjectName("need_structure");
 	connect(act, &QAction::triggered, _experiment, &Experiment::smoothMesh);
 	_actions.push_back(act);
 	act = structure->addAction(tr("Inflate mesh"));
+	act->setObjectName("need_structure");
 	connect(act, &QAction::triggered, _experiment, &Experiment::inflateMesh);
 	_actions.push_back(act);
 	act = structure->addAction(tr("Remove mesh"));
+	act->setObjectName("need_structure");
 	connect(act, &QAction::triggered, _experiment, &Experiment::removeMesh);
 	_actions.push_back(act);
 
 	QMenu *data = menuBar()->addMenu(tr("&Data"));
 	_menus.push_back(data);
 	act = data->addAction(tr("Load competition &data"));
+	act->setObjectName("need_structure");
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::loadCSV);
 	act = data->addAction(tr("Load binder &positions"));
+	act->setObjectName("need_data");
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::loadPositions);
 	act = data->addAction(tr("Launch cluster&4x"));
+	act->setObjectName("need_data");
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::launchCluster4x);
-
-	/*
-	act = data->addAction(tr("Data to cluster4x"));
-	_actions.push_back(act);
-	connect(act, &QAction::triggered, this, &SurfaceView::dataToCluster4x);
-	act = data->addAction(tr("Model to cluster4x"));
-	_actions.push_back(act);
-	connect(act, &QAction::triggered, this, &SurfaceView::modelToCluster4x);
-	act = data->addAction(tr("Errors to cluster4x"));
-	_actions.push_back(act);
-	connect(act, &QAction::triggered, this, &SurfaceView::errorsToCluster4x);
-	*/
 
 	_binders = menuBar()->addMenu(tr("&Antibodies"));
 	_menus.push_back(_binders);
@@ -164,14 +216,27 @@ void SurfaceView::makeMenu()
 	_experiment->addBindersToMenu(_binders);
 	
 	act = _binders->addAction(tr("Write out antibody positions"));
+	act->setObjectName("need_data");
 	connect(act, &QAction::triggered, this, &SurfaceView::writeOutPositions);
+	_actions.push_back(act);
+	
+	act = _binders->addAction(tr("Export PDB"));
+	act->setObjectName("need_data");
+	connect(act, &QAction::triggered, this, &SurfaceView::exportPDB);
 	_actions.push_back(act);
 	
 	act = _binders->addAction(tr("Load metadata"));
 	connect(act, &QAction::triggered, this, &SurfaceView::loadMetadata);
 	_actions.push_back(act);
 	
+	act = _binders->addAction(tr("Load sequences"));
+	act->setObjectName("need_data");
+	connect(act, &QAction::triggered, 
+	        this, &SurfaceView::loadSequences);
+	_actions.push_back(act);
+	
 	QMenu *rec = _binders->addMenu(tr("Recolour by..."));
+	rec->setObjectName("metadata");
 
 	act = rec->addAction(tr("Recolour by correlation"));
 	_actions.push_back(act);
@@ -183,6 +248,7 @@ void SurfaceView::makeMenu()
 		_metadata->makeMenu(rec, _experiment);
 	}
 	
+	/*
 	act = _binders->addAction(tr("Identify non-competitors"));
 	connect(act, &QAction::triggered, 
 	        this, &SurfaceView::identifyNonCompetitors);
@@ -192,17 +258,14 @@ void SurfaceView::makeMenu()
 	connect(act, &QAction::triggered, 
 	        this, &SurfaceView::plotDistanceCompetition);
 	_actions.push_back(act);
+	*/
 
 	_binders->addSeparator();
-	
-	act = _binders->addAction(tr("Load sequences"));
-	connect(act, &QAction::triggered, 
-	        this, &SurfaceView::loadSequences);
-	_actions.push_back(act);
 
 	QMenu *refine = menuBar()->addMenu(tr("&Refine"));
 	_menus.push_back(refine);
 	act = refine->addAction(tr("&Refine this a bit more"));
+	act->setObjectName("need_data");
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::bitMoreRefine);
 
@@ -214,52 +277,54 @@ void SurfaceView::makeMenu()
 	        &Experiment::openResults);
 	_actions.push_back(act);
 	act = mc->addAction(tr("Run &1000 cycles"));
+	act->setObjectName("need_data");
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, _experiment, &Experiment::monteCarlo);
 	act = mc->addAction(tr("Start"));
+	act->setObjectName("need_data");
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, _experiment, &Experiment::mCarloStart);
 	act = mc->addAction(tr("Stop"));
+	act->setObjectName("need_data");
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, _experiment, &Experiment::mCarloStop);
 
 	act = refine->addAction(tr("Randomise positions"));
+	act->setObjectName("need_data");
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, _experiment, &Experiment::randomise);
 	act = refine->addAction(tr("Jiggle"));
+	act->setObjectName("need_data");
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, _experiment, &Experiment::jiggle);
 	refine->addSeparator();
 
 	act = refine->addAction(tr("Use correlation"));
+	act->setObjectName("correlation");
 	_actions.push_back(act);
 	act->setCheckable(true);
-	act->setChecked(Refinement::currentTarget() == TargetCorrelation);
 	connect(act, &QAction::triggered, _experiment, 
 	[=]() { _experiment->chooseTarget(TargetCorrelation); });
 
 	act = refine->addAction(tr("Use least squares"));
+	act->setObjectName("least_squares");
 	_actions.push_back(act);
 	act->setCheckable(true);
-	act->setChecked(Refinement::currentTarget() == TargetLeastSquares);
 	connect(act, &QAction::triggered, _experiment, 
 	[=]() { _experiment->chooseTarget(TargetLeastSquares); });
 
 	act = refine->addAction(tr("Use both"));
+	act->setObjectName("both");
 	_actions.push_back(act);
 	act->setCheckable(true);
-	act->setChecked(Refinement::currentTarget() == TargetBoth);
 	connect(act, &QAction::triggered, _experiment, 
 	[=]() { _experiment->chooseTarget(TargetBoth); });
 	refine->addSeparator();
 
 	act = refine->addAction(tr("Relocate flying antibodies"));
+	act->setObjectName("relocate");
 	_actions.push_back(act);
 	act->setCheckable(true);
-	bool relocate = Refinement::relocatingFliers();
-	act->setChecked(relocate);
-	connect(act, &QAction::triggered, _experiment, 
-	[=]() { _experiment->relocateFliers(!relocate); });
 
 	/*
 	act = refine->addAction(tr("Enable elbow angles"));
@@ -267,6 +332,8 @@ void SurfaceView::makeMenu()
 	connect(act, &QAction::triggered, _experiment, 
 	[=]() {_experiment->enableElbows();});
 	*/
+	
+	updateMenu();
 }
 
 void SurfaceView::convertCoords(double *x, double *y)
@@ -495,8 +562,6 @@ void SurfaceView::loadCSV()
 	}
 
 	_experiment->loadCSV(filename);
-	
-	makeMenu();
 }
 
 void SurfaceView::loadSurface()
@@ -523,7 +588,6 @@ void SurfaceView::loadCoords()
 	}
 
 	_experiment->loadStructureCoords(filename);
-	makeMenu();
 }
 
 void SurfaceView::bitMoreRefine()

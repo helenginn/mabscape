@@ -94,6 +94,8 @@ void Experiment::loadStructure(std::string filename)
 	Structure *str = new Structure(filename);
 	_gl->addObject(str, true);
 	_structure = str;
+
+	emit alteredMenu();
 }
 
 void Experiment::loadStructureCoords(std::string filename)
@@ -160,13 +162,13 @@ void Experiment::meshStructure()
 void Experiment::relocateFliers(bool relocate)
 {
 	Refinement::setRelocateFliers(relocate);
-//	_view->makeMenu();
+	emit alteredMenu();
 }
 
 void Experiment::chooseTarget(Target t)
 {
 	Refinement::chooseTarget(t);
-//	_view->makeMenu();
+	emit alteredMenu();
 }
 
 void Experiment::triangulateStructure()
@@ -520,6 +522,7 @@ void Experiment::loadCSV(std::string filename)
 		_data = new Data(filename);
 	}
 
+	emit alteredMenu();
 	createBinders();
 }
 
@@ -549,6 +552,19 @@ void Experiment::addBindersToMenu()
 
 void Experiment::addBindersToMenu(QMenu *binders)
 {
+	QList<QAction *> actions = binders->findChildren<QAction *>("binder");
+	for (int i = 0; i < actions.size(); i++)
+	{
+		binders->removeAction(actions[i]);
+	}
+
+	QList<QMenu *> menus = binders->findChildren<QMenu *>("binder");
+	for (int i = 0; i < menus.size(); i++)
+	{
+		QAction *menuToBeRemoved = menus[i]->menuAction();
+		binders->removeAction(menuToBeRemoved);
+	}
+
 	for (size_t i = 0; i < _bounds.size(); i += 10)
 	{
 		size_t end = std::min(i + 10, _bounds.size());
@@ -557,7 +573,7 @@ void Experiment::addBindersToMenu(QMenu *binders)
 		+ i_to_str(end);
 
 		QMenu *m = binders->addMenu(QString::fromStdString(title));
-		_view->addMenu(m);
+		m->setObjectName("binder");
 
 		for (size_t j = 0; i + j < _bounds.size() && j < 10; j++)
 		{
@@ -565,21 +581,20 @@ void Experiment::addBindersToMenu(QMenu *binders)
 			std::string name = _bounds[i + j]->name();
 			QString n = QString::fromStdString(name);
 			QMenu *mb = m->addMenu(n);
-			_view->addMenu(mb);
+			mb->setObjectName("binder");
 
 			QVariant v = QVariant::fromValue(b);
 			QAction *act = mb->addAction("Select");
+			act->setObjectName("binder");
 			act->setProperty("bound", v);
 			connect(act, &QAction::triggered, 
 			        this, &Experiment::selectFromMenu);
-			_view->addAction(act);
 
 			act = mb->addAction("Fix from PDB");
+			act->setObjectName("binder");
 			act->setProperty("bound", v);
 			connect(act, &QAction::triggered, 
 			        this, &Experiment::fixFromPDB);
-			_view->addAction(act);
-
 		}
 	}
 }
@@ -778,6 +793,8 @@ void Experiment::handleMesh()
 
 	_worker->quit();
 //	_worker->wait();
+
+	emit alteredMenu();
 }
 
 void Experiment::handleError()
