@@ -17,14 +17,14 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #include <iostream>
-#include "Arrow.h"
 #include "Bound.h"
-#include <helen3d/RefinementStrategy.h>
+#include <hcsrc/RefinementStrategy.h>
+#include <h3dsrc/Text.h>
 #include "Structure.h"
-#include <libsrc/Fibonacci.h>
+#include <hcsrc/Fibonacci.h>
 #include "Data.h"
-#include <libsrc/shaders/vStructure.h>
-#include <libsrc/shaders/fStructure.h>
+#include <h3dsrc/shaders/vStructure.h>
+#include <h3dsrc/shaders/fStructure.h>
 
 using namespace Helen3D;
 
@@ -49,11 +49,11 @@ vec3 random_vec3(bool absolute = false)
 	return jiggle;
 }
 
-Bound::Bound(std::string filename) : Icosahedron()
+Bound::Bound() : Icosahedron()
 {
+	_text = NULL;
 	_rmsd = 0;
 	_elbowAngle = NAN;
-	_arrow = NULL;
 	_value = NAN;
 	_nearestNorm = make_vec3(1, 0, 0);
 	_special = false;
@@ -167,59 +167,15 @@ void Bound::updatePositionToReal()
 	lockMutex();
 	addToVertices(diff);
 	unlockMutex();
-
-	if (_arrow != NULL)
-	{
-		redrawElbow();
-		_arrow->populate();
-	}
-}
-
-void Bound::redrawElbow()
-{
-	if (_arrow == NULL || _elbowAngle != _elbowAngle)
-	{
-		return;
-	}
-
-	vec3 norm = _structure->lookupVertexPtr(_realPosition, true);
-	vec3 elbow = norm;
-	
-	vec3 zAxis = make_vec3(0, 0, 1);
-	vec3 cross = vec3_cross_vec3(zAxis, norm);
-	vec3_set_length(&cross, 1);
-
-	mat3x3 rot = mat3x3_unit_vec_rotation(cross, _shoulderAngle);
-	mat3x3_mult_vec(rot, &elbow);
-	
-	mat3x3 swing = mat3x3_unit_vec_rotation(norm, _elbowAngle);
-	mat3x3_mult_vec(swing, &elbow);
-
-	vec3_mult(&elbow, 4.);
-	vec3 start = vec3_add_vec3(_realPosition, elbow);
-	vec3_mult(&elbow, 6.);
-	vec3 end = vec3_add_vec3(start, elbow);
-	
-	_arrow->setEnds(start, end);
-}
-
-void Bound::enableElbow()
-{
-	randomiseElbow();
-	_arrow = new Arrow(this);
-	_arrow->setSelectable(true);
-	redrawElbow();
-	_arrow->populate();
 }
 
 void Bound::render(SlipGL *gl)
 {
 	SlipObject::render(gl);
 	
-	if (_arrow != NULL)
+	if (_text != NULL)
 	{
-		redrawElbow();
-		_arrow->render(gl);
+		_text->render(gl);
 	}
 }
 
@@ -240,12 +196,6 @@ void Bound::addToStrategy(RefinementStrategy *str, bool elbow)
 		                  (rand() % 2 - 0.5) * step, tol, name() + "_y");
 		str->addParameter(this, Bound::getPosZ, Bound::setPosZ,
 		                  (rand() % 2 - 0.5) * step, tol, name() + "_z");
-	}
-	
-	if (elbow && _arrow != NULL)
-	{
-		str->addParameter(this, Bound::getElbowAngle, Bound::setElbowAngle,
-		                  deg2rad(90.), deg2rad(2.), name() + "elbow");
 	}
 }
 
@@ -276,15 +226,6 @@ double Bound::scoreWithOther(Bound *other, bool dampen)
 	vec3 posj = other->getStoredPosition();
 
 	double val = sigmoidalScore(posi, posj);
-
-	if (_arrow != NULL && other->_arrow != NULL)
-	{
-		redrawElbow();
-		vec3 endi = _arrow->end();
-		vec3 endj = other->_arrow->end();
-
-		val += sigmoidalScore(endi, endj, 10.0, 2.0) * (1 - val);
-	}
 	
 	return val;
 }
@@ -303,9 +244,9 @@ void Bound::setSpecial(bool special)
 	}
 }
 
-void Bound::colourByValue(double stdev)
+void Bound::colourByValue(double mean, double stdev)
 {
-	double val = _value / stdev;
+	double val = (_value - mean) / stdev;
 	double red = 0;
 	double green = 0;
 	double blue = 0;
@@ -344,9 +285,24 @@ void Bound::randomiseElbow()
 void Bound::selectMe(bool sel)
 {
 	setSelected(sel);
-	
-	if (_arrow)
-	{
-		_arrow->setSelected(sel);
-	}
 }
+
+void Bound::label(bool visible)
+{
+	if (_text != NULL)
+	{
+		delete _text;
+		_text = NULL;
+	}
+
+	if (!visible)
+	{
+		return;
+	}
+	
+	_text = new Text();
+	_text->setProperties(_realPosition, name(), 24, Qt::black,
+	                     0, 0, 5);
+	_text->prepare();
+}
+

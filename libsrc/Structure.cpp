@@ -24,8 +24,8 @@
 #include <libsrc/Monomer.h>
 #include <libsrc/Crystal.h>
 #include <libsrc/Atom.h>
-#include <libsrc/shaders/vStructure.h>
-#include <libsrc/shaders/fStructure.h>
+#include <h3dsrc/shaders/vStructure.h>
+#include <h3dsrc/shaders/fStructure.h>
 
 using namespace Helen3D;
 

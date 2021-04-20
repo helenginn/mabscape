@@ -19,11 +19,11 @@
 #include "PDBView.h"
 #include "Bound.h"
 #include "Structure.h"
-#include <PDBReader.h>
-#include <Atom.h>
-#include <Crystal.h>
-#include <Polymer.h>
-#include <Shouter.h>
+#include <libsrc/PDBReader.h>
+#include <libsrc/Atom.h>
+#include <libsrc/Crystal.h>
+#include <libsrc/Polymer.h>
+#include <libsrc/Shouter.h>
 #include "Experiment.h"
 #include <QFileDialog>
 #include <sstream>

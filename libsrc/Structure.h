@@ -19,7 +19,7 @@
 #ifndef __abmap__Structure__
 #define __abmap__Structure__
 
-#include <Frameworks.h>
+#include <h3dsrc/Frameworks.h>
 #include <h3dsrc/SlipObjFile.h>
 #include <hcsrc/vec3.h>
 #include <libsrc/shared_ptrs.h>

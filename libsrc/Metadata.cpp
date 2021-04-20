@@ -18,6 +18,7 @@
 
 #include <QMenu>
 #include <iostream>
+#include <algorithm>
 #include <hcsrc/FileReader.h>
 
 #include "Experiment.h"
@@ -51,20 +52,13 @@ void Metadata::load()
 	std::string header = lines[0];
 	std::vector<std::string> titles = split(header, ',');
 	
-	_titles.clear();
-	
-	for (size_t i = 0; i < titles.size(); i++)
-	{
-		_titles.push_back(titles[i]);
-	}
-	
-	if (_titles.size() == 0)
+	if (titles.size() == 0)
 	{
 		std::cout << "Lines are empty" << std::endl;
 		return;
 	}
 	
-	std::cout << "We assume " << _titles[0] << " is the "\
+	std::cout << "We assume " << titles[0] << " is the "\
 	"sequence identifier. If this is not the case, "\
 	"fix and reload" << std::endl;
 	
@@ -75,11 +69,12 @@ void Metadata::load()
 	{
 		std::vector<std::string> components = split(lines[i], ',');
 		
-		if (components.size() != _titles.size())
+		if (components.size() != titles.size() || components.size() == 0)
 		{
 			std::cout << "Skipping line " << i << " - incorrect number "\
 			" of entries." << std::endl;
 			std::cout << "\t" << lines[i] << std::endl;
+			continue;
 		}
 		
 		KeyValue kv;
@@ -97,17 +92,34 @@ void Metadata::load()
 		{
 			continue;
 		}
+		else
+		{
+			kv = _keys[which];
+		}
 
 		for (size_t j = 1; j < components.size(); j++)
 		{
 			trim(components[j]);
-			kv[_titles[j]] = components[j];
+			kv[titles[j]] = components[j];
 		}
 		
 		_keys[which] = kv;
+
 		count++;
 	}
-	
+
+
+	for (size_t i = 1; i < titles.size(); i++)
+	{
+		bool found = std::find(_titles.begin(), _titles.end(), 
+		                       titles[i]) != _titles.end();
+
+		if (!found)
+		{
+			_titles.push_back(titles[i]);
+		}
+	}
+
 	std::cout << "Skipped " << skip << " antibodies not in memory." << std::endl;
 	std::cout << "Loaded metadata for " << count << " antibodies." << std::endl;
 	std::cout << "Titles are: " << std::endl;
@@ -120,61 +132,9 @@ void Metadata::load()
 
 void Metadata::colourOptions(std::string title)
 {
-	ColourOptions *options = new ColourOptions(NULL);
+	_title = title;
+	ColourOptions *options = new ColourOptions(NULL, this);
 	options->show();
-}
-
-void Metadata::colourBy(std::string title)
-{
-	double sum = 0;
-	double sqSum = 0;
-	double count = 0;
-	
-	for (size_t i = 0; i < _bounds.size(); i++)
-	{
-		Bound *b = bound(i);
-		b->setValue(NAN);
-		
-		KeyValue &kv = _keys[b];
-		
-		if (kv.count(title) == 0)
-		{
-			continue;
-		}
-
-		std::string result = kv[title];
-		
-		if (result == "")
-		{
-			continue;
-		}
-
-		double value = atof(result.c_str());
-		value = log(value) / log(10);
-		b->setValue(value);
-
-		sum += value;
-		sqSum += value * value;
-		count++;
-
-		std::cout << b->name() << " " << value << std::endl;
-	}
-
-	double mean = sum / count;
-	double stdev = sqrt(sqSum / count - mean * mean);
-
-	for (size_t i = 0; i < _bounds.size(); i++)
-	{
-		Bound *b = bound(i);
-
-		double value = b->getValue();
-
-		if (b != NULL)
-		{
-			b->setValue(value);
-			b->colourByValue(1.);
-		}
-	}
 }
 
 void Metadata::makeMenu(QMenu *m, Experiment *e)
@@ -191,8 +151,7 @@ void Metadata::makeMenu(QMenu *m, Experiment *e)
 		QString qTitle = QString::fromStdString(_titles[i]);
 
 		QAction *act = m->addAction(qTitle);
-		connect(act, &QAction::triggered, 
-		        this, [=]() {colourBy(_titles[i]);});
+		act->setObjectName("metadata");
 		connect(act, &QAction::triggered, 
 		        this, [=]() {colourOptions(_titles[i]);});
 	}
@@ -219,4 +178,76 @@ bool Metadata::hasKey(Bound *b, std::string key)
 std::string Metadata::valueForKey(Bound *b, std::string key)
 {
 	return _keys[b][key];
+}
+
+void Metadata::colourByScale(bool takeLog, double mean, double stdev)
+{
+	double sum = 0;
+	double sqSum = 0;
+	double count = 0;
+	
+	for (size_t i = 0; i < _bounds.size(); i++)
+	{
+		Bound *b = bound(i);
+		b->setValue(NAN);
+		
+		KeyValue &kv = _keys[b];
+		
+		if (kv.count(_title) == 0)
+		{
+			continue;
+		}
+
+		std::string result = kv[_title];
+		
+		if (result == "")
+		{
+			continue;
+		}
+
+		double value = atof(result.c_str());
+		if (takeLog)
+		{
+			value = log(value) / log(10);
+		}
+
+		b->setValue(value);
+
+		sum += value;
+		sqSum += value * value;
+		count++;
+
+		std::cout << b->name() << " " << value << std::endl;
+	}
+
+	double real_mean = sum / count;
+	
+	if (mean != mean)
+	{
+		mean = real_mean;
+	}
+
+	double real_stdev = sqrt(sqSum / count - real_mean * real_mean);
+	
+	if (stdev != stdev)
+	{
+		stdev = real_stdev;
+	}
+	
+	std::cout << mean << " " << stdev << std::endl;
+
+	for (size_t i = 0; i < _bounds.size(); i++)
+	{
+		Bound *b = bound(i);
+
+		if (b != NULL)
+		{
+			b->colourByValue(mean, -stdev);
+		}
+	}
+}
+
+bool Metadata::hasTitle(std::string title)
+{
+	return std::find(_titles.begin(), _titles.end(), title) != _titles.end();
 }

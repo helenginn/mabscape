@@ -16,25 +16,26 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
+#include "Genes.h"
 #include "Metadata.h"
 #include "Experiment.h"
 #include "PDBView.h"
 #include "Explorer.h"
 #include "SurfaceView.h"
-#include "SlipGL.h"
+#include <h3dsrc/SlipGL.h>
 #include "Bound.h"
 #include "Data.h"
 #include "Structure.h"
-#include "Mesh.h"
+#include <h3dsrc/Mesh.h>
 #include "Refinement.h"
 #include "Result.h"
-#include "FileReader.h"
+#include <hcsrc/FileReader.h>
 #include <iomanip>
 #include <fstream>
 #include <algorithm>
 #include <c4xsrc/AveCSV.h>
-#include <Group.h>
-#include <ClusterList.h>
+#include <c4xsrc/Group.h>
+#include <c4xsrc/ClusterList.h>
 #include <hcsrc/mat4x4.h>
 #include <libsrc/Absolute.h>
 #include <libsrc/Atom.h>
@@ -52,6 +53,7 @@
 
 Experiment::Experiment(SurfaceView *view)
 {
+	_labels = false;
 	_passToResults = false;
 	_mesh = NULL;
 	_worker = NULL;
@@ -283,9 +285,9 @@ void Experiment::refineMesh()
 }
 
 
-Bound *Experiment::loadBound(std::string filename)
+Bound *Experiment::loadBound()
 {
-	Bound *bnd = new Bound(filename);
+	Bound *bnd = new Bound();
 	bnd->setName("thing" + i_to_str(_bounds.size() + 1));
 	_gl->addObject(bnd, false);
 	
@@ -538,7 +540,7 @@ void Experiment::createBinders()
 		}
 
 		std::cout << "Making " << id << std::endl;
-		Bound *bound = loadBound(_boundObj);
+		Bound *bound = loadBound();
 		bound->setName(id);
 		_nameMap[id] = bound;
 	}
@@ -672,11 +674,6 @@ void Experiment::refineModel(bool fixedOnly, bool svd)
 	_worker->start();
 
 	emit refine();
-}
-
-bool boundDiffuserThanBound(Bound *a, Bound *b)
-{
-	return (a->vertex(0).color[3] < b->vertex(0).color[3]);
 }
 
 bool Experiment::isRunningMonteCarlo()
@@ -871,13 +868,6 @@ void Experiment::loadPositions(std::string filename)
 			name = &bits[0][1];
 			fixed = true;
 		}
-		
-		if (name[0] == '^' && name.length() > 1)
-		{
-			name = &name[1];
-			colour = true;
-			std::cout << name << " marked in red" << std::endl;
-		}
 
 		float v1 = atof(bits[1].c_str());
 		float v2 = atof(bits[2].c_str());
@@ -888,6 +878,7 @@ void Experiment::loadPositions(std::string filename)
 		
 		if (b == NULL)
 		{
+			std::cout << "Couldn't find " << name << std::endl;
 			continue;
 		}
 
@@ -1078,7 +1069,7 @@ void Experiment::fixLabel()
 	l->setMouseTracking(true);
 	l->setObjectName("templabel");
 	l->setStyleSheet(_label->styleSheet());
-	QFont font = QFont("Helvetica", 16);
+	QFont font = QFont("Helvetica", 64);
 	l->setFont(font);
 	l->setAlignment(Qt::AlignVCenter);
 	l->setAlignment(Qt::AlignHCenter);
@@ -1223,8 +1214,9 @@ QThread *Experiment::worker()
 	return _worker;
 }
 
-void Experiment::recolourByBoundErrors()
+void Experiment::recolourByBoundErrors(double data, double model)
 {
+	double mean = (data + model) / 2;
 	for (size_t i = 0; i < boundCount(); i++)
 	{
 		Bound *b = bound(i);
@@ -1238,22 +1230,9 @@ void Experiment::recolourByBoundErrors()
 		double pred = _selected->scoreWithOther(b);
 		double obs = _data->valueFor(b->name(), _selected->name());
 		
-		double diff = obs - pred;
+		double diff = obs * data + pred * model;
 		b->setValue(diff);
-		b->colourByValue(1);
-	}
-
-}
-
-void Experiment::enableElbows()
-{
-//	Refinement::enableElbows();
-	Bound::setRadius(NULL, 10);
-
-	for (size_t i = 0; i < boundCount(); i++)
-	{
-		Bound *b = bound(i);
-		b->enableElbow();
+		b->colourByValue(mean, 0.5);
 	}
 }
 
@@ -1286,15 +1265,22 @@ void Experiment::writePDB(std::string filename)
 			rmsd = 0;
 		}
 		
+		double val = NAN;
 		if (b->getValue() == b->getValue())
 		{
-			rmsd = b->getValue();
+			val = b->getValue();
 		}
 		
-		double val = b->getValue();
+		/*
+		if (val != val)
+		{
+			val = rmsd;
+		}
+		*/
+
 		vec3 mean = b->getStoredPosition();
 
-		AbsolutePtr abs = AbsolutePtr(new Absolute(mean, rmsd, "HG", val));
+		AbsolutePtr abs = AbsolutePtr(new Absolute(mean, val, "HG", rmsd));
 		
 		int num = 0;
 		std::string name = b->name();
@@ -1344,4 +1330,53 @@ void Experiment::writePDB(std::string filename)
 	f << str;
 	f.close();
 	
+}
+
+void Experiment::toggleLabels()
+{
+	_labels = !_labels;
+
+	for (size_t i = 0; i < boundCount(); i++)
+	{
+		bound(i)->label(_labels);
+	}
+}
+
+bool Experiment::loadedSequences()
+{
+	return _view->genes()->antibodyCount() > 0;
+}
+
+void Experiment::recolourBySequence(bool heavy)
+{
+	for (size_t i = 0; i < boundCount(); i++)
+	{
+		Bound *b = bound(i);
+		
+		if (b == _selected)
+		{
+			b->recolourBoth(1, 1, 0);
+			continue;
+		}
+		
+		double value = _view->genes()->valueFor(heavy, b, _selected);
+		
+		if (value != value)
+		{
+			b->setValue(NAN);
+		}
+		
+		b->setValue(value);
+		b->colourByValue(0.5, 0.5);
+	}
+}
+
+void Experiment::makeNamedBound(std::string name)
+{
+	std::cout << "Making antibody named " << name << std::endl;
+	Bound *bnd = loadBound();
+	bnd->setName(name);
+	_nameMap[name] = bnd;
+	std::cout << _bounds.size() << std::endl;
+	emit alteredMenu();
 }

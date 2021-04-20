@@ -17,84 +17,116 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #include "Genes.h"
+#include "Metadata.h"
 #include "Antibody.h"
+#include "Experiment.h"
+#include "SurfaceView.h"
 #include <fstream>
-#include <FileReader.h>
+#include <hcsrc/FileReader.h>
+#include <c4xsrc/AveCSV.h>
+#include <c4xsrc/Screen.h>
+#include <c4xsrc/ClusterList.h>
+#include <c4xsrc/Group.h>
 
 Genes::Genes()
 {
 
 }
 
-void Genes::compare(std::vector<Antibody *> abs)
+double Genes::valueFor(bool heavy, Bound *b, Bound *c)
 {
-	std::ofstream heavyfile, lightfile;
-	heavyfile.open("heavy_data.csv");
-	lightfile.open("light_data.csv");
+	std::map<Bound *, BoundValue> *map = &_heavy;
+	if (!heavy)
+	{
+		map = &_light;
+	}
 
-	for (size_t i = 1; i < abs.size(); i++)
+	if (!map->count(b) || !(*map)[b].count(c))
+	{
+		return NAN;
+	}
+
+	return (*map)[b][c];
+}
+
+void Genes::compare(AveCSV *csv, bool heavy)
+{
+	for (size_t i = 1; i < _abs.size(); i++)
 	{
 		for (size_t j = 0; j < i; j++)
 		{
-			double hval = abs[i]->compareWithAntibody(abs[j], true);
-			double lval = abs[i]->compareWithAntibody(abs[j], false);
-			heavyfile << abs[i]->name() << "," << abs[j]->name()
-			<< "," << hval << std::endl;
-
-			lightfile << abs[i]->name() << "," << abs[j]->name()
-			<< "," << lval << std::endl;
+			double val = _abs[i]->compareWithAntibody(_abs[j], heavy);
+			csv->addValue(_abs[j]->name(), _abs[i]->name(), val);
+			csv->addValue(_abs[i]->name(), _abs[j]->name(), val);
+			
+			if (heavy)
+			{
+				_heavy[_abs[i]->bound()][_abs[j]->bound()] = val;
+				_heavy[_abs[j]->bound()][_abs[i]->bound()] = val;
+			}
+			else
+			{
+				_light[_abs[i]->bound()][_abs[j]->bound()] = val;
+				_light[_abs[j]->bound()][_abs[i]->bound()] = val;
+			}
 		}
 	}
 	
-	heavyfile.close();
-	lightfile.close();
+	std::cout << "Updated " << (heavy ? "heavy " : "light ") <<
+	"sequence comparison" << std::endl;
 }
 
-void Genes::loadSequences(std::string filename)
+void Genes::loadSequences(Metadata *m, SurfaceView *view)
 {
-	std::cout << "Should load aa sequences from " << filename << std::endl;
-
-	std::string contents;
-	
-	try
+	for (size_t i = 0; i < m->boundCount(); i++)
 	{
-		contents = get_file_contents(filename);
-	}
-	catch (int e)
-	{
-		std::cout << "Could not load filename " << filename << std::endl;
-		return;
-	}
-	
-	std::vector<std::string> lines = split(contents, '\n');
-	std::vector<Antibody *> abs;
-
-	for (size_t i = 1; i < lines.size(); i++)
-	{
-		std::vector<std::string> components = split(lines[i], ',');
+		Bound *b = m->bound(i);
 		
-		if (components.size() != 3)
+		std::string haa = m->valueForKey(b, "heavy");
+		std::string laa = m->valueForKey(b, "light");
+		
+		if (haa.length() == 0 && laa.length() == 0)
 		{
-			if (lines[i].length() > 0)
-			{
-				std::cout << "Wrong number of terms, skipping: " << std::endl;
-				std::cout << lines[i] << std::endl;
-			}
-
 			continue;
 		}
-
-		std::string id = components[0];
-		std::string haa = components[1];
-		std::string laa = components[2];
 		
-		Antibody *ab = new Antibody(id, haa, laa);
-		abs.push_back(ab);
+		Antibody *ab = new Antibody(b, haa, laa);
+		_abs.push_back(ab);
 	}
 	
-	std::cout << abs.size() << " antibodies loaded" << std::endl;
+	std::cout << _abs.size() << " antibodies loaded" << std::endl;
 	std::cout << std::endl;
 	
-	compare(abs);
+	bool heavy = m->hasTitle("heavy");
+	bool light = m->hasTitle("light");
+	
+	view->launchCluster4x();
+	Screen *scr = view->clusterScreen();
+	ClusterList *list = scr->getList();
+	AveCSV *csv = Group::topGroup()->getAveCSV();
+	csv->setList(list);
+	
+	if (heavy)
+	{
+		csv->startNewCSV("Heavy chain");
+		compare(csv, true);
+	}
+	
+	if (light)
+	{
+		csv->startNewCSV("Light chain");
+		compare(csv, false);
+	}
+	
+	if (heavy || light)
+	{
+		csv->setChosen(csv->csvCount() - 1);
+	}
+	
+	if (Group::topGroup()->mtzCount() == 0)
+	{
+		csv->preparePaths();
+		list->addCSVSwitcher();
+	}
 }
 

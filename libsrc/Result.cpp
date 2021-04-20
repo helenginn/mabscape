@@ -21,11 +21,11 @@
 #include "Experiment.h"
 #include "Bound.h"
 #include <fstream>
-#include <MtzFFT.h>
-#include <MtzFile.h>
-#include <FileReader.h>
+#include <c4xsrc/MtzFFT.h>
+#include <c4xsrc/MtzFile.h>
+#include <hcsrc/FileReader.h>
 #include <vector>
-#include <QuickAtoms.h>
+#include <c4xsrc/QuickAtoms.h>
 
 Result::Result()
 {

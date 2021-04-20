@@ -19,7 +19,7 @@
 #ifndef __abmap__PDBView__
 #define __abmap__PDBView__
 
-#include <Crystal.h>
+#include <libsrc/Crystal.h>
 #include <map>
 #include <QMainWindow>
 

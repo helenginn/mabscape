@@ -18,7 +18,7 @@
 
 #include <MtzFile.h>
 
-#include <Frameworks.h>
+#include <h3dsrc/Frameworks.h>
 using namespace Helen3D;
 
 #include "Explorer.h"
@@ -28,16 +28,16 @@ using namespace Helen3D;
 #include "Result.h"
 #include "Bound.h"
 #include "Squiggle.h"
-#include "Dialogue.h"
+#include <h3dsrc/Dialogue.h>
 #include <iostream>
 #include <fstream>
 #include <MtzFFT.h>
-#include <Mesh.h>
-#include <Group.h>
-#include <FileReader.h>
-#include <AveCSV.h>
-#include <Screen.h>
-#include <ClusterList.h>
+#include <h3dsrc/Mesh.h>
+#include <c4xsrc/Group.h>
+#include <hcsrc/FileReader.h>
+#include <c4xsrc/AveCSV.h>
+#include <c4xsrc/Screen.h>
+#include <c4xsrc/ClusterList.h>
 #include <QPushButton>
 
 Explorer::Explorer(QWidget *parent) : QMainWindow(parent)

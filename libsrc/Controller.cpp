@@ -17,15 +17,16 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #include "Controller.h"
-#include "Genes.h"
+#include "Metadata.h"
 #include "SurfaceView.h"
 #include "Experiment.h"
 #include "Structure.h"
 #include "Explorer.h"
-#include "Mesh.h"
+#include <h3dsrc/Mesh.h>
 #include <iostream>
 #include <QThread>
 #include <QApplication>
+#include <hcsrc/FileReader.h>
 
 Controller::Controller()
 {
@@ -182,7 +183,7 @@ bool Controller::processNextArg(std::string arg)
 		_exp->getExplorer()->writeResultsToFile(fn, true);
 		return true;
 	}
-	else if (first == "read-results")
+	else if (first == "read-results" || first == "load-results")
 	{
 		std::string fn = last;
 		_exp->getExplorer()->readResults(fn);
@@ -215,19 +216,31 @@ bool Controller::processNextArg(std::string arg)
 		_exp->getExplorer()->summariseBounds();
 		return true;
 	}
-	else if (first == "enable-elbows")
+	else if (first == "load-metadata")
 	{
-		_exp->enableElbows();
+		Metadata *m = _exp->metadata();
+		m->setFilename(last);
+		m->loadBounds(_exp->bounds());
+		m->load();
 
-		emit startPatch();
+		return true;
+	}
+	else if (first == "make-antibody")
+	{
+		std::string file = last;
+		std::vector<std::string> names = split(last, ',');
+		for (size_t i = 0; i < names.size(); i++)
+		{
+			_exp->makeNamedBound(names[i]);
+		}
+
 		return true;
 	}
 	else if (first == "ab-junctions")
 	{
 		std::string file = last;
-		_view->genes()->loadSequences(last);
+		_view->alignSequences();
 
-		emit startPatch();
 		return true;
 	}
 	else if (first == "quit")

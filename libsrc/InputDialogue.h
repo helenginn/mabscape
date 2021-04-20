@@ -24,6 +24,7 @@ typedef enum
 {
 	DialogueUndefined,
 	DialogueHighlight,
+	DialogueMakeAntibody,
 } DialogueType;
 
 class Dialogue : public QMainWindow

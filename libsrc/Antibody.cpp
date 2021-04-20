@@ -1,4 +1,3 @@
-// abmap
 // Copyright (C) 2019 Helen Ginn
 // 
 // This program is free software: you can redistribute it and/or modify
@@ -16,131 +15,28 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
+#include "Bound.h"
 #include "Antibody.h"
-#include "Blast.h"
-#include <libsrc/FileReader.h>
+#include <hcsrc/Blast.h>
+#include <hcsrc/FileReader.h>
 #include <cmath>
 
-Antibody::Antibody(std::string name, std::string hv, std::string hj,
-                   std::string hd, std::string lv, std::string lj)
+Antibody::Antibody(Bound *bound, std::string haa, std::string laa)
 {
-	_hv = split(hv, '/');
-	_hj = split(hj, '/');
-	_hd = split(hd, '/');
-	_lv = split(lv, '/');
-	_lj = split(lj, '/');
-	_ab = name;
-	_sequence = false;
-}
-
-Antibody::Antibody(std::string name, std::string haa, std::string laa)
-{
-	_ab = name;
+	_bound = bound;
 	_haa = haa;
 	_laa = laa;
 	_sequence = true;
 }
 
-
-double compareGenes(std::string one, std::string two, double maxDrills)
+std::string Antibody::name()
 {
-	std::vector<std::string> one_split = split(one, '*');
-	std::vector<std::string> two_split = split(two, '*');
-	
-	std::string family1 = one_split[0];
-	std::string family2 = two_split[0];
-	
-	std::vector<std::string> one_drill = split(family1, '-');
-	std::vector<std::string> two_drill = split(family2, '-');
-	
-	size_t min = std::min(one_drill.size(), two_drill.size());
-	double matches = 0;
-	bool giveup = false;
-	
-	if (maxDrills < min)
-	{
-		maxDrills = min;
-	}
-	
-	for (size_t i = 0; i < min; i++)
-	{
-		int d1 = atoi(one_drill[i].c_str());
-		int d2 = atoi(two_drill[i].c_str());
-		
-		if (d1 == d2)
-		{
-			matches++;
-			std::cout << "+" << std::flush;
-		}
-		else
-		{
-			std::cout << "-" << std::flush;
-			giveup = true;
-			break;
-		}
-	}
-	
-	if (giveup)
-	{
-		std::cout << std::endl;
-		return matches;
-	}
-
-	if (matches >= 0.99 && one_drill.size() == two_drill.size() && 
-	    one_split.size() > 1 && two_split.size() > 1)
-	{
-		if (atoi(one_split[1].c_str()) == atoi(two_split[1].c_str()))
-		{
-			matches += 1.0;
-			std::cout << "*" << std::flush;
-		}
-	}
-	
-	std::cout << " " << std::flush;
-	
-	return matches;
-}
-
-double Antibody::compareGeneSet(std::vector<std::string> &group1,
-                                std::vector<std::string> &group2,
-                                int maxDrills)
-{
-	double biggest = 0;
-
-	for (size_t i = 0; i < group1.size(); i++)
-	{
-		for (size_t j = 0; j < group2.size(); j++)
-		{
-			double match = compareGenes(group1[i], group2[j], maxDrills);
-			if (biggest < match)
-			{
-				biggest = match;
-			}
-		}
-	}
-
-	return biggest;
+	return _bound->name();
 }
 
 double Antibody::compareWithAntibody(Antibody *other, bool heavy)
 {
-	if (_sequence)
-	{
-		return compareSequences(other, heavy);
-	}
-
-	double accum = 0;
-
-	accum += compareGeneSet(_hv, other->_hv, 3);
-	accum += compareGeneSet(_hj, other->_hj, 1);
-	accum += compareGeneSet(_hd, other->_hd, 2);
-	accum += compareGeneSet(_lv, other->_lv, 3);
-	accum += compareGeneSet(_lj, other->_lj, 1);
-	
-	std::cout << std::endl;
-	accum /= 10;
-	
-	return accum;
+	return compareSequences(other, heavy);
 }
 
 double Antibody::compareSequences(Antibody *other, bool heavy)
@@ -154,16 +50,15 @@ double Antibody::compareSequences(Antibody *other, bool heavy)
 	if (heavy)
 	{
 		compare_sequences(_haa, ohaa, &muts, &dels);
-		size = _haa.length() + ohaa.length();
+		size = heavyLength();
 	}
 	else
 	{
 		compare_sequences(_laa, olaa, &muts, &dels);
-		size = _laa.length() + olaa.length();
+		size = lightLength();
 	}
 
-	double distance = muts + dels;
-	distance /= size / 10;
+	double distance = muts / (double)(0.5 * size);
 
 	double score = exp(-(distance * distance));
 

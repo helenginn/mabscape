@@ -20,7 +20,7 @@
 #define __abmap__Refinement__
 
 #include <QObject>
-#include <libsrc/Converter.h>
+#include <hcsrc/RefinementStrategy.h>
 
 class Experiment;
 class Data;

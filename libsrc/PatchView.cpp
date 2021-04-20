@@ -20,7 +20,7 @@
 #include "PatchView.h"
 #include "Patch.h"
 #include "Experiment.h"
-#include "SlipGL.h"
+#include <h3dsrc/SlipGL.h>
 #include <QThread>
 #include <iostream>
 

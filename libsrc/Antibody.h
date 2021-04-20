@@ -22,20 +22,31 @@
 #include <vector>
 #include <string>
 
+class Bound;
+
 class Antibody
 {
 public:
-	Antibody(std::string name, std::string hv, std::string hj,
-	         std::string hd, std::string lv, std::string lj);
-	
-	Antibody(std::string name, std::string haa, std::string laa);
+	Antibody(Bound *bound, std::string haa, std::string laa);
 
 	double compareWithAntibody(Antibody *other, bool heavy);
 	
-	std::string name()
+	std::string name();
+	size_t heavyLength()
 	{
-		return _ab;
+		return _haa.length();
 	}
+
+	size_t lightLength()
+	{
+		return _laa.length();
+	}
+	
+	Bound *bound()
+	{
+		return _bound;
+	}
+
 protected:
 	double compareGeneSet(std::vector<std::string> &group1,
 	                      std::vector<std::string> &group2,
@@ -43,12 +54,7 @@ protected:
 
 	double compareSequences(Antibody *other, bool heavy);
 private:
-	std::string _ab;
-	std::vector<std::string> _hv;
-	std::vector<std::string> _hj;
-	std::vector<std::string> _hd;
-	std::vector<std::string> _lv;
-	std::vector<std::string> _lj;
+	Bound *_bound;
 
 	std::string _haa;
 	std::string _laa;

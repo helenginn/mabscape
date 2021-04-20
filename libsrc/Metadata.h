@@ -59,12 +59,14 @@ public:
 		return _bounds[i];
 	}
 	
+	bool hasTitle(std::string title);
+	
 	void makeMenu(QMenu *m, Experiment *e);
-	void colourBy(std::string title);
 	void colourOptions(std::string title);
 
 	void load();
 	
+	void colourByScale(bool takeLog, double mean, double stdev);
 	bool hasKey(Bound *b, std::string key);
 	std::string valueForKey(Bound *b, std::string key);
 private:
@@ -73,6 +75,7 @@ private:
 	std::vector<std::string> _titles;
 	std::map<std::string, Bound *> _names;
 	std::vector<Bound *> _bounds;
+	std::string _title;
 	BoundKeys _keys;
 };
 

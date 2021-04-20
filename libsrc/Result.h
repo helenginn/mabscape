@@ -21,7 +21,7 @@
 
 #include <QTreeWidgetItem>
 #include "PositionMap.h"
-#include "MtzFFTPtr.h"
+#include <c4xsrc/MtzFFTPtr.h>
 
 class Experiment;
 class Structure;

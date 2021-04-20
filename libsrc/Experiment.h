@@ -63,11 +63,6 @@ public:
 		return _refinement;
 	}
 	
-	void setBoundObj(std::string filename)
-	{
-		_boundObj = filename;
-	}
-	
 	Data *getData()
 	{
 		return _data;
@@ -75,6 +70,8 @@ public:
 	
 	AveCSV *csv();
 	void updateCSV(AveCSV *csv, int data);
+	
+	bool loadedSequences();
 	
 	size_t boundCount()
 	{
@@ -143,7 +140,9 @@ public:
 	void refineFurther();
 	void refineModel(bool fixedOnly, bool svd = false);
 	void findNonCompetitors(std::vector<std::string> abs);
+	void recolourBySequence(bool heavy);
 	void plotDistanceCompetition();
+	void makeNamedBound(std::string name);
 	
 	void setPassToResults(bool pass)
 	{
@@ -163,11 +162,10 @@ public slots:
 	void addBindersToMenu();
 	void handleMesh();
 	void jiggle();
-	void enableElbows();
 	void randomise();
 	void openResults();
 	void fixFromPDB();
-	void recolourByBoundErrors();
+	void recolourByBoundErrors(double data = 1, double model = -1);
 	void recolourByCorrelation();
 	void selectFromMenu();
 	void handleResults();
@@ -188,6 +186,7 @@ public slots:
 	void writePDB(std::string filename);
 	void writeOutCSV(std::string filename);
 	void chooseTarget(Target t);
+	void toggleLabels();
 private:
 	void drawWindow(double x, double y);
 	bool isRunningMonteCarlo();
@@ -197,7 +196,7 @@ private:
 	                      std::vector<std::string> *addable);
 	void createBinders();
 	Bound *findBound(double x, double y);
-	Bound *loadBound(std::string filename);
+	Bound *loadBound();
 	void select(Bound *bound, double x, double y);
 	void convertCoords(double *x, double *y);
 	void monteCarloRound();
@@ -216,6 +215,7 @@ private:
 	std::vector<Bound *> _bounds;
 	Bound *_selected;
 	QLabel *_label;
+	bool _labels;
 	QThread *_worker;
 	std::mutex _mut;
 
@@ -226,7 +226,6 @@ private:
 	Explorer *_explorer;
 	std::vector<Result *> _results;
 	
-	std::string _boundObj;
 	bool _passToResults;
 
 	QLabel *_selWindow;

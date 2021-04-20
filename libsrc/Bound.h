@@ -26,13 +26,14 @@
 class Structure;
 class SlipGL;
 class Arrow;
+class Text;
 class Data;
 class RefinementStrategy;
 
 class Bound : public Icosahedron
 {
 public:
-	Bound(std::string filename);
+	Bound();
 
 	double snapToObject(Structure *obj);
 	void jiggleOnSurface(Structure *obj);
@@ -51,10 +52,10 @@ public:
 		return _fixed;
 	}
 	
+	void label(bool visible);
 	void setSnapping(bool snapping);
 	virtual void render(SlipGL *gl);
-	void colourByValue(double stdev = 1);
-	void enableElbow();
+	void colourByValue(double mean, double stdev);
 	
 	void setStructure(Structure *s)
 	{
@@ -170,6 +171,7 @@ private:
 	bool _special;
 	
 	Arrow *_arrow;
+	Text *_text;
 
 	double _elbowAngle;
 	static double _shoulderAngle;

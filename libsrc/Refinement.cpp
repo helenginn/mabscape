@@ -22,12 +22,12 @@
 #include "Data.h"
 #include <iostream>
 #include <fstream>
-#include <FileReader.h>
-#include <maths.h>
-#include <RefinementNelderMead.h>
-#include <RefinementLBFGS.h>
+#include <hcsrc/FileReader.h>
+#include <hcsrc/maths.h>
+#include <hcsrc/RefinementNelderMead.h>
+#include <hcsrc/RefinementLBFGS.h>
 #include "Structure.h"
-#include "Mesh.h"
+#include <h3dsrc/Mesh.h>
 
 Target Refinement::_target = TargetLeastSquares;
 Target Refinement::_currTarg = TargetLeastSquares;

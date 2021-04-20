@@ -21,12 +21,21 @@
 
 #include <QMainWindow>
 
+class Metadata;
+
 class ColourOptions : public QMainWindow
 {
 Q_OBJECT
 public:
-	ColourOptions(QWidget *parent);
+	ColourOptions(QWidget *parent, Metadata *m);
 
+private slots:
+	void colour();
+
+private:
+	void colourByScale();
+
+	Metadata *_m;
 };
 
 #endif

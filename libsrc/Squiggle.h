@@ -19,7 +19,7 @@
 #ifndef __abmap__Squiggle__
 #define __abmap__Squiggle__
 
-#include <helencore/vec3.h>
+#include <hcsrc/vec3.h>
 #include <h3dsrc/SlipObject.h>
 
 class Result;

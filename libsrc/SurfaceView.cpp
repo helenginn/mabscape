@@ -20,7 +20,7 @@
 #include "Refinement.h"
 #include "Metadata.h"
 #include <iostream>
-#include <FileReader.h>
+#include <hcsrc/FileReader.h>
 #include <c4xsrc/ClusterList.h>
 #include <c4xsrc/AveCSV.h>
 #include <c4xsrc/Group.h>
@@ -205,6 +205,10 @@ void SurfaceView::makeMenu()
 	act->setObjectName("need_data");
 	_actions.push_back(act);
 	connect(act, &QAction::triggered, this, &SurfaceView::loadPositions);
+	_actions.push_back(act);
+	act = data->addAction(tr("Load metadata"));
+	act->setObjectName("need_data");
+	connect(act, &QAction::triggered, this, &SurfaceView::loadMetadata);
 	act = data->addAction(tr("Launch cluster&4x"));
 	act->setObjectName("need_data");
 	_actions.push_back(act);
@@ -214,6 +218,12 @@ void SurfaceView::makeMenu()
 	_menus.push_back(_binders);
 	
 	_experiment->addBindersToMenu(_binders);
+	
+	act = _binders->addAction(tr("Make antibody..."));
+	act->setObjectName("");
+	connect(act, &QAction::triggered, 
+	        this, &SurfaceView::makeAntibody);
+	_actions.push_back(act);
 	
 	act = _binders->addAction(tr("Write out antibody positions"));
 	act->setObjectName("need_data");
@@ -225,14 +235,10 @@ void SurfaceView::makeMenu()
 	connect(act, &QAction::triggered, this, &SurfaceView::exportPDB);
 	_actions.push_back(act);
 	
-	act = _binders->addAction(tr("Load metadata"));
-	connect(act, &QAction::triggered, this, &SurfaceView::loadMetadata);
-	_actions.push_back(act);
-	
-	act = _binders->addAction(tr("Load sequences"));
+	act = _binders->addAction(tr("Sequence alignment"));
 	act->setObjectName("need_data");
 	connect(act, &QAction::triggered, 
-	        this, &SurfaceView::loadSequences);
+	        this, &SurfaceView::alignSequences);
 	_actions.push_back(act);
 	
 	QMenu *rec = _binders->addMenu(tr("Recolour by..."));
@@ -396,7 +402,7 @@ void SurfaceView::keyPressEvent(QKeyEvent *event)
 	}
 	else if (event->key() == Qt::Key_L)
 	{
-		_experiment->fixLabel();
+		_experiment->toggleLabels();
 	}
 }
 
@@ -493,9 +499,9 @@ void SurfaceView::mouseMoveEvent(QMouseEvent *e)
 
 void SurfaceView::mouseReleaseEvent(QMouseEvent *e)
 {
-	if (!_moving && e->button() == Qt::LeftButton)
+	if (!_moving)
 	{
-		// this was just a click
+		// this was just a click, try to select
 		double x = e->x(); double y = e->y();
 		convertCoords(&x, &y);
 		_experiment->clickMouse(x, y);
@@ -509,12 +515,7 @@ void SurfaceView::mouseReleaseEvent(QMouseEvent *e)
 	if (!_moving && e->button() == Qt::RightButton
 	    && _experiment->getSelected() != NULL)
 	{
-		QMenu *menu = new QMenu;
-		menu->addAction("Recolour others by error", _experiment,  
-		                SLOT(recolourByBoundErrors()));
-
-		menu->exec(e->globalPos());
-
+		makeRightClickMenu(e->globalPos());
 	}
 
 	_mouseButton = Qt::NoButton;
@@ -606,13 +607,24 @@ void SurfaceView::launchCluster4x()
 	_screen = new Screen(NULL);
 	_screen->setWindowTitle("cluster4x - mabscape");
 	ClusterList *list = _screen->getList();
-	AveCSV *csv = _experiment->csv();
+	AveCSV *csv = new AveCSV(NULL, "");
 	csv->setList(list);
 
+	csv->startNewCSV("Data");
+	if (_experiment->getData())
+	{
+		_experiment->updateCSV(csv, 1);
+	}
 	csv->startNewCSV("Model");
-	_experiment->updateCSV(csv, 0);
+	if (_experiment->getData())
+	{
+		_experiment->updateCSV(csv, 0);
+	}
 	csv->startNewCSV("Errors");
-	_experiment->updateCSV(csv, 2);
+	if (_experiment->getData())
+	{
+		_experiment->updateCSV(csv, 2);
+	}
 
 	csv->preparePaths();
 	list->addCSVSwitcher();
@@ -677,22 +689,28 @@ void SurfaceView::pause()
 	}
 }
 
-void SurfaceView::loadSequences()
+void SurfaceView::alignSequences()
 {
-	std::string filename = openDialogue(this, "Choose formatted genes", 
-	                                    "Comma-separated values (*.csv)");
-
-	if (!checkFileIsValid(filename, false))
+	if (!_metadata->hasTitle("heavy") && !_metadata->hasTitle("light"))
 	{
+		QMessageBox msg;
+		msg.setText("First, load a metadata CSV file from the Data menu, "\
+		            "listing antibody ID in the first column, heavy chain "\
+		            "sequence under title \"heavy\", light chain sequence "\
+		            "under title \"light\", and then try again.");
+		msg.exec();
 		return;
 	}
 
-	if (filename.length() == 0)
+	if (!_metadata->hasTitle("heavy") || !_metadata->hasTitle("light"))
 	{
-		return;
+		QMessageBox msg;
+		msg.setText("Warning: only loaded antibody sequence for one "
+		            "chain! Continuing anyway...");
+		msg.exec();
 	}
 
-	_genes->loadSequences(filename);
+	_genes->loadSequences(_metadata, this);
 }
 
 void SurfaceView::highlightResidues()
@@ -717,6 +735,11 @@ void SurfaceView::receiveDialogue(DialogueType type, std::string result)
 	{
 		_experiment->structure()->highlightResidues(result);
 	}
+
+	if (type == DialogueMakeAntibody && _experiment)
+	{
+		_experiment->makeNamedBound(result);
+	}
 }
 
 void SurfaceView::exportPDB()
@@ -733,3 +756,35 @@ void SurfaceView::exportPDB()
 	_experiment->writePDB(filename);
 }
 
+void SurfaceView::makeRightClickMenu(QPoint p)
+{
+	QMenu *menu = new QMenu;
+	menu->addAction("Recolour others by competition", _experiment,  
+	                [=]() {_experiment->recolourByBoundErrors(1, 0);});
+	menu->addAction("Recolour others by predicted", _experiment,  
+	                [=]() {_experiment->recolourByBoundErrors(0, 1);});
+	menu->addAction("Recolour others by error", _experiment,  
+	                [=]() {_experiment->recolourByBoundErrors(1, -1);});
+
+	if (_experiment->loadedSequences())
+	{
+		menu->addAction("... by heavy chain similarity", _experiment,  
+		                [=]() {_experiment->recolourBySequence(true);});
+		menu->addAction("... by light chain similarity", _experiment,  
+		                [=]() {_experiment->recolourBySequence(false);});
+	}
+
+	menu->exec(p);
+}
+
+void SurfaceView::makeAntibody()
+{
+	Dialogue *d = new Dialogue(NULL, "Make antibody",
+	                           "Antibody name",
+	                           "",
+	                           "Create");
+	d->setWindow(this);
+	d->setTag(DialogueMakeAntibody);
+	d->show();
+
+}

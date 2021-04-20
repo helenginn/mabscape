@@ -21,7 +21,14 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
+class Bound;
+typedef std::map<Bound *, double> BoundValue;
+
+class Metadata;
+class AveCSV;
+class SurfaceView;
 class Antibody;
 
 class Genes
@@ -29,10 +36,20 @@ class Genes
 public:
 	Genes();
 	
-	void loadSequences(std::string filename);
+	void loadSequences(Metadata *m, SurfaceView *view);
+	
+	double valueFor(bool heavy, Bound *b, Bound *c);
 
+	size_t antibodyCount()
+	{
+		return _abs.size();
+	}
 private:
-	void compare(std::vector<Antibody *> abs);
+	void compare(AveCSV *csv, bool heavy);
+	
+	std::vector<Antibody *> _abs;
+	std::map<Bound *, BoundValue> _heavy;
+	std::map<Bound *, BoundValue> _light;
 };
 
 #endif

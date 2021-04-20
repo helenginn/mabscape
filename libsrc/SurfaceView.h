@@ -96,6 +96,7 @@ protected:
 	virtual void mouseMoveEvent(QMouseEvent *e);
 public slots:
 	void launchCluster4x();
+	void alignSequences();
 	void loadSurface();
 	void loadCoords();
 	void updateMenu();
@@ -105,9 +106,9 @@ private slots:
 	void loadCSV();
 	void exportPDB();
 	void loadMetadata();
+	void makeAntibody();
 	void bitMoreRefine();
 	void loadPositions();
-	void loadSequences();
 	void dataToCluster4x();
 	void modelToCluster4x();
 	void errorsToCluster4x();
@@ -116,6 +117,7 @@ private slots:
 	void identifyNonCompetitors();
 	void plotDistanceCompetition();
 private:
+	void makeRightClickMenu(QPoint p);
 	void convertCoords(double *x, double *y);
 	Experiment *_experiment;
 	Screen *_screen;
