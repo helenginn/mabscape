@@ -301,7 +301,7 @@ void Bound::label(bool visible)
 	}
 	
 	_text = new Text();
-	_text->setProperties(_realPosition, name(), 24, Qt::black,
+	_text->setProperties(_realPosition, name(), 72, Qt::black,
 	                     0, 0, 5);
 	_text->prepare();
 }
