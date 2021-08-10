@@ -986,7 +986,7 @@ void Experiment::updateCSV(AveCSV *csv, int data)
 			Bound *bj = bound(j);
 			std::string bjn = bj->name();
 			double val = _data->valueFor(bin, bjn);
-			if (val != val)
+			if (val != val && data != 0)
 			{
 				continue;
 			}
