@@ -21,6 +21,7 @@
 
 #include <QMainWindow>
 #include <QMouseEvent>
+#include <QWheelEvent>
 #include "InputDialogue.h"
 
 class Genes;
@@ -94,6 +95,7 @@ protected:
 	virtual void mousePressEvent(QMouseEvent *e);
 	virtual void mouseReleaseEvent(QMouseEvent *e);
 	virtual void mouseMoveEvent(QMouseEvent *e);
+	virtual void wheelEvent(QWheelEvent *e);
 public slots:
 	void launchCluster4x();
 	void alignSequences();
