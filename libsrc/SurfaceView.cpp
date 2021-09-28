@@ -433,6 +433,17 @@ void SurfaceView::mousePressEvent(QMouseEvent *e)
 	}
 }
 
+void SurfaceView::wheelEvent(QWheelEvent *e)
+{
+	double wheelY = e->angleDelta().y();
+	/* for later use.
+	double wheelX = e->angleDelta().x();*/
+
+	/* minus sign fixes mouse wheel direction to 
+	align with expectation. */
+	_gl->draggedRightMouse(0,-10*wheelY);
+}
+
 void SurfaceView::mouseMoveEvent(QMouseEvent *e)
 {
 	double x = e->x(); double y = e->y();
