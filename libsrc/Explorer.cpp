@@ -81,7 +81,7 @@ Explorer::Explorer(QWidget *parent) : QMainWindow(parent)
 	connect(_writeResults, &QPushButton::clicked,
 	        this, &Explorer::writeResults);
 	
-	_readResults = new QPushButton("Read selected results", this);
+	_readResults = new QPushButton("Read results from file", this);
 	_readResults->setGeometry(250, top, 200, 40);
 	_readResults->show();
 	top += 40;
@@ -168,8 +168,10 @@ void Explorer::itemSelectionChanged()
 	double alpha = 1.;
 	
 	QString no_selected_Items = QString::number(_widget->selectedItems().size());
-	QString label = no_selected_Items + " Datasets to cluster4x";
-	_toCluster4x->setText(label);
+	QString c4x_label = no_selected_Items + " Datasets to cluster4x";
+	QString write_label = "Write " + no_selected_Items + " results";
+	_toCluster4x->setText(c4x_label);
+	_writeResults->setText(write_label);
 
 	if (_widget->selectedItems().size() > 1)
 	{
