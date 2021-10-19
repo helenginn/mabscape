@@ -167,6 +167,10 @@ void Explorer::itemSelectionChanged()
 {
 	double alpha = 1.;
 	
+	QString no_selected_Items = QString::number(_widget->selectedItems().size());
+	QString label = no_selected_Items + " Datasets to cluster4x";
+	_toCluster4x->setText(label);
+
 	if (_widget->selectedItems().size() > 1)
 	{
 		alpha = 0.5;
