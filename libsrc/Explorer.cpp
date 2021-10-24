@@ -415,7 +415,10 @@ void Explorer::chooseAndReadResults()
 {
 	std::string filename = openDialogue(this, "Choose stream file", 
 	                                    "");
-	readResults(filename);
+	if (checkFileIsValid(filename,false))
+	{
+		readResults(filename);
+	}
 }
 
 void Explorer::undoArt()
