@@ -65,7 +65,35 @@ SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 	setMouseTracking(true);
 	_gl->setMouseTracking(true);
 }
+// making sure that all windows are closed upon closing the Surface view
 
+void SurfaceView::closeEvent(QCloseEvent *event)
+{
+foreach (QWidget *widget, QApplication::topLevelWidgets()) {
+if (widget == this)
+{
+	SurfaceView::closeEvent(event);
+	continue;
+}
+else
+{
+	widget->close();
+}
+}
+event->accept();
+}
+
+/*void SurfaceView::closeEvent(QCloseEvent * event)
+{
+	for (QWidget * widget, QApplication::topLevelWidgets())
+	{
+		if (widget == this)
+		{
+			continue;
+		}
+	}
+}
+*/
 void SurfaceView::startController(QThread *q, Controller *c)
 {
 	_experiment->makeExplorer();
