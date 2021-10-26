@@ -72,8 +72,7 @@ void SurfaceView::closeEvent(QCloseEvent *event)
 foreach (QWidget *widget, QApplication::topLevelWidgets()) {
 if (widget == this)
 {
-	SurfaceView::closeEvent(event);
-	continue;
+	QApplication::quit();
 }
 else
 {
@@ -83,17 +82,6 @@ else
 event->accept();
 }
 
-/*void SurfaceView::closeEvent(QCloseEvent * event)
-{
-	for (QWidget * widget, QApplication::topLevelWidgets())
-	{
-		if (widget == this)
-		{
-			continue;
-		}
-	}
-}
-*/
 void SurfaceView::startController(QThread *q, Controller *c)
 {
 	_experiment->makeExplorer();
