@@ -96,6 +96,7 @@ protected:
 	virtual void mouseReleaseEvent(QMouseEvent *e);
 	virtual void mouseMoveEvent(QMouseEvent *e);
 	virtual void wheelEvent(QWheelEvent *e);
+	void closeEvent(QCloseEvent *e);
 public slots:
 	void launchCluster4x();
 	void alignSequences();
