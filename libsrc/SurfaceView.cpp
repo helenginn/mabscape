@@ -57,7 +57,7 @@ SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 	connect(_experiment, &Experiment::alteredMenu,
 	        this, &SurfaceView::updateMenu);
 	_gl->show();
-	_gl->setAcceptsFocus(false);
+	_gl->setAcceptsFocus(true);
 	
 	makeMenu();
 
