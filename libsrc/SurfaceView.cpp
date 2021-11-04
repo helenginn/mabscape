@@ -38,6 +38,7 @@
 #include <QMenuBar>
 #include <QThread>
 #include <QLabel>
+#include <QMessageBox>
 
 SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 {
@@ -69,7 +70,21 @@ SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 
 void SurfaceView::closeEvent(QCloseEvent *event)
 {
-	QApplication::quit();
+	QMessageBox exit_check;
+	exit_check.setText("Are you sure you want to quit the Programm?");
+	exit_check.setInformativeText("Any unsaved progress will be lost.");
+	exit_check.setStandardButtons(QMessageBox::Cancel | QMessageBox::Ok);
+	exit_check.setDefaultButton(QMessageBox::Cancel);
+	int check = exit_check.exec();
+	
+	if (check == QMessageBox::Ok)
+	{
+		QApplication::quit();
+	}
+	else
+	{
+		event->ignore();
+	}
 }
 
 void SurfaceView::startController(QThread *q, Controller *c)
