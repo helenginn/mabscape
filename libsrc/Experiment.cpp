@@ -208,7 +208,7 @@ bool Experiment::prepareWorkForObject(QObject *object)
 	if (_worker && _worker->isRunning())
 	{
 		std::cout << "Waiting for worker to finish old job" << std::endl;
-		_worker->wait();
+		return false;
 	}
 	
 	if (!_worker)
