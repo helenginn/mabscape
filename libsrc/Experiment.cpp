@@ -183,11 +183,11 @@ void Experiment::triangulateStructure()
 
 void Experiment::triangulateMesh()
 {
-	if (_mesh == NULL)
+	if (_mesh == NULL || isSomethingHappening())
 	{
 		return;
 	}
-	
+
 	_mesh->changeToTriangles();
 	_mesh->SlipObject::triangulate();
 	_mesh->changeToLines();
@@ -262,7 +262,7 @@ void Experiment::inflateMesh()
 
 void Experiment::removeMesh()
 {
-	if (_mesh == NULL)
+	if (_mesh == NULL || isSomethingHappening())
 	{
 		return;
 	}
