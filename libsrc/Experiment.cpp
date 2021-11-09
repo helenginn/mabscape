@@ -1009,8 +1009,7 @@ void Experiment::somethingToCluster4x(int data)
 {
 	if (_view->clusterScreen() == NULL)
 	{
-		std::cout << "No screen" << std::endl;
-		return;
+		_view->launchCluster4x();
 	}
 
 	ClusterList *list = _view->clusterScreen()->getList();
