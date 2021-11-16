@@ -339,7 +339,7 @@ void Experiment::hoverMouse(double x, double y, bool shift)
 		_label->show();
 		_view->setCursor(Qt::PointingHandCursor);
 		
-		if (_passToResults && _explorer && !shift)
+		if (_passToResults && _explorer && !shift && _selected==0)
 		{
 			_explorer->highlightBound(which);
 		}
@@ -348,8 +348,7 @@ void Experiment::hoverMouse(double x, double y, bool shift)
 	{
 		dehighlightAll();
 		_view->setCursor(Qt::CrossCursor);
-
-		if (_passToResults && _explorer && !shift)
+		if (_passToResults && _explorer && !shift && _selected==0)
 		{
 			_explorer->highlightBound(NULL);
 		}
@@ -458,7 +457,7 @@ void Experiment::drag(double x, double y)
 	_selected->changeMidPoint(x, y);
 }
 
-void Experiment::clickMouse(double x, double y)
+void Experiment::clickMouse(double x, double y, bool shift)
 {
 	Bound *which = findBound(x, y);
 
@@ -467,10 +466,18 @@ void Experiment::clickMouse(double x, double y)
 		std::cout << "Selected: " << which->name() << std::endl;
 		deselectAll();
 		select(which, x, y);
+		if (_passToResults && _explorer && !shift)
+		{
+			_explorer->highlightBound(which);
+		}
 	}
 	else
 	{
 		deselectAll();
+		if (_passToResults && _explorer && !shift)
+		{
+			_explorer->highlightBound(NULL);
+		}
 	}
 }
 

@@ -543,7 +543,7 @@ void SurfaceView::mouseReleaseEvent(QMouseEvent *e)
 		// this was just a click, try to select
 		double x = e->x(); double y = e->y();
 		convertCoords(&x, &y);
-		_experiment->clickMouse(x, y);
+		_experiment->clickMouse(x, y, _shiftPressed);
 	}
 	
 	if (_moving && e->button() == Qt::LeftButton && _shiftPressed)

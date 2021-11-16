@@ -125,7 +125,7 @@ public:
 	void loadStructureCoords(std::string filename);
 	void loadPositions(std::string filename);
 	void hoverMouse(double x, double y, bool shift);
-	void clickMouse(double x, double y);
+	void clickMouse(double x, double y, bool shift);
 	void checkDrag(double x, double y);
 	void finishDragging();
 	void drag(double x, double y);
