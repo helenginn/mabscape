@@ -264,6 +264,10 @@ void Explorer::makeCluster()
 		_experiment->getView()->launchCluster4x();
 		_screen = _experiment->getView()->clusterScreen();
 	}
+	else if (!_screen->isVisible())
+	{
+		_screen->show();
+	}
 
 	QList<QTreeWidgetItem *> list = _widget->selectedItems();
 	AveCSV::setUsingCSV(false);
