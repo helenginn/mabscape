@@ -58,15 +58,17 @@ SurfaceView::SurfaceView(QWidget *p) : QMainWindow(p)
 	connect(_experiment, &Experiment::alteredMenu,
 	        this, &SurfaceView::updateMenu);
 	_gl->show();
-	_gl->setAcceptsFocus(true);
+	_gl->setAcceptsFocus(false);
 	
 	makeMenu();
-
+	
+	setFocusPolicy(Qt::StrongFocus);
 	resize(600, 600);
 	setMouseTracking(true);
 	_gl->setMouseTracking(true);
 }
-// making sure that all windows are closed upon closing the Surface view
+/* making sure that all windows are closed upon closing the SurfaceView and 
+that all progress is saved */
 
 void SurfaceView::closeEvent(QCloseEvent *event)
 {
@@ -85,6 +87,11 @@ void SurfaceView::closeEvent(QCloseEvent *event)
 	{
 		event->ignore();
 	}
+}
+
+void SurfaceView::focusInEvent(QFocusEvent *e)
+{
+	_controlPressed = false;
 }
 
 void SurfaceView::startController(QThread *q, Controller *c)
