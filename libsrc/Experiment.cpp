@@ -382,6 +382,7 @@ void Experiment::select(Bound *bound, double x, double y)
 	bound->selectMe(true);
 	QString name = QString::fromStdString(bound->name());
 	_view->convertToViewCoords(&x, &y);
+	_explorer->highlightBound(bound);
 
 	if (x > 0 && y > 0)
 	{
