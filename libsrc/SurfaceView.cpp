@@ -464,12 +464,21 @@ void SurfaceView::mousePressEvent(QMouseEvent *e)
 void SurfaceView::wheelEvent(QWheelEvent *e)
 {
 	double wheelY = e->angleDelta().y();
-	/* for later use.
-	double wheelX = e->angleDelta().x();*/
+	double wheelX = e->angleDelta().x();
 
-	/* minus sign fixes mouse wheel direction to 
-	align with expectation. */
-	_gl->draggedRightMouse(0,-10*wheelY);
+	if(abs(wheelX) > 0)
+	{
+		/* This will only be usefull for laptop users, or someone with
+		2d mousewheel, but enables the ability to rotate the antigen
+		only with the mousewheel */
+		_gl->draggedLeftMouse(wheelX,wheelY);
+	}
+	else if (abs(wheelY) > 0)
+	{
+		/* minus sign fixes mouse wheel direction to
+		align with expectation. */
+		_gl->draggedRightMouse(0,-10*wheelY);
+	}
 }
 
 void SurfaceView::mouseMoveEvent(QMouseEvent *e)
