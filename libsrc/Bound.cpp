@@ -306,3 +306,23 @@ void Bound::label(bool visible)
 	_text->prepare();
 }
 
+void Bound::radiusOnStructure(Structure *str, double rad)
+{
+	int count = 0;
+	for (size_t i = 0; i < str->vertexCount(); i++)
+	{
+		vec3 pos = vec_from_pos(str->vertex(i).pos);
+		vec3 diff = _realPosition - pos;
+		
+		double length = vec3_length(diff);
+		
+		if (length < rad)
+		{
+			str->vPointer()[i].tex[0] += 1;
+			count++;
+		}
+	}
+
+	setDisabled(true);
+	std::cout << name() << " affected " << count << " vertices." << std::endl;
+}

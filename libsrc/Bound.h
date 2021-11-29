@@ -158,6 +158,8 @@ public:
 	{
 		return _rmsd;
 	}
+
+	void radiusOnStructure(Structure *str, double rad = 10);
 private:
 	void redrawElbow();
 
