@@ -36,6 +36,7 @@
 #include <c4xsrc/AveCSV.h>
 #include <c4xsrc/Group.h>
 #include <c4xsrc/ClusterList.h>
+#include <h3dsrc/Dialogue.h>
 #include <hcsrc/mat4x4.h>
 #include <libsrc/Absolute.h>
 #include <libsrc/Atom.h>
@@ -1386,4 +1387,52 @@ void Experiment::makeNamedBound(std::string name)
 	_nameMap[name] = bnd;
 	std::cout << _bounds.size() << std::endl;
 	emit alteredMenu();
+}
+
+void Experiment::heatMap()
+{
+	_view->getGL()->setBackground(.8, .8, .8, 0);
+	for (size_t i = 0; i < boundCount(); i++)
+	{
+		Bound *b = bound(i);
+		b->radiusOnStructure(_structure);
+	}
+	
+	_structure->heatMap();
+}
+
+void Experiment::heatMapMovie()
+{
+	heatMap();
+	std::string folder = openDialogue(_view, "Folder for movie images", 
+	                                  "", true, true);
+
+	if (folder == "")
+	{
+		return;
+	}
+
+	std::string pattern = folder + "/fr*.png";
+	std::vector<std::string> files = glob(pattern);
+
+	for (size_t i = 0; i < files.size(); i++)
+	{
+		remove(files[i].c_str());
+	}
+
+	FileReader::setOutputDirectory(folder);
+	int count = 0;
+
+	for (size_t i = 0; i < 360; i++)
+	{
+		std::string number = i_to_str(i);
+		std::string zeros = std::string(5 - number.length(), '0');
+		std::string filename = "fr_" + zeros + number + ".png";
+		std::string path = FileReader::addOutputDirectory(filename);
+		std::cout << path << std::endl;
+
+		_view->getGL()->rotate(0, deg2rad(-1), 0);
+		_view->getGL()->saveImage(path);
+	}
+
 }

@@ -187,6 +187,8 @@ public slots:
 	void writeOutCSV(std::string filename);
 	void chooseTarget(Target t);
 	void toggleLabels();
+	void heatMap();
+	void heatMapMovie();
 private:
 	void drawWindow(double x, double y);
 	bool isRunningMonteCarlo();
