@@ -243,6 +243,12 @@ bool Controller::processNextArg(std::string arg)
 
 		return true;
 	}
+	else if (first == "heat-map")
+	{
+		_exp->heatMap();
+
+		return true;
+	}
 	else if (first == "quit")
 	{
 		QApplication::quit();
