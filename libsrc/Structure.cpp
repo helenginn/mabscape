@@ -676,3 +676,70 @@ void Structure::highlightResidues(std::string result)
 	
 	convertExtraToColour(0.5, 0.5, 0.5);
 }
+
+void Structure::heatToVertex(Helen3D::Vertex &v, double heat)
+{
+	if (heat < 0) heat = 0;
+	vec3 colour_start, colour_aim;
+	if (heat >= -1 && heat < 0.5)
+	{
+		colour_start = make_vec3(0.4, 0.4, 0.4); // grey
+		colour_aim = make_vec3(0.55, 0.45, 0.29); // straw
+	}
+	else if (heat >= 0.5 && heat < 1)
+	{
+		colour_start = make_vec3(0.55, 0.45, 0.29); // straw
+		colour_aim = make_vec3(0.39, 0.46, 0.68); // blue
+	}
+	else if (heat >= 1 && heat < 2)
+	{
+		colour_start = make_vec3(0.39, 0.46, 0.68); // blue
+		colour_aim = make_vec3(0.68, 0.16, 0.08); // cherry red
+	}
+	else if (heat >= 2 && heat < 3)
+	{
+		colour_start = make_vec3(0.68, 0.16, 0.08); // cherry red
+		colour_aim = make_vec3(0.92, 0.55, 0.17); // orange
+	}
+	else if (heat >= 3)
+	{
+		colour_start = make_vec3(0.92, 0.55, 0.17); // orange
+		colour_aim = make_vec3(0.89, 0.89, 0.16); // yellow
+	}
+
+	double mult = heat - 1;
+	if (mult < 0) mult = 0;
+	mult *= 3;
+	heat = fmod(heat, 1);
+	colour_aim -= colour_start;
+	vec3_mult(&colour_aim, heat);
+	colour_start += colour_aim;
+	pos_from_vec(v.color, colour_start);
+	vec3_mult(&colour_start, mult);
+	pos_from_vec(v.extra, colour_start);
+}
+
+void Structure::heatMap()
+{
+	double sum = 0;
+	double sumsq = 0;
+	double count = 0;
+
+	for (size_t i = 0; i < vertexCount(); i++)
+	{
+		double val = _vertices[i].tex[0];
+		sum += val;
+		sumsq += val * val;
+		count++;
+	}
+	
+	double stdev = sqrt(sumsq / count - (sum / count) * (sum / count));
+	std::cout << "Standard deviation: " << stdev << std::endl;
+
+	for (size_t i = 0; i < vertexCount(); i++)
+	{
+		double val = _vertices[i].tex[0] / stdev;
+		heatToVertex(_vertices[i], val);
+		_vertices[i].tex[0] = 0;
+	}
+}

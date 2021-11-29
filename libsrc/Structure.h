@@ -72,10 +72,13 @@ public:
 	{
 		return _resPos[res];
 	}
+
+	void heatMap();
 signals:
 	void resultReady();
 
 private:
+	void heatToVertex(Helen3D::Vertex &v, double heat);
 	vec3 nearestNormal(vec3 pos, bool useMesh);
 	long findIndex(vec3 loc);
 	void generateLookupGrid();
