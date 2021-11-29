@@ -16,9 +16,11 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
+#include "Structure.h"
+#include "Glowable_sh.h"
+
 #include <h3dsrc/Mesh.h>
 #include <libccp4/csymlib.h>
-#include "Structure.h"
 #include <iostream>
 #include <libsrc/PDBReader.h>
 #include <libsrc/Monomer.h>
@@ -31,11 +33,11 @@ using namespace Helen3D;
 
 Structure::Structure(std::string filename) : SlipObjFile(filename)
 {
-	_vString = Structure_vsh();
-	_fString = Structure_fsh();
+	_vString = Glowable_vsh();
+	_fString = Glowable_fsh();
 	resize(1);
 	setName("Structure");
-	recolour(0.4, 0.1, 0.4);
+	recolour(0.8, 0.3, 0.8);
 	_triangulation = 0;
 	
 	bool collapsed = collapseCommonVertices();
