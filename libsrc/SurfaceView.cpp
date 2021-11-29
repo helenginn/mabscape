@@ -222,6 +222,11 @@ void SurfaceView::makeMenu()
 	act->setObjectName("need_structure");
 	connect(act, &QAction::triggered, _experiment, &Experiment::removeMesh);
 	_actions.push_back(act);
+	structure->addSeparator();
+	act = structure->addAction(tr("Heat map movie"));
+	act->setObjectName("need_structure");
+	connect(act, &QAction::triggered, _experiment, &Experiment::heatMapMovie);
+	_actions.push_back(act);
 
 	QMenu *data = menuBar()->addMenu(tr("&Data"));
 	_menus.push_back(data);
