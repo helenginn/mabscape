@@ -24,6 +24,8 @@
 #include <hcsrc/vec3.h>
 #include <libsrc/shared_ptrs.h>
 
+class Experiment;
+
 typedef std::map<int, std::vector<Helen3D::Vertex *>> AtomMap;
 typedef std::map<Helen3D::Vertex *, int> AtomSingleMap;
 
@@ -72,13 +74,30 @@ public:
 	{
 		return _resPos[res];
 	}
+	
+	size_t residueCount()
+	{
+		return _resiList.size();
+	}
+	
+	int residue(int i)
+	{
+		return _resiList[i];
+	}
+	
+	double heatForResidue(int i)
+	{
+		return _resiHeat[i];
+	}
 
 	void heatMap();
+	void radiusOnPDB(Structure *str, double rad);
+	void radiusOnPDB(Experiment *e, double rad);
+	void conesForResidueList(SlipGL *gl, std::string list);
 signals:
 	void resultReady();
 
 private:
-	void heatToVertex(Helen3D::Vertex &v, double heat);
 	vec3 nearestNormal(vec3 pos, bool useMesh);
 	long findIndex(vec3 loc);
 	void generateLookupGrid();
@@ -101,6 +120,7 @@ private:
 	AtomMap _atomMap;
 	AtomSingleMap _singleMap;
 	std::vector<int> _resiList;
+	std::map<int, double> _resiHeat;
 };
 
 #endif

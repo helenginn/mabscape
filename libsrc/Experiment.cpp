@@ -17,6 +17,7 @@
 // Please email: vagabond @ hginn.co.uk for more details.
 
 #include "Genes.h"
+#include "Square.h"
 #include "Metadata.h"
 #include "Experiment.h"
 #include "PDBView.h"
@@ -1399,6 +1400,66 @@ void Experiment::heatMap()
 	}
 	
 	_structure->heatMap();
+	_structure->radiusOnPDB(this, 20);
+}
+
+void Experiment::heatSequence()
+{
+	heatMap();
+	std::string folder = openDialogue(_view, "Folder for residue blocks", 
+	                                  "", true, true);
+
+	if (folder == "")
+	{
+		return;
+	}
+	
+	std::cout << _structure->residueCount() << " residues" << std::endl;
+
+	std::string pattern = folder + "/resi*.png";
+	std::vector<std::string> files = glob(pattern);
+
+	for (size_t i = 0; i < files.size(); i++)
+	{
+		remove(files[i].c_str());
+	}
+
+	FileReader::setOutputDirectory(folder);
+	int count = 0;
+	std::vector<SlipObject *> tmp = _view->getGL()->takeObjects();
+	mat4x4 ident = make_mat4x4();
+	mat4x4 model = _view->getGL()->getModel();
+	mat4x4 proj = _view->getGL()->getProjection();
+	_view->getGL()->setModel(ident);
+	_view->getGL()->setProjection(ident);
+	
+	Square *sq = new Square();
+	_view->getGL()->addObject(sq);
+	
+	int begin = _structure->residue(0);
+	int end = _structure->residue(_structure->residueCount() - 1);
+
+	for (size_t resi = begin; resi < end; resi++)
+	{
+		int heat = _structure->heatForResidue(resi);
+
+		std::string number = i_to_str(resi);
+		std::string zeros = std::string(4 - number.length(), '0');
+		std::string filename = "resi" + zeros + number + ".png";
+		std::string path = FileReader::addOutputDirectory(filename);
+		std::cout << path << std::endl;
+
+		for (size_t j = 0; j < sq->vertexCount(); j++)
+		{
+			sq->heatToVertex(sq->vPointer()[j], heat);
+		}
+
+		_view->getGL()->saveImage(path);
+	}
+	
+	_view->getGL()->setModel(model);
+	_view->getGL()->setProjection(proj);
+	_view->getGL()->setObjects(tmp);
 }
 
 void Experiment::heatMapMovie()
@@ -1434,5 +1495,4 @@ void Experiment::heatMapMovie()
 		_view->getGL()->rotate(0, deg2rad(-1), 0);
 		_view->getGL()->saveImage(path);
 	}
-
 }

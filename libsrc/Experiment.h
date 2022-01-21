@@ -188,6 +188,7 @@ public slots:
 	void chooseTarget(Target t);
 	void toggleLabels();
 	void heatMap();
+	void heatSequence();
 	void heatMapMovie();
 private:
 	void drawWindow(double x, double y);

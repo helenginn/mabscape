@@ -243,6 +243,18 @@ bool Controller::processNextArg(std::string arg)
 
 		return true;
 	}
+	else if (first == "add-pdb")
+	{
+		_exp->structure()->addPDB(last);
+
+		return true;
+	}
+	else if (first == "residue-cones")
+	{
+		_exp->structure()->conesForResidueList(_view->getGL(), last);
+
+		return true;
+	}
 	else if (first == "heat-map")
 	{
 		_exp->heatMap();

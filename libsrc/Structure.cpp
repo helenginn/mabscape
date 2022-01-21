@@ -16,6 +16,10 @@
 // 
 // Please email: vagabond @ hginn.co.uk for more details.
 
+#include "Cone.h"
+#include "Experiment.h"
+#include "Bound.h"
+#include <h3dsrc/SlipGL.h>
 #include "Structure.h"
 #include "Glowable_sh.h"
 
@@ -143,9 +147,10 @@ void Structure::addPDB(std::string filename)
 		
 		vec3_mult(&sum, 1 / (double)vs.size());
 		_resPos[it->first] = sum;
+		_resiList.push_back(it->first);
 	}
 	
-	turtleShell();
+//	turtleShell();
 	resultReady();
 }
 
@@ -677,47 +682,6 @@ void Structure::highlightResidues(std::string result)
 	convertExtraToColour(0.5, 0.5, 0.5);
 }
 
-void Structure::heatToVertex(Helen3D::Vertex &v, double heat)
-{
-	if (heat < 0) heat = 0;
-	vec3 colour_start, colour_aim;
-	if (heat >= -1 && heat < 0.5)
-	{
-		colour_start = make_vec3(0.4, 0.4, 0.4); // grey
-		colour_aim = make_vec3(0.55, 0.45, 0.29); // straw
-	}
-	else if (heat >= 0.5 && heat < 1)
-	{
-		colour_start = make_vec3(0.55, 0.45, 0.29); // straw
-		colour_aim = make_vec3(0.39, 0.46, 0.68); // blue
-	}
-	else if (heat >= 1 && heat < 2)
-	{
-		colour_start = make_vec3(0.39, 0.46, 0.68); // blue
-		colour_aim = make_vec3(0.68, 0.16, 0.08); // cherry red
-	}
-	else if (heat >= 2 && heat < 3)
-	{
-		colour_start = make_vec3(0.68, 0.16, 0.08); // cherry red
-		colour_aim = make_vec3(0.92, 0.55, 0.17); // orange
-	}
-	else if (heat >= 3)
-	{
-		colour_start = make_vec3(0.92, 0.55, 0.17); // orange
-		colour_aim = make_vec3(0.89, 0.89, 0.16); // yellow
-	}
-
-	double mult = heat - 1;
-	if (mult < 0) mult = 0;
-	mult *= 3;
-	heat = fmod(heat, 1);
-	colour_aim -= colour_start;
-	vec3_mult(&colour_aim, heat);
-	colour_start += colour_aim;
-	pos_from_vec(v.color, colour_start);
-	vec3_mult(&colour_start, mult);
-	pos_from_vec(v.extra, colour_start);
-}
 
 void Structure::heatMap()
 {
@@ -741,5 +705,93 @@ void Structure::heatMap()
 		double val = _vertices[i].tex[0] / stdev;
 		heatToVertex(_vertices[i], val);
 		_vertices[i].tex[0] = 0;
+	}
+}
+
+void Structure::radiusOnPDB(Experiment *e, double rad)
+{
+	for (size_t i = 0; i < e->boundCount(); i++)
+	{
+		Bound *b = e->bound(i);
+		vec3 real = b->getStoredPosition();
+		
+		for (size_t i = 0; i < _resiList.size(); i++)
+		{
+			int resi = _resiList[i];
+			if (_resPos.count(resi) == 0)
+			{
+				continue;
+			}
+			
+			vec3 pos = _resPos[resi];
+			vec3 diff = pos - real;
+			double l = vec3_length(diff);
+
+			if (l < rad)
+			{
+				double add = exp(-(l * l) / (2 * rad * rad));
+				_resiHeat[resi]++;
+			}
+		}
+	}
+
+	double sum = 0; double sumsq = 0; double count = 0;
+	for (size_t i = 0; i < _resiList.size(); i++)
+	{
+		double heat = _resiHeat[_resiList[i]];
+		sum += heat;
+		sumsq += heat * heat;
+		count++;
+	}
+	
+	double stdev = sqrt(sumsq / count - (sum / count) * (sum / count));
+	for (size_t i = 0; i < _resiList.size(); i++)
+	{
+		_resiHeat[_resiList[i]] /= stdev;
+		_resiHeat[_resiList[i]] *= 2;
+		std::cout << _resiList[i] << " " << _resiHeat[_resiList[i]] << std::endl;
+	}
+}
+
+void Structure::conesForResidueList(SlipGL *gl, std::string list)
+{
+	std::vector<std::string> components = split(list, ',');
+
+	for (size_t i = 0; i < components.size(); i++)
+	{
+		std::vector<std::string> bits = split(components[i], '-');
+		
+		if (bits.size() == 0)
+		{
+			continue;
+		}
+		
+		if (bits.size() < 2)
+		{
+			bits.push_back(bits[0]);
+		}
+		
+		int start = atoi(bits[0].c_str());
+		int end = atoi(bits[1].c_str());
+		
+		for (size_t j = start; j <= end; j++)
+		{
+			if (_resPos.count(j) == 0)
+			{
+				continue;
+			}
+			
+			vec3 tmp = _resPos[j];
+			Helen3D::Vertex *v = nearestVertexPtr(tmp, hasMesh());
+			vec3 pos = vec_from_pos(v->pos);
+			vec3 norm = vec_from_pos(v->normal);
+
+			std::cout << "Residue " << j << " position " << 
+			vec3_desc(pos) << std::endl;
+
+			Cone *cone = new Cone(norm, 6);
+			cone->addToVertices(pos);
+			gl->addObject(cone);
+		}
 	}
 }
