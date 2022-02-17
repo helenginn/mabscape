@@ -1040,7 +1040,7 @@ void Experiment::somethingToCluster4x(int data)
 	}
 
 	updateCSV(csv, data);
-	_view->clusterScreen()->getList()->cluster(grp);
+//	_view->clusterScreen()->getList()->cluster(grp);
 }
 
 
