@@ -49,7 +49,7 @@ Structure::Structure(std::string filename) : SlipObjFile(filename)
 	
 	if (collapsed)
 	{
-		std::size_t filename_start = filename.find("/");
+		std::size_t filename_start = filename.find_last_of("/");
 		if (filename_start != std::string::npos)
 		{
 			writeObjFile(filename.insert((filename_start+1), "smaller-"));
