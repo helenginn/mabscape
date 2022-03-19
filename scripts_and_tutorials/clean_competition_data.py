@@ -1,4 +1,8 @@
-"""Script to clean up competition data for use in mabscape."""
+"""
+Script to clean up competition data for use in mabscape.
+
+Usage: Start script and enter the path of the measured data and the destination for the cleaned version of this data.
+"""
 
 def clean_name(name:str) -> str:
     new_name = "ab"
