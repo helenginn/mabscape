@@ -1,0 +1,22 @@
+Get a PDB file of the protein
+Open reference and new protein in PyMol
+Align the full protein to your reference, if possible.
+This can be done with the following command: 
+
+align name_that_should_be_aligned, name_to_align_to
+
+Then
+If necessary, delete the  lines of the PDB file, that contain the coordinates of the unwanted atoms
+Open the modified PDB in PyMOL
+Make sure the newly loaded file is the only thing selected.
+In the PyMol command line type:
+	hide everything
+	# This hides the standard view of the molecule
+	show surface
+	# Shows just the surface of the molecule
+	set surface_solvent, on
+	#
+	set_view (1,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0)
+	# This will set the coordinates relative to the camera and the coordinates in the PDB file to be equal.
+	save <filename>.obj
+	# Saves the surface as obj file to the PyMol folder, if an absolute path is given, file will be saved there.

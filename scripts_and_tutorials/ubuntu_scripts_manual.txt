@@ -1,0 +1,20 @@
+The install scripts with ubuntu_packagename_install will install the release version of the package into the folder the script is located.
+
+If mabscape is installed, but vagabond is not, both installations can be done by just starting the mabscape script, if both scripts are in the same folder. The mabscape script will ask if vagabond should be installed. If this option is chosen, vagabond will be installed into the same folder as specified by the mabscape script.
+
+The Path where the package is installed can be changed by defining a path as a command line argument, e.g.
+
+	bash ubuntu_mabscape_install.sh ~/test
+
+This will install the mabscape package to the folder ~/test
+
+If you want to rebuild an existing installation you can enter "rebuild" as a command line argument, if the script is in the folder with the installation, otherwise you have to specifiy the path first, e.g.
+
+# Package installed at the script location:
+
+	bash ubuntu_mabscape_install.sh rebuild
+
+# Package installed at ~/test:
+# ORDER OF ARGUMENTS MATTERS
+
+	bash ubuntu_mabscape_install.sh ~/test rebuild
