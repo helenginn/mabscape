@@ -18,6 +18,7 @@
 
 #include <iostream>
 #include "Bound.h"
+#include "GhostBound.h"
 #include <hcsrc/RefinementStrategy.h>
 #include <h3dsrc/Text.h>
 #include "Structure.h"
@@ -167,6 +168,12 @@ void Bound::updatePositionToReal()
 	lockMutex();
 	addToVertices(diff);
 	unlockMutex();
+	
+	for (GhostBound *ghost : _ghosts)
+	{
+		ghost->getWorkingPosition();
+		ghost->updatePositionToReal();
+	}
 }
 
 void Bound::render(SlipGL *gl)

@@ -31,6 +31,7 @@ public:
 		setColour(0.3, 0.3, 0.3);
 		_realPosition = getWorkingPosition();
 		updatePositionToReal();
+		_copy->addGhost(this);
 	}
 
 	void randomlyPositionInRegion(SlipObject *obj)
@@ -54,7 +55,8 @@ public:
 	vec3 getWorkingPosition()
 	{
 		vec3 wp = _copy->getWorkingPosition();
-		return mat4x4_mult_vec(_sym, wp);
+		_realPosition = mat4x4_mult_vec(_sym, wp);
+		return _realPosition;
 	}
 	vec3 getStoredPosition()
 	{

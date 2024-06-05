@@ -28,6 +28,7 @@ class SlipGL;
 class Arrow;
 class Text;
 class Data;
+class GhostBound;
 class RefinementStrategy;
 
 class Bound : public Icosahedron
@@ -54,6 +55,11 @@ public:
 	bool isFixed()
 	{
 		return _fixed;
+	}
+	
+	void addGhost(GhostBound *ghost)
+	{
+		_ghosts.push_back(ghost);
 	}
 	
 	void label(bool visible);
@@ -185,6 +191,7 @@ protected:
 	
 	Arrow *_arrow;
 	Text *_text;
+	std::vector<GhostBound *> _ghosts;
 
 	double _elbowAngle;
 	static double _shoulderAngle;
