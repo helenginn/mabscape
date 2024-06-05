@@ -207,6 +207,7 @@ double Refinement::score()
 	{
 		Bound *bi = _experiment->bound(i);
 		bi->getWorkingPosition();
+		bi->findNearestNorm();
 	}
 
 	for (size_t i = 0; i < _experiment->boundCount(); i++)
@@ -252,7 +253,7 @@ double Refinement::score()
 				continue;
 			}
 
-			bool shouldDampen = false;//_cycleNum >= 25;
+			bool shouldDampen = true;
 			double raw = bi->scoreWithOther(bj, shouldDampen);
 
 			double diff = (raw - val) * (raw - val);
@@ -341,6 +342,10 @@ void Refinement::refine()
 		for (size_t i = 0; i < _experiment->boundCount() && !_fixedOnly; i++)
 		{
 			Bound *b = _experiment->bound(i);
+			if (!b->refineable())
+			{
+				continue;
+			}
 			double dist = b->snapToObject(NULL);
 			
 			if (dist > Bound::getRadius() * 2 / 3 && 

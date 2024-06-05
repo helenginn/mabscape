@@ -162,6 +162,13 @@ bool Controller::processNextArg(std::string arg)
 		emit fixMenu();
 		return true;
 	}
+	else if (first == "add-symmetry")
+	{
+		std::string fn = last;
+		_exp->addSymmetryCopies(fn);
+		emit fixMenu();
+		return true;
+	}
 	else if (first == "load-positions")
 	{
 		std::string fn = last;

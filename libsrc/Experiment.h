@@ -149,6 +149,8 @@ public:
 		_passToResults = pass;
 	}
 	
+	void addSymmetryCopies(std::string mat);
+
 	void setMonteTarget(int target)
 	{
 		_monteTarget = target;
@@ -231,6 +233,7 @@ private:
 	
 	bool _passToResults;
 
+	std::string _ghost;
 	QLabel *_selWindow;
 	bool _windowing;
 	double _winsx, _winsy, _winex, _winey;

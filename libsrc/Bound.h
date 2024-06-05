@@ -34,10 +34,14 @@ class Bound : public Icosahedron
 {
 public:
 	Bound();
+	~Bound()
+	{
+
+	}
 
 	double snapToObject(Structure *obj);
 	void jiggleOnSurface(Structure *obj);
-	void randomlyPositionInRegion(SlipObject *obj);
+	virtual void randomlyPositionInRegion(SlipObject *obj);
 	void toggleFixPosition();
 	void updatePositionToReal();
 	
@@ -115,6 +119,11 @@ public:
 	{
 		return static_cast<Bound *>(object)->_elbowAngle;
 	}
+
+	virtual bool refineable()
+	{
+		return true;
+	}
 	
 	vec3 getWorkingPosition();
 	vec3 getStoredPosition()
@@ -160,7 +169,9 @@ public:
 	}
 
 	void radiusOnStructure(Structure *str, double rad = 10);
-private:
+	
+	void findNearestNorm();
+protected:
 	void redrawElbow();
 
 	std::mutex _mutex;

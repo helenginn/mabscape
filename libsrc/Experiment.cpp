@@ -29,6 +29,7 @@
 #include "Structure.h"
 #include <h3dsrc/Mesh.h>
 #include "Refinement.h"
+#include "GhostBound.h"
 #include "Result.h"
 #include <hcsrc/FileReader.h>
 #include <iomanip>
@@ -83,6 +84,7 @@ Experiment::Experiment(SurfaceView *view)
 	QFont font = QFont("Helvetica", 16);
 	_label->setFont(font);
 	_label->setStyleSheet("QLabel { color : white; }");
+	_ghost = "A";
 }
 
 
@@ -784,13 +786,13 @@ void Experiment::finishUpMonteCarlo()
 
 	std::sort(_results.begin(), _results.end(), Result::result_is_less_than);
 
-	makeExplorer();
-	_explorer->addResults(_results);
-	_results.clear();
-	_explorer->show();
-
 	_worker->quit();
 	_worker->wait();
+
+	makeExplorer();
+//	_explorer->addResults(_results);
+//	_results.clear();
+	_explorer->show();
 }
 
 void Experiment::handleMesh()
@@ -1226,9 +1228,12 @@ QThread *Experiment::worker()
 void Experiment::recolourByBoundErrors(double data, double model)
 {
 	double mean = (data + model) / 2;
+	_selected->findNearestNorm();
+
 	for (size_t i = 0; i < boundCount(); i++)
 	{
 		Bound *b = bound(i);
+		b->findNearestNorm();
 		
 		if (b == _selected)
 		{
@@ -1417,7 +1422,7 @@ void Experiment::heatSequence()
 	std::cout << _structure->residueCount() << " residues" << std::endl;
 
 	std::string pattern = folder + "/resi*.png";
-	std::vector<std::string> files = glob(pattern);
+	std::vector<std::string> files = glob_pattern(pattern);
 
 	for (size_t i = 0; i < files.size(); i++)
 	{
@@ -1474,7 +1479,7 @@ void Experiment::heatMapMovie()
 	}
 
 	std::string pattern = folder + "/fr*.png";
-	std::vector<std::string> files = glob(pattern);
+	std::vector<std::string> files = glob_pattern(pattern);
 
 	for (size_t i = 0; i < files.size(); i++)
 	{
@@ -1495,4 +1500,65 @@ void Experiment::heatMapMovie()
 		_view->getGL()->rotate(0, deg2rad(-1), 0);
 		_view->getGL()->saveImage(path);
 	}
+}
+
+void Experiment::addSymmetryCopies(std::string mat)
+{
+	std::vector<std::string> matrix = split(mat, ',');
+	if (matrix.size() != 12)
+	{
+		std::cout << "WARNING: matrix size is not 12 (9x9 rotation followed "
+		"by translation vector)" << std::endl;
+	}
+
+	mat4x4 sym = make_mat4x4();
+	int n = 0;
+	int j = 0;
+	for (int i = 0; i < 9; i++)
+	{
+		sym.vals[j] = atof(matrix[n].c_str());
+		if (i % 4 == 2) j++;
+		n++; j++;
+	}
+	std::cout << n << std::endl;
+
+	std::cout << mat4x4_desc(sym) << std::endl;
+	sym.vals[3] = atof(matrix[n].c_str()); n++;
+	std::cout << mat4x4_desc(sym) << std::endl;
+	sym.vals[7] = atof(matrix[n].c_str()); n++;
+	std::cout << mat4x4_desc(sym) << std::endl;
+	sym.vals[11] = atof(matrix[n].c_str()); n++;
+	
+	std::cout << "Symmetry matrix: " << std::endl;
+	std::cout << mat4x4_desc(sym) << std::endl;
+	
+	for (size_t i = 0; i < _data->boundCount(); i++)
+	{
+		Bound *b = bound(i);
+		if (!b->refineable())
+		{
+			continue;
+		}
+		
+		std::cout << "Selecting " << b->name() << " to duplicate" << std::endl;
+		std::cout << "Original position: " << vec3_desc(b->getWorkingPosition()) << std::endl;
+		
+		GhostBound *ghost = new GhostBound(b, sym);
+		ghost->setName(b->name() + "_" + _ghost);
+
+		_gl->addObject(ghost, false);
+		_bounds.push_back(ghost);
+		ghost->setStructure(_structure);
+
+		// don't know why I do this, I did it before
+		_gl->removeObject(_explorer);
+		_gl->addObject(_explorer, false);
+
+		std::cout << "Ghost position: " << vec3_desc(ghost->getWorkingPosition()) << std::endl;
+
+		_nameMap[ghost->name()] = ghost;
+		std::cout << std::endl;
+	}
+
+	_ghost[0]++;
 }

@@ -76,12 +76,12 @@ double Bound::snapToObject(Structure *obj)
 		obj = _structure;
 	}
 	
-	vec3 p = _realPosition;
+	vec3 p = getStoredPosition();
 	vec3 nearest = obj->lookupVertexPtr(p);
 	vec3 diff = vec3_subtract_vec3(nearest, p);
 	double l = vec3_length(diff);
 
-	_realPosition = nearest;
+	setRealPosition(nearest);
 	updatePositionToReal();
 	
 	return l;
@@ -102,7 +102,7 @@ void Bound::randomlyPositionInRegion(SlipObject *obj)
 	lockMutex();
 	addToVertices(diff);
 	unlockMutex();
-	_realPosition = place;
+	setRealPosition(place);
 }
 
 void Bound::jiggleOnSurface(Structure *obj)
@@ -143,12 +143,12 @@ vec3 Bound::getWorkingPosition()
 {
 	if (!_snapping)
 	{
-		return _realPosition;
+		return getStoredPosition();
 	}
 	else
 	{
 		vec3 nearest;
-		nearest = _structure->nearestVertex(_realPosition);
+		nearest = _structure->nearestVertex(getStoredPosition());
 		return nearest;
 	}
 }
@@ -157,7 +157,7 @@ vec3 Bound::getWorkingPosition()
 void Bound::setSnapping(bool snapping)
 {
 	_snapping = snapping;
-	_realPosition = centroid();
+	setRealPosition(centroid());
 }
 
 void Bound::updatePositionToReal()
@@ -201,6 +201,11 @@ void Bound::addToStrategy(RefinementStrategy *str, bool elbow)
 
 void Bound::setRealPosition(vec3 real)
 {
+	if (real.x != real.x || real.y != real.y || real.z != real.z)
+	{
+		return;
+	}
+
 	_realPosition = real;
 }
 
@@ -220,12 +225,27 @@ double Bound::sigmoidalScore(vec3 posi, vec3 posj, double slope, double mult)
 
 }
 
+void Bound::findNearestNorm()
+{
+	vec3 pos = getStoredPosition();
+	_nearestNorm = _structure->lookupVertexPtr(pos, true);
+}
+
 double Bound::scoreWithOther(Bound *other, bool dampen)
 {
 	vec3 posi = getStoredPosition();
 	vec3 posj = other->getStoredPosition();
-
+	
 	double val = sigmoidalScore(posi, posj);
+
+	double dot = vec3_dot_vec3(_nearestNorm, 
+	                           other->_nearestNorm);
+
+	if (dot < 0)
+	{
+		dot += 1;
+		val *= dot;
+	}
 	
 	return val;
 }
@@ -301,7 +321,7 @@ void Bound::label(bool visible)
 	}
 	
 	_text = new Text();
-	_text->setProperties(_realPosition, name(), 144, Qt::black,
+	_text->setProperties(getStoredPosition(), name(), 144, Qt::black,
 	                     0, 0, 5);
 	_text->prepare();
 }
@@ -312,7 +332,7 @@ void Bound::radiusOnStructure(Structure *str, double rad)
 	for (size_t i = 0; i < str->vertexCount(); i++)
 	{
 		vec3 pos = vec_from_pos(str->vertex(i).pos);
-		vec3 diff = _realPosition - pos;
+		vec3 diff = getStoredPosition() - pos;
 		
 		double length = vec3_length(diff);
 		

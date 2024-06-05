@@ -94,11 +94,11 @@ public:
 	void radiusOnPDB(Structure *str, double rad);
 	void radiusOnPDB(Experiment *e, double rad);
 	void conesForResidueList(SlipGL *gl, std::string list);
+	vec3 nearestNormal(vec3 pos, bool useMesh);
 signals:
 	void resultReady();
 
 private:
-	vec3 nearestNormal(vec3 pos, bool useMesh);
 	long findIndex(vec3 loc);
 	void generateLookupGrid();
 	bool checkLocation(vec3 loc);

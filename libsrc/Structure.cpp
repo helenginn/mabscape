@@ -318,6 +318,10 @@ double Structure::recalculateDampening(vec3 loc)
 vec3 Structure::nearestNormal(vec3 pos, bool useMesh)
 {
 	Vertex *vClose = nearestVertexPtr(pos, useMesh);
+	if (vClose == nullptr)
+	{
+		return empty_vec3();
+	}
 	vec3 v = vec_from_pos(vClose->normal);
 	return v;
 }
